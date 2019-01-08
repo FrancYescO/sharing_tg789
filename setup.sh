@@ -13,5 +13,5 @@ if [ -d /mnt/usb/USB-A1 ]; then
     mkdir -p /mnt/usb/USB-A1/sharing/config/transmission/
     cp -R ./config/* /mnt/usb/USB-A1/sharing/config/transmission/
     ln -s /mnt/usb/USB-A1/sharing/config/transmission/ /usr/share/transmission
-    ln -s /mnt/usb/USB-A1/sharing/config/transmission/web /www/docroot/transmission
+    ln -s /mnt/usb/USB-A1/sharing/config/transmission/ /www/docroot/transmission
 fi
