@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Startup/Stop script for aMuled - aMule Daemon
+#
+
+control=$(ls /mnt/usb/)
+
+if [ $control == USB-A1 ]
+then 
+     echo "OK USB Found"
+     else
+         echo "Please Insert USB Disk"
+         exit 0
+fi
+
+
+case "$1" in
+
+'start')
+PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/amuled -f
+;;
+
+'stop')
+killall -9 amuled
+killall -9 amuleweb
+echo "aMule Stopped"
+;;
+
+*)
+echo "Usage: /etc/init.d/amule { start | stop }"
+;;
+
+esac

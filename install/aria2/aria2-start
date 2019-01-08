@@ -1,0 +1,15 @@
+#!/bin/sh
+
+control=$(ls /mnt/usb/)
+
+if [ $control == USB-A1 ]
+then 
+     echo "OK USB Found"
+     else
+         echo "Please Insert USB Disk"
+         exit 1
+fi
+
+
+
+/mnt/usb/USB-A1/sharing/config/aria2/aria2 start

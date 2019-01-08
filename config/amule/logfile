@@ -1,0 +1,56 @@
+ 2018-06-27 06:19:45: Initialising aMuleD 2.3.2 compiled with wxBase v2.8.12
+ 2018-06-27 06:19:45: Checking if there is an instance already running...
+ 2018-06-27 06:19:45: Error: Lock file '/mnt/usb/USB-A1/sharing/config/amule/muleLock' has incorrect permissions.
+ 2018-06-27 06:19:45: No other instances are running.
+!2018-06-27 06:19:45: ERROR: WARNING Warning! You are running aMule as root.
+!2018-06-27 06:19:45: Doing so is not recommended for security reasons,
+!2018-06-27 06:19:45: and you are advised to run aMule as an normal
+!2018-06-27 06:19:45: user instead.
+ 2018-06-27 06:19:45: Creditfile loaded, 0 clients are known
+ 2018-06-27 06:19:45: *** TCP socket (ECServer) listening on 0.0.0.0:4712
+ 2018-06-27 06:19:45: Created Server UDP-Socket at port 4665
+ 2018-06-27 06:19:45: ListenSocket: Ok.
+ 2018-06-27 06:19:45: Created Client UDP-Socket at port 4672
+ 2018-06-27 06:19:45: amuled: forking to background - see you
+ 2018-06-27 06:19:45: Error: Lock file '/mnt/usb/USB-A1/sharing/config/amule/muleLock' has incorrect permissions.
+ 2018-06-27 06:19:45: Loading server.met file: /mnt/usb/USB-A1/sharing/config/amule/server.met
+!2018-06-27 06:19:45: 9 servers in server.met found
+ 2018-06-27 06:19:45: Loading temp files from /mnt/usb/USB-A1/sharing/download/amule/temp.
+ 2018-06-27 06:19:45: All PartFiles Loaded.
+ 2018-06-27 06:19:45: No part files found
+ 2018-06-27 06:19:45: No shareable files found in directory: /mnt/usb/USB-A1/sharing/download/amule/files
+ 2018-06-27 06:19:45: Found 0 known shared files
+!2018-06-27 06:19:46: web server running on pid 22917
+ 2018-06-27 06:19:46: amuled: OnInit - starting timer
+ 2018-06-27 06:19:46: Loading IP filters 'ipfilter.dat' and 'ipfilter_static.dat'.
+ 2018-06-27 06:19:46: Loaded 0 IP-ranges from '/mnt/usb/USB-A1/sharing/config/amule/ipfilter.dat'.
+ 2018-06-27 06:19:46: Loaded 0 IP-ranges from '/mnt/usb/USB-A1/sharing/config/amule/ipfilter_static.dat'.
+ 2018-06-27 06:19:46: IP filter is ready
+!2018-06-27 06:19:46: Connecting
+ 2018-06-27 06:19:46: Connecting to TV Underground (176.103.48.36 - 176.103.48.36:4184)
+ 2018-06-27 06:19:46: Read 189 Kad contacts
+!2018-06-27 06:19:46: Kad started.
+ 2018-06-27 06:19:46: New external connection accepted
+ 2018-06-27 06:19:46: Connecting client: aMuleweb 2.3.2
+ 2018-06-27 06:19:46: Connected to TV Underground (176.103.48.36:4184)
+ 2018-06-27 06:19:46: Access granted.
+ 2018-06-27 06:19:46: Connecting to eMule Security (80.208.228.241 - 80.208.228.241:8369)
+ 2018-06-27 06:19:46: Connected to eMule Security (80.208.228.241:8369)
+!2018-06-27 06:19:47: Connection established on: eMule Security
+!2018-06-27 06:19:47: Connected to eMule Security with HighID
+ 2018-06-27 06:19:47: New clientid is 1706818143
+ 2018-06-27 06:19:47: ServerMessage: server version 17.15 (lugdunum)
+ 2018-06-27 06:19:47: ServerMessage: Welcome to eMule Security! <> www.emule-security.org
+ 2018-06-27 06:19:47: ServerMessage: Download Safe Serverlist > http://www.emule-security.org/serverlist/
+ 2018-06-27 06:19:47: ServerMessage: IP-filter > http://www.emule-security.org/e107_plugins/faq/faq.php?0.cat.2.1
+ 2018-06-27 06:19:47: ServerMessage: nodes.dat > http://www.emule-security.org/e107_plugins/faq/faq.php?0.cat.6.6
+ 2018-06-27 06:19:47: ServerMessage: Ip-To-Country database> http://www.emule-security.org/e107_plugins/faq/faq.php?0.cat.7.10
+ 2018-06-27 06:19:47: ServerMessage: eMule MODs > http://www.emule-security.org/modb/
+ 2018-06-27 06:19:47: ServerMessage: Disclaimer: This server is only indexing file-hashes, and no contains any files,
+ 2018-06-27 06:19:47: ServerMessage: not directly involved in the exchange of files between users of p2p-network.
+ 2018-06-27 06:19:47: ServerMessage: Administration of server is not responsible for the contents of files
+ 2018-06-27 06:19:47: ServerMessage: shared by connected to the server users. Please do not share
+ 2018-06-27 06:19:47: ServerMessage: copyrighted material, DRM protected media, viruses or other harmful files!
+!2018-06-27 06:19:56: Kad stopped.
+!2018-06-27 06:19:56: Connected to Kad (firewalled)
+!2018-06-27 06:20:31: Connected to Kad (ok)

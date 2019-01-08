@@ -1,0 +1,78 @@
+﻿Ver. 4.0 
+
+Installer per il firmware UNO che abilita/installa i seguenti componenti:
+
+ABILITA L'USO DI CUPS WEB SERVER
+Raggiungibile attraverso il menu extra o direttamente alla pagina http://dsldevice:631
+
+INSTALLA AMULE 
+Già pronto all'uso con una configurazione di base, raggiungibile attraverso il menu extra o direttamente alle pagine http://dsldevice:4711
+e http://dsldevice/amuleweb/login.php
+Le cartelle per il download sono /sharing/download/amule/temp per i files temporanei e /sharing/download/amule/files, già settate nel file
+di configurazione.
+Amule non si avvia se il supporto usb non è inserito.
+
+INSTALLA ARIA2 E UNA WEB GUI
+Già pronto all'uso con una configurazione di base, raggiungibile attraverso il menu extra o direttamente alla pagina http://dsldevice/aria2/
+Si avvia/ferma con i comandi aria2-start e aria2-stop.
+I file di configurazione sono nella cartella /sharing/config/aria2/
+La cartella per il download è /sharing/download/aria2 è già inserita nel file di configurazione.
+Aria2 non si avvia se il supporto usb non è inserito.
+
+INSTALLA TRANSMISSION 
+Già pronto all'uso con una configurazione di base, raggiungibile attravero il menu extra o direttamente alle pagine http://dsldevice:9091
+e http://dsldevice/transmission/web/
+Si avvia/ferma con i comandi transmission-start e transmission-stop.
+Il file di configurazione è nella posizione di default in /etc/config/transmission 
+La cartelle per il download è /sharing/download/transmission è già inserita nel file di configurazione.
+Transmission non si avvia se il supporto usb non è inserito.
+
+INSTALLA UNA VERSIONE MODIFICATA DI GATEWAY PER L'UTILIZZO DELLE FUNZIONI EXTRA DELLA GUI
+Vedere foto allegata.
+
+CONFIGURA LE PORTE DEL FIREWALL PER AMULE ED ARIA2
+Vengono inserite le porte da aprire nel file /etc/firewall.user
+
+Per coloro che usano windows è presente la cartella /sharing/install/lanciatori/ in cui sono inseriti dei comandi .bat per avviare/fermare
+i programmi. Per poterli utilizzare copiare la cartella  in una posizione a propria scelta del PC. Doppio click per avviare e digitare la
+password del router quando richiesta. Usa l'eseguibile plink.exe reperibile nello stesso sito di putty.exe:
+https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html  
+
+E' possibile fare molteplici e successive installazione/rimozioni totali/parziali.
+Non viene cancellato nulla ma viene fatta una copia di tutti dati sovrascritti.
+
+INSTALLAZIONE/RIMOZIONE - RIPRISTINO DOPO UPGRADE DELLA GUI
+
+- Copiare il file sharing.tar.gz su disco usb
+- Inserite il disco usb nel router
+- Scompattate il file sharing.tar.gz su disco usb con il comando:
+tar -zxvf /mnt/usb/USB-A1/sharing.tar.gz
+- Editare lo script install.sh nella cartella install e decommentare le opzioni che interessano (Togliere # prima del comando) 
+- Digitare i seguenti comandi:
+sh /mnt/usb/USB-A1/sharing/install/backup.sh (da inviare solamente la prima volta) salva i file in /sharing/install/backup/
+sh /mnt/usb/USB-A1/sharing/install/install.sh
+- Per la rimozione totale o parziale editate con lo stesso principio lo script /sharing/install/remove.sh e digitare il comando:
+sh /mnt/usb/USB-A1/sharing/install/remove.sh
+- Per ripristinare la configurazione a seguito dell'upgrade della gui digitare il comando:
+sh /mnt/usb/USB-A1/sharing/install/upgrade.sh
+
+AVVERTENZE 
+La ragione per la quale i programmi sono già configurati e pronti all'uso non è solo una comodità per successive re-installazioni
+tipo dopo un reset del router, ma per tutelare specialmente i meno esperti, in quanto questi programmi di default puntano a root,
+questo significa che se non settati a dovere scrivono direttamente nella flash, con il risultato finale di bloccare il router.
+In pratica la partizione /overlay una volta piena diventa non rescrivibile e il router va in loop continuo saltando da una bank 
+all'altra.
+SE QUESTO DOVESSE ACCADERE NON PROVATE AD USARE IL TASTO RESET O REINSTALLARE TRAMITE TFTP IL FW, PEGGIORERETE IRRIMEDIABILMENTE
+LA SITUAZIONE. QUESTO SI RISOLVE DANDO L'OPPORTUNO COMANDO MTD VIA SSH (SE ACCESSIBILE) O SERIALE.
+A tal proposito abilitate la seriale togliendo '#' in /etc/inittab, e mettete coredump a 0 editando /etc/config/system
+e settando  option reboot '0' .
+ 
+
+
+
+
+
+
+
+
+

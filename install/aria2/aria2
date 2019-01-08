@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Startup/Stop script for Aria2 - Aria2 Daemon
+#
+
+control=$(ls /mnt/usb/)
+
+if [ $control == USB-A1 ]
+then 
+     echo "OK USB Found"
+     else
+         echo "Please Insert USB Disk"
+         exit 0
+fi
+
+
+case "$1" in
+
+'start')
+aria2c --enable-rpc --rpc-listen-all=true --rpc-allow-origin-all --daemon=true
+echo "Aria2 Started"
+;;
+
+'stop')
+killall -9 aria2c
+echo "Aria2 Stopped"
+;;
+
+*)
+echo "Usage: /etc/init.d/aria2 { start | stop }"
+;;
+
+esac
