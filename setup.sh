@@ -12,6 +12,8 @@ cp ./remove.sh /usr/share/transformer/scripts/remove_amule.sh
 rm -r /usr/share/amule/webserver
 if [ -d /mnt/usb/USB-A1 ]; then
     mkdir -p /mnt/usb/USB-A1/sharing/config/amule
+    mkdir -p /mnt/usb/USB-A1/sharing/download/amule/files
+    mkdir -p /mnt/usb/USB-A1/sharing/download/amule/temp
     cp -R ./config/* /mnt/usb/USB-A1/sharing/config/amule
     cd /usr/share/amule/
     ln -s /mnt/usb/USB-A1/sharing/config/amule/webserver
