@@ -11,6 +11,7 @@ cp ./transmission.conf /etc/config/transmission
 cp ./remove.sh /usr/share/transformer/scripts/remove_transmission.sh
 if [ -d /mnt/usb/USB-A1 ]; then
     mkdir -p /mnt/usb/USB-A1/sharing/config/transmission/
+    mkdir -p /mnt/usb/USB-A1/sharing/download/transmission
     cp -R ./config/* /mnt/usb/USB-A1/sharing/config/transmission/
     ln -s /mnt/usb/USB-A1/sharing/config/transmission/ /usr/share/transmission
     ln -s /mnt/usb/USB-A1/sharing/config/transmission/ /www/docroot/transmission
