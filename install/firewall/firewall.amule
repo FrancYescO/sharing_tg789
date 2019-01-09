@@ -1,5 +1,0 @@
-# aMule
-iptables -I INPUT  -p tcp --dport 4662 -j ACCEPT
-iptables -I INPUT  -p udp --dport 4665 -j ACCEPT
-iptables -I INPUT  -p udp --dport 4672 -j ACCEPT
-
