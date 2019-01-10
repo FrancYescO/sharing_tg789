@@ -4,7 +4,7 @@
 #
 
 
-CONF=/mnt/usb/USB-A1/sharing/config/aria2/aria2.conf
+CONF=/tmp/run/mountd/sda1/sharing/config/aria2/aria2.conf
 
 case "$1" in
 
