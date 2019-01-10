@@ -12,7 +12,7 @@
     "blocklist-url": "http://www.example.com/blocklist",
     "cache-size-mb": 2,
     "dht-enabled": true,
-    "download-dir": "/mnt/usb/USB-A1/sharing/download/transmission",
+    "download-dir": "/tmp/run/mountd/sda1/sharing/download/transmission",
     "download-queue-enabled": true,
     "download-queue-size": 4,
     "encryption": 1,
