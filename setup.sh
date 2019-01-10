@@ -1,8 +1,8 @@
 #!/bin/sh
 
 if [ -d /tmp/run/mountd/sda1 ]; then
-    mkdir -p /usr/share/amule/webserver
-    ln -s /tmp/run/mountd/sda1/sharing/config/amule/webserver /usr/share/amule/
+    mkdir -p /usr/share/amule
+    ln -s /tmp/run/mountd/sda1/sharing/config/amule/webserver /usr/share/amule/webserver
     opkg install ./*.ipk
     cp ./amule /etc/init.d/
     cat <<EOF >> /etc/firewall.user
