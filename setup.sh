@@ -3,6 +3,8 @@
 if [ -d /tmp/run/mountd/sda1 ]; then
     mkdir /usr/share/amule
     mkdir -p /tmp/run/mountd/sda1/sharing/config/amule/webserver
+    mkdir -p /tmp/run/mountd/sda1/sharing/download/amule/files
+    mkdir -p /tmp/run/mountd/sda1/sharing/download/amule/temp
     cp -R ./config/* /tmp/run/mountd/sda1/sharing/config/amule
     ln -s /tmp/run/mountd/sda1/sharing/config/amule/webserver /usr/share/amule/
     opkg install ./*.ipk
