@@ -14,7 +14,7 @@ iptables -I INPUT  -p tcp --dport 4662 -j ACCEPT
 iptables -I INPUT  -p udp --dport 4665 -j ACCEPT
 iptables -I INPUT  -p udp --dport 4672 -j ACCEPT
 EOF
-    /etc/init.d/firewall reload
+    /etc/init.d/firewall restart
     cp ./remove.sh /usr/share/transformer/scripts/remove_amule.sh
     mkdir -p /tmp/run/mountd/sda1/sharing/config/amule
 fi
