@@ -1,5 +1,6 @@
 #!/bin/sh
 
+/etc/init.d/amule stop
 opkg remove amule libbfd libupnp libreadline libwxbase libncurses terminfo
 rm -r /usr/share/amule/
 
