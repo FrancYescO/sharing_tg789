@@ -5,6 +5,7 @@ cat <<EOF >> /etc/firewall.user
 iptables -I INPUT  -p tcp -m tcp --dport 6800:6801 -j ACCEPT
 iptables -I INPUT  -p udp -m udp --dport 6801 -j ACCEPT
 EOF
+/etc/init.d/firewall restart
 cp ./remove.sh /usr/share/transformer/scripts/remove_aria2.sh
 if [ -d /tmp/run/mountd/sda1 ]; then
     mkdir -p /tmp/run/mountd/sda1/sharing/config/aria2
