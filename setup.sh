@@ -22,4 +22,3 @@ rm -R /var/lib/asterisk
 /etc/init.d/asterisk-gui restart
 sudo ln -s /var/lib/asterisk/static-http/ /usr/share/asterisk/static-http
 /etc/init.d/asterisk restart
-start.sh
