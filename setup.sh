@@ -16,9 +16,7 @@ chmod -R 755 /usr/lib/asterisk
 #chmod 755 /etc/init.d/asterisk
 chmod 755 /etc/init.d/asterisk-gui
 chmod 755 /bin/hostname
-rm -R /var/lib/asterisk
 /etc/init.d/asterisk enable
 /etc/init.d/asterisk-gui enable
 /etc/init.d/asterisk-gui restart
-sudo ln -s /var/lib/asterisk/static-http/ /usr/share/asterisk/static-http
 /etc/init.d/asterisk restart
