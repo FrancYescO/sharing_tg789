@@ -1,0 +1,23 @@
+version: 2.1
+jobs:
+  build:
+    working_directory: ~/build
+    docker:
+      - image: alpine/git
+    steps:
+      - checkout
+      - run:
+          name: Build ipk
+          command: |
+            sh ./ipkg-build.sh ./modgui-vpn
+            git config --global user.name "CircleCI";
+            git config --global user.email "CircleCI"
+
+            git add *.ipk
+
+            git commit -F- \<<EOF
+            Generated IPK
+            [ci skip]
+            EOF
+
+            git push origin ${CIRCLE_BRANCH}
