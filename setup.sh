@@ -1,3 +1,6 @@
+#!/bin/sh
+
+opkg install strongswan-default strongswan-pki
 
 ddns_domain=$(uci get ddns.myddns_ipv4.domain)
 
@@ -17,7 +20,7 @@ conn roadwarrior
  rightauth=pubkey
  rightcert=clientCert.pem
  #rightauth2=eap-mschapv2
- auto=add" >> /etc/strongswan.conf
+ auto=add" > /etc/ipsec.conf
 
 cat << EOF > /etc/strongswan.d/dhcp.conf
 charon {
