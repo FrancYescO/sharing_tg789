@@ -14,3 +14,4 @@ rm -r /etc/asterisk
 rm -r /usr/share/asterisk
 rm -r /usr/lib/asterisk
 rm -r /var/lib/asterisk
+rm /etc/init.d/asterisk-gui
