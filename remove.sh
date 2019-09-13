@@ -6,7 +6,7 @@ opkg remove asterisk13-app-exec
 opkg remove asterisk13-app-system
 opkg remove asterisk13-chan-iax2
 opkg remove asterisk13-res-timing-timerfd
-opkg remove asterisk13
+opkg remove --force-remove asterisk13 #prerm script failing so force-remove required...
 opkg remove libncurses
 opkg remove terminfo
 rm /bin/hostname
