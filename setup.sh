@@ -83,18 +83,23 @@ EOF
 
 cd /tmp
 
-echo "Generating Keys/Cets, it requires some time..."
+echo "Generating Keys/Certs, it requires some time..."
 
+echo "Generating CA Key/Certificate..."
 ipsec pki --gen --outform pem > caKey.pem
 ipsec pki --self --in caKey.pem --dn "C=US, O=$orgName, CN=$caName" --ca --outform pem > caCert.pem
+
+echo "Generating Server Key/Certificate..."
 ipsec pki --gen --outform pem > serverKey.pem
 ipsec pki --pub --in serverKey.pem | ipsec pki --issue --cacert caCert.pem --cakey caKey.pem --dn "C=US, O=$orgName, CN=$ddns_domain" --san="$ddns_domain" --flag serverAuth --flag ikeIntermediate --outform pem > serverCert.pem
+
+echo "Generating Client Key/Certificate..."
 ipsec pki --gen --outform pem > clientKey.pem
 ipsec pki --pub --in clientKey.pem | ipsec pki --issue --cacert caCert.pem --cakey caKey.pem --dn "C=US, O=$orgName, CN=$vpnclientName" --san="$vpnclientName" --outform pem > clientCert.pem
 
 openssl pkcs12 -export -inkey clientKey.pem -in clientCert.pem -name "$vpnclientName" -certfile caCert.pem -caname "$caName" -out "$vpnclientName""Cert.p12" -passout pass:
 
-echo "Generated client cert, take it from /tmp/""$vpnclientName""Cert.p12 !!"
+echo "Take client Cert from /tmp/""$vpnclientName""Cert.p12 !!"
 
 # where to put them...
 mv caCert.pem /etc/ipsec.d/cacerts/
