@@ -8,7 +8,7 @@ vpnclientName="myvpnclient"
 orgName="Technicolor"
 caName="CATechnicolor"
 ddns_domain=$(uci get ddns.myddns_ipv4.domain)
-dhcp_broadcast=$(ip a s dev br-lan | awk '/inet / {print $4}')
+dhcp_broadcast=$(ifconfig br-lan | awk '/inet / {print $3}' | cut -d: -f2)
 
 echo "Generating/Placing conf files..."
 
