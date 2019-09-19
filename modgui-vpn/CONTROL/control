@@ -1,7 +1,7 @@
 Package: modgui-vpn
 Priority: optional
 Section: net
-Depends: xl2tpd, strongswan, strongswan-default
+Depends: xl2tpd, strongswan-default
 Description: VPN cards/tab.
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/Ansuel/tch-nginx-gui
