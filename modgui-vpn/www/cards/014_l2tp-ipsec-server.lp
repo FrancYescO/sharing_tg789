@@ -37,7 +37,8 @@ end
   <div class="smallcard">
     <%= ui_helper.createCardHeader(T"VPN Server", modalPath) %>
      <div class="content card_bg" data-bg-text="&#xf023;">
-      <%
+      <div class="divtable">
+       <%
         ngx.print(
           ui_helper.createSimpleLight(serverenabled, switchtext),
           '<p class="subinfos">',
@@ -45,6 +46,7 @@ end
                      "<strong>%d clients</strong> are connected", connectedclients), connectedclients),'</p>'
         )
       %>
+     </div>
     </div>
   </div>
 </div>
