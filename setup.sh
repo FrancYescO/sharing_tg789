@@ -21,7 +21,7 @@ if [ -d /tmp/run/mountd/sda1 ]; then
     mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/
     mkdir -p /tmp/run/mountd/sda1/sharing/download/transmission
     cp -R ./config/* /tmp/run/mountd/sda1/sharing/config/transmission/
-    cp  /tmp/run/mountd/sda1/sharing/config/transmission /etc/init.d/transmission
+    cp  /tmp/run/mountd/sda1/sharing/config/transmission/transmission /etc/init.d/transmission
     mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/torrents
     mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/resume
     mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/blocklists
