@@ -1,0 +1,9 @@
+Package: modgui-aria2
+Priority: optional
+Section: net
+Depends: aria2
+Description: aria2 modgui app.
+Maintainer: FrancYescO <francyesc0@hotmail.it>
+Source: https://github.com/Ansuel/tch-nginx-gui
+Version: 1.0-0
+Architecture: all

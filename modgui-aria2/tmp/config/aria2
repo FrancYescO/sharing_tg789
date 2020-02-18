@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Startup/Stop script for Aria2 - Aria2 Daemon
+#
+
+
+CONF=/tmp/run/mountd/sda1/sharing/config/aria2/aria2.conf
+
+case "$1" in
+
+'start')
+
+if [ -d /tmp/run/mountd/sda1 ]; then
+   echo "OK USB Found"
+   else  
+       if [ -d /mnt/usb/* ] ; then
+          echo "Link to usb"
+          sda1=$(ls /mnt/usb/)
+          mkdir -p /tmp/run/mountd/
+          ln -s /mnt/usb/$sda1 /tmp/run/mountd/sda1
+          else
+              exit 1
+       fi
+fi
+
+aria2c --enable-rpc --rpc-listen-all=true --rpc-allow-origin-all --daemon=true --conf-path=$CONF
+echo "Aria2 Started"
+;;
+
+'stop')
+killall -9 aria2c
+echo "Aria2 Stopped"
+;;
+
+*)
+echo "Usage: /etc/init.d/aria2 { start | stop }"
+;;
+
+esac
