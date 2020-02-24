@@ -10,6 +10,13 @@ export PATH="${PATH:+$PATH:}/sbin"
 
 start_daemon () {
 
+
+      start-stop-daemon -S -x $DAEMON
+}
+
+case "$1" in
+    start)
+
 if [ -d /tmp/run/mountd/sda1 ]; then
    echo "OK USB Found"
    else
@@ -22,16 +29,12 @@ if [ -d /tmp/run/mountd/sda1 ]; then
               exit 1
        fi
 fi
-
-      start-stop-daemon -S -x $DAEMON
-}
-
-case "$1" in
-    start)
         $DAEMON -g $CONFIG
+        echo "Transmission Started"
         ;;
     stop)
          killall -9 $NAME
+         echo "Transmission Stopped"
         ;;
     *)
         echo "Usage: /etc/init.d/transmission {start|stop}" || true
