@@ -1,0 +1,6 @@
+#!/bin/sh
+
+rm /usr/share/transmission
+rm /etc/config/transmission
+
+exit 0

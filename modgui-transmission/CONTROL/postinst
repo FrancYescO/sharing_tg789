@@ -1,0 +1,15 @@
+#!/bin/sh
+
+. $IPKG_INSTROOT/lib/functions.sh
+
+if [ -d /tmp/run/mountd/sda1 ]; then
+    mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/
+    mkdir -p /tmp/run/mountd/sda1/sharing/download/transmission
+    cp -R /tmp/config-transmission/* /tmp/run/mountd/sda1/sharing/config/transmission/
+    mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/torrents
+    mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/resume
+    mkdir -p /tmp/run/mountd/sda1/sharing/config/transmission/config/blocklists
+    ln -s /tmp/run/mountd/sda1/sharing/config/transmission/ /usr/share/transmission
+fi
+
+exit 0

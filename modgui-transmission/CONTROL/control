@@ -1,0 +1,9 @@
+Package: modgui-transmission
+Priority: optional
+Section: net
+Depends: transmission-daemon-openssl, transmission-remote-openssl, ca-bundle, libminiupnpc, libnatpmp,  libevent2
+Description: Transmission torrent downloader.
+Maintainer: FrancYescO <francyesc0@hotmail.it>
+Source: https://github.com/Ansuel/tch-nginx-gui
+Version: 1.0-0
+Architecture: all

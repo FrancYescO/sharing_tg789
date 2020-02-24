@@ -1,0 +1,46 @@
+#!/bin/sh -e
+
+NAME=transmission-daemon
+CONFIG=/tmp/run/mountd/sda1/sharing/config/transmission/config
+DAEMON=/usr/bin/$NAME
+export PATH="${PATH:+$PATH:}/sbin"
+
+[ -x $DAEMON ] || exit 0
+
+
+start_daemon () {
+
+
+      start-stop-daemon -S -x $DAEMON
+}
+
+case "$1" in
+    start)
+
+if [ -d /tmp/run/mountd/sda1 ]; then
+   echo "OK USB Found"
+   else
+       if [ -d /mnt/usb/* ] ; then
+          echo "Link to usb"
+          sda1=$(ls /mnt/usb/)
+          mkdir -p /tmp/run/mountd/
+          ln -s /mnt/usb/$sda1 /tmp/run/mountd/sda1
+          else
+              exit 1
+       fi
+fi
+        $DAEMON -g $CONFIG
+        echo "Transmission Started"
+        ;;
+    stop)
+         killall -9 $NAME
+         echo "Transmission Stopped"
+        ;;
+    *)
+        echo "Usage: /etc/init.d/transmission {start|stop}" || true
+        exit 2
+        ;;
+esac
+
+exit 0
+
