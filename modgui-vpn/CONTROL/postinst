@@ -101,5 +101,6 @@ uci commit
 
 /etc/init.d/l2tp-ipsec-server enable
 /etc/init.d/l2tp-ipsec-server start 2>/dev/null
+/etc/init.d/ipsec enable
 
 exit 0
