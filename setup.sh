@@ -3,6 +3,7 @@
 echo "Installing strongswan..."
 
 opkg install strongswan-default strongswan-pki strongswan-mod-dhcp
+opkg list | grep fox  | awk '{print $1}' | xargs opkg install
 
 COUNTRYNAME="US"
 CANAME="CATechnicolor"
@@ -27,15 +28,37 @@ conn %default
         leftid=$SERVERDOMAINNAME
         leftsubnet=0.0.0.0/0;::/0
         right=%any
-        rightsourceip=10.0.1.0/24
-        #rightdns=8.8.8.8
+        rightsourceip=%dhcp
         eap_identity=%identity
         auto=add
 
 conn rwEAPMSCHAPV2
         leftsendcert=always
         rightauth=eap-mschapv2
-        rightsendcert=never" > /etc/ipsec.conf
+        rightsendcert=never
+
+conn rwPUBKEYIOS
+        leftsendcert=always
+        rightid=SHAREDSAN
+        rightauth=pubkey
+        rightca=caCert.pem
+        #rightauth2=eap-mschapv2
+
+conn rwEAPTLSIOS
+        leftsendcert=always
+        rightid=SHAREDSAN
+        rightauth=eap-tls
+        rightcert=caCert.pem
+        #rightauth2=eap-mschapv2
+
+conn rwPUBKEY
+        rightauth=pubkey
+        rightcert=caCert.pem
+        #rightauth2=eap-mschapv2
+
+conn rwEAPTLS
+        rightauth=eap-tls
+        rightcert=caCert.pem" > /etc/ipsec.conf
 
 echo "dhcp {
   force_server_address = yes
@@ -125,31 +148,6 @@ for CLIENTNAME in $CLIENTNAMES; do
   openssl pkcs12 -export -inkey clientKey_$CLIENTNAME.pem -in clientCert_$CLIENTNAME.pem -name "$CLIENTNAME" -certfile caCert.pem -caname "$CANAME" -out client_$CLIENTNAME.p12 -password "pass:$CACERTPASSWORD"
   rm clientKey_$CLIENTNAME.pem
   openssl x509 -inform PEM -outform DER -in clientCert_$CLIENTNAME.pem -out clientCert_$CLIENTNAME.crt
-
-  echo "
-conn rwPUBKEYIOS
-        leftsendcert=always
-        rightid=SHAREDSAN
-        rightauth=pubkey
-        rightcert=clientCert_$CLIENTNAME.pem
-        #rightauth2=eap-mschapv2
-
-conn rwEAPTLSIOS
-        leftsendcert=always
-        rightid=SHAREDSAN
-        rightauth=eap-tls
-        rightcert=clientCert_$CLIENTNAME.pem
-        #rightauth2=eap-mschapv2
-
-conn rwPUBKEY
-        rightauth=pubkey
-        rightcert=clientCert_$CLIENTNAME.pem
-        #rightauth2=eap-mschapv2
-
-conn rwEAPTLS
-        rightauth=eap-tls
-        rightcert=clientCert_$CLIENTNAME.pem
-" >> /etc/ipsec.conf
 done
 
 # where to put them...
