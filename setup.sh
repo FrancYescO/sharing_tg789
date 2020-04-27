@@ -3,7 +3,7 @@
 echo "Installing strongswan..."
 
 opkg install strongswan-default strongswan-pki strongswan-mod-dhcp
-opkg list | grep fox  | awk '{print $1}' | xargs opkg install
+opkg list | grep strongswan-mod-eap-  | awk '{print $1}' | xargs opkg install
 
 COUNTRYNAME="US"
 CANAME="CATechnicolor"
@@ -39,14 +39,14 @@ conn rwEAPMSCHAPV2
 
 conn rwPUBKEYIOS
         leftsendcert=always
-        rightid=SHAREDSAN
+        rightid=$SHAREDSAN
         rightauth=pubkey
         rightca=caCert.pem
         #rightauth2=eap-mschapv2
 
 conn rwEAPTLSIOS
         leftsendcert=always
-        rightid=SHAREDSAN
+        rightid=$SHAREDSAN
         rightauth=eap-tls
         rightcert=caCert.pem
         #rightauth2=eap-mschapv2
@@ -69,34 +69,42 @@ echo "dhcp {
 echo ": RSA serverKey_$SERVERDOMAINNAME.pem
 remoteusername : EAP \"secretpassword\"" > /etc/ipsec.secrets
 
-cat << EOF >> /etc/config/firewall
+if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+  uci set firewall.ipsec_esp=rule
+  uci set firewall.ipsec_esp.src='wan'
+  uci set firewall.ipsec_esp.name='IPSec ESP'
+  uci set firewall.ipsec_esp.proto='esp'
+  uci set firewall.ipsec_esp.target='ACCEPT'
+fi
 
-config rule 'ipsec_esp'
-	option src 'wan'
-	option name 'IPSec ESP'
-	option proto 'esp'
-	option target 'ACCEPT'
+if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+  uci set firewall.ipsec_ike=rule
+  uci set firewall.ipsec_ike.src='wan'
+  uci set firewall.ipsec_ike.name='IPSec IKE'
+  uci set firewall.ipsec_ike.proto='udp'
+  uci set firewall.ipsec_ike.dest_port='500'
+  uci set firewall.ipsec_ike.target='ACCEPT'
+fi
 
-config rule 'ipsec_ike'
-	option src 'wan'
-	option name 'IPSec IKE'
-	option proto 'udp'
-	option dest_port '500'
-	option target 'ACCEPT'
+if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+  uci set firewall.ipsec_nat_traversal=rule
+  uci set firewall.ipsec_nat_traversal.src='wan'
+  uci set firewall.ipsec_nat_traversal.name='IPSec NAT-T'
+  uci set firewall.ipsec_nat_traversal.proto='udp'
+  uci set firewall.ipsec_nat_traversal.dest_port='4500'
+  uci set firewall.ipsec_nat_traversal.target='ACCEPT'
+fi
 
-config rule 'ipsec_nat_traversal'
-	option src 'wan'
-	option name 'IPSec NAT-T'
-	option proto 'udp'
-	option dest_port '4500'
-	option target 'ACCEPT'
+if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+  uci set firewall.ipsec_auth_header=rule
+  uci set firewall.ipsec_auth_header.src='wan'
+  uci set firewall.ipsec_auth_header.name='Auth Header'
+  uci set firewall.ipsec_auth_header.proto='ah'
+  uci set firewall.ipsec_auth_header.target='ACCEPT'
+fi
+uci commit firewall
 
-config rule 'ipsec_auth_header'
-	option src 'wan'
-	option name 'Auth Header'
-	option proto 'ah'
-	option target 'ACCEPT'
-EOF
+if ! < /etc/firewall.user grep -q 'strongswan ipsec' ; then
 
 cat << EOF >> /etc/firewall.user
 
@@ -109,6 +117,7 @@ iptables -t nat -I POSTROUTING -m policy --pol ipsec --dir out -j ACCEPT
 
 EOF
 
+fi
 cd /tmp
 
 echo "Building certificates for [ $SERVERDOMAINNAME ] and client [ $CLIENTNAME (aka $SHAREDSAN) ] "
