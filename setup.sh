@@ -61,6 +61,7 @@ conn rwEAPTLS
         rightcert=caCert.pem" > /etc/ipsec.conf
 
 echo "dhcp {
+  identity_lease = yes
   force_server_address = yes
   load = yes
   server = $dhcp_broadcast
@@ -161,11 +162,12 @@ done
 
 # where to put them...
 mv caCert.pem /etc/ipsec.d/cacerts/
+ln -s ../cacerts/caCert.pem /etc/ipsec.d/certs/caCert.pem
 mv serverCert*.pem /etc/ipsec.d/certs/
 mv serverKey*.pem /etc/ipsec.d/private/
 mv clientCert*.pem /etc/ipsec.d/certs/
 
-#These file are not needed on the modem
+#These file are not needed on the server
 [ ! -f "/etc/ipsec.d/private/ca.p12" ] && mv ca.p12 /etc/ipsec.d/private/ #needed to generate new clients
 mv client_*.p12 /etc/ipsec.d/private/
 mv clientCert_*.crt /etc/ipsec.d/private/
