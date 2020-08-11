@@ -1,0 +1,11 @@
+
+config nvram 'dumaos_nvram'
+	option DumaOS_Theme 'default'
+	option DumaOS_Theme_Version '1.0'
+	option DumaOS_Speed_Threshold '102400'
+	option QoSWelcomeWagon '1'
+
+config tr69 'tr69'
+	option dumaos_enabled '1'
+	option dumaos_started '1'
+
