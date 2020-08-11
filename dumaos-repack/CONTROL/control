@@ -1,7 +1,7 @@
 Package: dumaos-repack
 Priority: optional
 Section: net
-Depends:
+Depends: terminfo libncurses libedit
 Description: DumaOS
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/Ansuel/tch-nginx-gui
