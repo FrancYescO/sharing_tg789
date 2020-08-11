@@ -9,7 +9,7 @@ jobs:
       - run:
           name: Build ipk
           command: |
-            sh ./ipkg-build.sh ./modgui-vpn
+            sh ./ipkg-build.sh ./dumaos-repack
             git config --global user.name "CircleCI";
             git config --global user.email "CircleCI"
 

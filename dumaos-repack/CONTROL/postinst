@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. $IPKG_INSTROOT/lib/functions.sh
+
+/etc/init.d/uhttpd enable
+/etc/init.d/uhttpd start
+/etc/init.d/dumaos enable
+/etc/init.d/dumaos start
+
+exit 0

@@ -1,8 +1,8 @@
-Package: modgui-vpn
+Package: dumaos-repack
 Priority: optional
 Section: net
-Depends: xl2tpd, strongswan-default
-Description: VPN cards/tab.
+Depends:
+Description: DumaOS
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/Ansuel/tch-nginx-gui
 Version: 1.0-0

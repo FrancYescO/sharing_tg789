@@ -1,0 +1,6 @@
+#!/bin/sh
+
+/etc/init.d/uhttpd disable
+/etc/init.d/uhttpd stop
+/etc/init.d/dumaos disable
+/etc/init.d/dumaos stop

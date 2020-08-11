@@ -1,6 +1,0 @@
-#!/bin/sh /etc/rc.common
-
-[[ -f /etc/init.d/xl2tpd && "$(pgrep xl2tpd)" ]] && /etc/init.d/xl2tpd stop
-[[ -f /etc/init.d/ipsec && "$(pgrep ipsec)" ]] && /etc/init.d/ipsec stop
-
-exit 0
