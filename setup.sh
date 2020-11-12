@@ -78,7 +78,7 @@ if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
   uci set firewall.ipsec_esp.target='ACCEPT'
 fi
 
-if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+if [ ! "$(uci get -q firewall.ipsec_ike)" ]; then
   uci set firewall.ipsec_ike=rule
   uci set firewall.ipsec_ike.src='wan'
   uci set firewall.ipsec_ike.name='IPSec IKE'
@@ -87,7 +87,7 @@ if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
   uci set firewall.ipsec_ike.target='ACCEPT'
 fi
 
-if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+if [ ! "$(uci get -q firewall.ipsec_nat_traversal)" ]; then
   uci set firewall.ipsec_nat_traversal=rule
   uci set firewall.ipsec_nat_traversal.src='wan'
   uci set firewall.ipsec_nat_traversal.name='IPSec NAT-T'
@@ -96,7 +96,7 @@ if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
   uci set firewall.ipsec_nat_traversal.target='ACCEPT'
 fi
 
-if [ ! "$(uci get -q firewall.ipsec_esp)" ]; then
+if [ ! "$(uci get -q firewall.ipsec_auth_header)" ]; then
   uci set firewall.ipsec_auth_header=rule
   uci set firewall.ipsec_auth_header.src='wan'
   uci set firewall.ipsec_auth_header.name='Auth Header'
