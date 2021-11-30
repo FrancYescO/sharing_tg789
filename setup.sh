@@ -2,7 +2,7 @@
 
 echo "Installing strongswan..."
 
-opkg install strongswan-default strongswan-pki strongswan-mod-dhcp
+opkg install strongswan-default strongswan-pki strongswan-mod-dhcp strongswan-mod-farp
 opkg list | grep strongswan-mod-eap-  | awk '{print $1}' | xargs opkg install
 
 COUNTRYNAME="US"
