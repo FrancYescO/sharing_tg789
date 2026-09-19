@@ -2,4 +2,5 @@
 
 /etc/init.d/l2tp-ipsec-server disable
 /etc/init.d/l2tp-ipsec-server stop 2>/dev/null
-/etc/init.d/ipsec disable
+/etc/init.d/modgui-ipsec disable
+/etc/init.d/modgui-ipsec stop 2>/dev/null

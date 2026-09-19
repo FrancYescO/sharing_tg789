@@ -99,8 +99,16 @@ uci commit
 /etc/init.d/nginx restart
 /etc/init.d/transformer restart
 
+/etc/init.d/ipsec disable 2>/dev/null
 /etc/init.d/l2tp-ipsec-server enable
-/etc/init.d/l2tp-ipsec-server start 2>/dev/null
-/etc/init.d/ipsec enable
+/etc/init.d/modgui-ipsec enable
+
+# Installation must not expose a new WAN service without an explicit GUI action.
+uci set vpn.l2tpipsecserver.enable='0'
+uci set ipsec.l2tp.enabled='0'
+uci commit vpn
+uci commit ipsec
+/etc/init.d/l2tp-ipsec-server stop 2>/dev/null
+/etc/init.d/modgui-ipsec stop 2>/dev/null
 
 exit 0

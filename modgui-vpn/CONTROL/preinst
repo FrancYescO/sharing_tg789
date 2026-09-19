@@ -1,6 +1,48 @@
-#!/bin/sh /etc/rc.common
+#!/bin/sh
 
-[[ -f /etc/init.d/xl2tpd && "$(pgrep xl2tpd)" ]] && /etc/init.d/xl2tpd stop
-[[ -f /etc/init.d/ipsec && "$(pgrep ipsec)" ]] && /etc/init.d/ipsec stop
+STATE_DIR=/etc/modgui-vpn-state
+
+save_file_state() {
+	local key="$1"
+	local path="$2"
+
+	if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+		: > "$STATE_DIR/$key.missing"
+		return
+	fi
+
+	if [ -L "$path" ]; then
+		readlink "$path" > "$STATE_DIR/$key.link"
+	else
+		: > "$STATE_DIR/$key.regular"
+	fi
+	cp -pL "$path" "$STATE_DIR/$key.content"
+}
+
+# Dependencies are installed before this hook runs, while this package's data
+# files and Transformer triggers have not been applied yet.  This is the last
+# safe point to snapshot the original service state and configuration.
+if [ ! -d "$STATE_DIR" ]; then
+	umask 077
+	mkdir -p "$STATE_DIR"
+	/etc/init.d/xl2tpd enabled 2>/dev/null && : > "$STATE_DIR/xl2tpd.enabled"
+	/etc/init.d/ipsec enabled 2>/dev/null && : > "$STATE_DIR/ipsec.enabled"
+	save_file_state xl2tpd_conf /etc/xl2tpd/xl2tpd.conf
+	save_file_state ppp_options /etc/ppp/options.xl2tpd
+	save_file_state chap_secrets /etc/ppp/chap-secrets
+	save_file_state run_xl2tpd_conf /var/xl2tpd/xl2tpd.conf
+	save_file_state run_ppp_options /var/ppp/options.xl2tpd
+	save_file_state run_chap_secrets /var/ppp/chap-secrets
+	save_file_state ipsec_conf /etc/ipsec.conf
+	save_file_state ipsec_secrets /etc/ipsec.secrets
+	save_file_state strongswan_conf /etc/strongswan.conf
+	save_file_state run_ipsec_conf /var/ipsec/ipsec.conf
+	save_file_state run_ipsec_secrets /var/ipsec/ipsec.secrets
+	save_file_state run_strongswan_conf /var/ipsec/strongswan.conf
+fi
+
+[ -x /etc/init.d/xl2tpd ] && [ -n "$(pgrep xl2tpd)" ] && /etc/init.d/xl2tpd stop
+[ -x /etc/init.d/modgui-ipsec ] && /etc/init.d/modgui-ipsec stop
+[ -x /etc/init.d/ipsec ] && /etc/init.d/ipsec stop
 
 exit 0

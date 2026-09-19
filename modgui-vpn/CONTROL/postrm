@@ -1,9 +1,40 @@
 #!/bin/sh
 
+# During an upgrade the new package keeps using the original snapshot; do not
+# tear down configuration or restore stock files from the old package hook.
+[ "$1" = "upgrade" ] && exit 0
+
+STATE_DIR=/etc/modgui-vpn-state
+
+restore_file_state() {
+	local key="$1"
+	local path="$2"
+	local target target_path
+
+	mkdir -p "$(dirname "$path")"
+	rm -f "$path"
+	if [ -f "$STATE_DIR/$key.missing" ]; then
+		return
+	fi
+	if [ -f "$STATE_DIR/$key.link" ]; then
+		target="$(cat "$STATE_DIR/$key.link")"
+		case "$target" in
+			/*) target_path="$target" ;;
+			*) target_path="$(dirname "$path")/$target" ;;
+		esac
+		mkdir -p "$(dirname "$target_path")"
+		cp -p "$STATE_DIR/$key.content" "$target_path"
+		ln -s "$target" "$path"
+	else
+		cp -p "$STATE_DIR/$key.content" "$path"
+	fi
+}
+
 uci -q delete firewall.l2tpipsecserver
 
 uci -q del_list web.ruleset_main.rules=l2tpipsecservermodal
 uci -q delete web.l2tpipsecservermodal
+uci -q delete web.l2tpipsecserver_card
 uci -q delete web.l2tpipsecservercard
 
 uci -q delete firewall.vpn
@@ -14,5 +45,36 @@ do
 done
 
 /etc/init.d/firewall restart 2>/dev/null
+
+if [ -d "$STATE_DIR" ]; then
+	# Restore runtime targets before recreating any original symlinks to them.
+	restore_file_state run_xl2tpd_conf /var/xl2tpd/xl2tpd.conf
+	restore_file_state run_ppp_options /var/ppp/options.xl2tpd
+	restore_file_state run_chap_secrets /var/ppp/chap-secrets
+	restore_file_state run_ipsec_conf /var/ipsec/ipsec.conf
+	restore_file_state run_ipsec_secrets /var/ipsec/ipsec.secrets
+	restore_file_state run_strongswan_conf /var/ipsec/strongswan.conf
+	restore_file_state xl2tpd_conf /etc/xl2tpd/xl2tpd.conf
+	restore_file_state ppp_options /etc/ppp/options.xl2tpd
+	restore_file_state chap_secrets /etc/ppp/chap-secrets
+	restore_file_state ipsec_conf /etc/ipsec.conf
+	restore_file_state ipsec_secrets /etc/ipsec.secrets
+	restore_file_state strongswan_conf /etc/strongswan.conf
+
+	if [ -f "$STATE_DIR/xl2tpd.enabled" ]; then
+		/etc/init.d/xl2tpd enable 2>/dev/null
+	else
+		/etc/init.d/xl2tpd disable 2>/dev/null
+	fi
+	if [ -f "$STATE_DIR/ipsec.enabled" ]; then
+		/etc/init.d/ipsec enable 2>/dev/null
+	else
+		/etc/init.d/ipsec disable 2>/dev/null
+	fi
+	rm -rf "$STATE_DIR"
+fi
+
+uci commit web
+uci commit firewall
 
 exit 0
