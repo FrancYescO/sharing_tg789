@@ -72,23 +72,40 @@ __install_chap_secret() {
     config_get password "$user" password
 
     [ -n "$username" -a -n "$password" ] || return
+    case "$username" in
+      *[!A-Za-z0-9_.-]*) return ;;
+    esac
+    case "$password" in
+      *[!A-Za-z0-9._~-]*) return ;;
+    esac
 
     # chap-secrets file has records in format:
     #           USERNAME  PROVIDER  PASSWORD  IPADDRESS
     local chap="$username $provider $password *"
 
     # Init or replace each (username, password, provider, IP address) entry
-    grep -q "$username.*$provider" $chapsecrets && sed -i "s/.*$username.*$provider.*/$chap/" $chapsecrets || echo "$chap" >> $tmp_chapsecrets
+    grep -q "^$username $provider " "$chapsecrets" &&
+      sed -i "s|^$username $provider .*|$chap|" "$chapsecrets" ||
+      printf '%s\n' "$chap" >> "$tmp_chapsecrets"
 }
 
 # Clear and regenerate /etc/ppp/chap-secrets, depending on credentials specified in UCI
 # Parameters: none
 __setup_chap_secrets() {
-    mkdir -p "$(dirname $chapsecrets)"
-    [ -L "$chapsecrets" ] || ln -snf "$tmp_chapsecrets" "$chapsecrets"
+    local new_chapsecrets="${tmp_chapsecrets}.new"
 
-    # Start from clean file to get rid of old accounts, if any
-    echo "# USERNAME  PROVIDER  PASSWORD  IPADDRESS" > $tmp_chapsecrets
+    mkdir -p "$(dirname "$chapsecrets")" "$(dirname "$tmp_chapsecrets")"
+
+    # Replace only accounts owned by this package.  Other PPP users may share
+    # chap-secrets and must survive an L2TP/IPsec configuration refresh.
+    if [ -r "$chapsecrets" ]; then
+        awk '($0 ~ /^[[:space:]]*#/) || NF < 2 || $2 != "tchvpn" { print }' \
+            "$chapsecrets" > "$new_chapsecrets"
+    else
+        echo "# USERNAME  PROVIDER  PASSWORD  IPADDRESS" > "$new_chapsecrets"
+    fi
+    mv "$new_chapsecrets" "$tmp_chapsecrets"
+    [ -L "$chapsecrets" ] || ln -snf "$tmp_chapsecrets" "$chapsecrets"
 
     config_foreach __install_chap_secret l2tp_user
 }
@@ -100,4 +117,3 @@ setup() {
     __setup_ppp_options
     __setup_chap_secrets
 }
-

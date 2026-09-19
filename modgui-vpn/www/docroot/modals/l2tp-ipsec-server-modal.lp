@@ -46,6 +46,9 @@ local user_options = {
 local function nameValid(value)
     local v, m = post_helper.validateNonEmptyString(value)
     if v then
+		if value:match("[^%w_.%-]") then
+			return nil, T"Use only letters, numbers, dot, underscore or dash"
+		end
         local users = proxy.get(user_options.basepath)
         if users then
             for _, v in ipairs(users) do
@@ -65,9 +68,20 @@ local function nameValid(value)
     end
 end
 
+local function secretValid(value)
+	local valid, message = post_helper.validateNonEmptyString(value)
+	if not valid then
+		return valid, message
+	end
+	if value:match("[^%w%._~%-]") then
+		return nil, T"Use only letters, numbers and . _ ~ -"
+	end
+	return true
+end
+
 local user_valid = {
     name = nameValid,
-    password = post_helper.validateNonEmptyString,
+    password = secretValid,
 }
 
 local user_data, user_helpmsg = post_helper.handleTableQuery(user_columns, user_options, nil, nil, user_valid)
@@ -178,7 +192,7 @@ local mapParams = {
 
 local mapValid = {
   vpnserver_enable = post_helper.validateBoolean,
-  ipsec_psk = post_helper.validateNonEmptyString,
+  ipsec_psk = secretValid,
   local_ip = validateLocalIP,
   remote_ip_start = validateRemoteIPStart,
   remote_ip_end = validateRemoteIPEnd,

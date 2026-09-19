@@ -104,5 +104,6 @@ mv clientCert.pem /etc/ipsec.d/certs/
 mv clientKey.pem /etc/ipsec.d/private/
 
 /etc/init.d/firewall restart
-/etc/init.d/ipsec enable
-/etc/init.d/ipsec start
+/etc/init.d/ipsec disable 2>/dev/null
+/etc/init.d/modgui-ipsec enable
+/etc/init.d/modgui-ipsec stop 2>/dev/null

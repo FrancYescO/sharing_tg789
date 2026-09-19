@@ -9,6 +9,7 @@ local ip = 192.168.10.1
 ip range = 192.168.10.2-192.168.10.100
 ;hidden bit = no
 length bit = yes
+max retries = 100
 refuse authentication = yes
 ;name = Technicolor
 ;ppp debug = yes

@@ -1,0 +1,110 @@
+name: Build ModGUI VPN IPK
+
+on:
+  push:
+    branches:
+      - modgui-vpn
+    tags:
+      - "modgui-vpn-v*"
+  pull_request:
+    branches:
+      - modgui-vpn
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-ipk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      package_name: ${{ steps.package.outputs.package_name }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build IPK
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          sh ./ipkg-build.sh ./modgui-vpn ./dist
+
+          packages=(dist/modgui-vpn_*_all.ipk)
+          test "${#packages[@]}" -eq 1
+          package="${packages[0]}"
+          package_name="$(basename "$package")"
+          echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+
+      - name: Validate IPK
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="dist/${{ steps.package.outputs.package_name }}"
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+
+          test -s "$package"
+          tar -tzf "$package" | grep -Eq '^(\./)?debian-binary$'
+          tar -tzf "$package" | grep -Eq '^(\./)?control\.tar\.gz$'
+          tar -tzf "$package" | grep -Eq '^(\./)?data\.tar\.gz$'
+          ! tar -tzf "$package" | grep -Eq 'PaxHeader|(^|/)\._'
+
+          tar -xzf "$package" -C "$work_dir"
+          mkdir -p "$work_dir/control" "$work_dir/data"
+          tar -xzf "$work_dir/control.tar.gz" -C "$work_dir/control"
+          tar -xzf "$work_dir/data.tar.gz" -C "$work_dir/data"
+
+          test -x "$work_dir/data/etc/init.d/modgui-ipsec"
+          test -x "$work_dir/data/etc/init.d/l2tp-ipsec-server"
+          version="$(awk -F ': ' '$1 == "Version" { print $2 }' "$work_dir/control/control")"
+          test "$(basename "$package")" = "modgui-vpn_${version}_all.ipk"
+
+          (
+            cd dist
+            sha256sum "${{ steps.package.outputs.package_name }}" > \
+              "${{ steps.package.outputs.package_name }}.sha256"
+          )
+
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: modgui-vpn-ipk
+          path: |
+            dist/${{ steps.package.outputs.package_name }}
+            dist/${{ steps.package.outputs.package_name }}.sha256
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/modgui-vpn-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: modgui-vpn-ipk
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_NAME: ${{ needs.build.outputs.package_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" \
+              --verify-tag --generate-notes
+          fi

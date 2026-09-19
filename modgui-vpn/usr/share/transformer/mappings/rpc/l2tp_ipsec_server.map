@@ -137,8 +137,8 @@ local l2tpipsecserver_ = {
 
 local function getall()
     local values = {}
-    for param, generator in pairs(generators) do
-        values[param] = generateSecret(_, generator)
+    for param in pairs(generators) do
+        values[param] = generateSecret(_, param)
     end
     values["numberOfConnectedClients"] = getNumberOfConnectedClients()
     return values

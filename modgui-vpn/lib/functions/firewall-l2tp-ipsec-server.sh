@@ -3,8 +3,8 @@
 
 . $IPKG_INSTROOT/lib/functions.sh
 
-local chain="l2tp_ipsec"
-local targetchain="zone_wan_input"
+chain="l2tp_ipsec"
+targetchain="zone_wan_input"
 
 # Helper function which deletes and flushes all of our chains
 __clean_chain() {
@@ -47,4 +47,3 @@ setup() {
 }
 
 setup
-
