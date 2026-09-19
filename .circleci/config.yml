@@ -5,19 +5,19 @@ jobs:
     docker:
       - image: alpine/git
     steps:
-      - checkout
       - run:
-          name: Build ipk
+          name: Checkout source
           command: |
-            sh ./ipkg-build.sh ./modgui-vpn
-            git config --global user.name "CircleCI";
-            git config --global user.email "CircleCI"
-
-            git add *.ipk
-
-            git commit -F- \<<EOF
-            Generated IPK
-            [ci skip]
-            EOF
-
-            git push origin ${CIRCLE_BRANCH}
+            git clone --filter=blob:none --no-checkout \
+              "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
+            git checkout "${CIRCLE_SHA1}"
+      - run:
+          name: Build IPK
+          command: |
+            mkdir -p /tmp/artifacts
+            sh ./ipkg-build.sh ./modgui-vpn /tmp/artifacts
+            test -s /tmp/artifacts/modgui-vpn_1.1-0_all.ipk
+            ! tar -tzf /tmp/artifacts/modgui-vpn_1.1-0_all.ipk | grep -E 'PaxHeader|/\._'
+      - store_artifacts:
+          path: /tmp/artifacts/modgui-vpn_1.1-0_all.ipk
+          destination: modgui-vpn_1.1-0_all.ipk
