@@ -1,0 +1,63 @@
+local popen = io.popen
+
+local function shell_output(cmd)
+  local fd = popen(cmd)
+  if not fd then
+    return ""
+  end
+  local out = fd:read("*l") or ""
+  fd:close()
+  return out
+end
+
+local function getDumaosStatus()
+  local running = tonumber(shell_output("ps w 2>/dev/null | grep procmanager | grep -v grep | wc -l"))
+  if running and running > 0 then
+    return "1"
+  end
+  return "0"
+end
+
+local function getDumaosEnabled()
+  local enabled = shell_output("uci -q get dumaos.tr69.dumaos_enabled")
+  if enabled == "1" then
+    return "1"
+  end
+  return "0"
+end
+
+local dumaos_ = {
+    objectType = {
+        name = 'rpc.dumaos.',
+        access = 'readOnly',
+        minEntries = 1,
+        maxEntries = 1,
+        parameters = {
+            status = {
+                access = "readOnly",
+                type = "unsignedInt",
+            },
+            enabled = {
+                access = "readWrite",
+                type = "boolean",
+            }
+        }
+    },
+    get = {
+        status = getDumaosStatus,
+        enabled = getDumaosEnabled,
+    },
+    set = {
+        enabled = function(mapping, paramname, paramvalue)
+            if paramvalue == "1" then
+                os.execute("/etc/init.d/uhttpd start >/dev/null 2>&1; /etc/init.d/dumaos start >/dev/null 2>&1")
+                shell_output("uci -q set dumaos.tr69.dumaos_enabled=1; uci -q commit dumaos")
+            else
+                os.execute("/etc/init.d/dumaos stop >/dev/null 2>&1; /etc/init.d/uhttpd stop >/dev/null 2>&1")
+                shell_output("uci -q set dumaos.tr69.dumaos_enabled=0; uci -q commit dumaos")
+            end
+        end,
+    }
+}
+
+register(dumaos_)

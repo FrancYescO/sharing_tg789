@@ -50,8 +50,12 @@ nginx UI keeps `443`).
 - `etc/firewallExt/M1_NetDuma_99.user` is a no-op on TCH (no firewallExt);
   the autoadmin firewall hooks are re-applied via ubus after a firewall
   restart, so a reload hook may need to be added to `/etc/hotplug.d/firewall`.
-- Web integration with tch-nginx-gui (menu card) and a per-model
-  `/dumaossystem` profile (currently DJA0231/TELSTRA) are still TODO.
+- A tch-nginx-gui card is included: `www/cards/015_dumaos.lp` (status +
+  link to the DumaOS UI on port 81), backed by the
+  `usr/share/transformer/mappings/rpc/dumaos.map` rpc domain
+  (`rpc.dumaos.status` / `rpc.dumaos.enabled`) and translated in
+  `www/lang/it-it/webui-dumaos.po`.
+- A per-model `/dumaossystem` profile (currently DJA0231/TELSTRA) is still TODO.
 
 ## CI
 

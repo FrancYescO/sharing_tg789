@@ -1,0 +1,26 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: webui-dumaos\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-22 12:00+0200\n"
+"PO-Revision-Date: 2026-09-22 12:00+0200\n"
+"Last-Translator: FrancYescO\n"
+"Language-Team: none\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language-Name: Italiano\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "DumaOS"
+msgstr "DumaOS"
+
+msgid "DumaOS running"
+msgstr "DumaOS in esecuzione"
+
+msgid "DumaOS stopped"
+msgstr "DumaOS fermo"
+
+msgid "Open interface"
+msgstr "Apri interfaccia"
