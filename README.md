@@ -38,7 +38,7 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_2.0-5_all.ipk
+opkg install dumaos-repack_2.0-6_all.ipk
 sh setup.sh
 ```
 

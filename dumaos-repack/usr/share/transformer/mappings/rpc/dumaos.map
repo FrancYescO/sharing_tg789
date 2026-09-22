@@ -50,11 +50,11 @@ local dumaos_ = {
     set = {
         enabled = function(mapping, paramname, paramvalue)
             if paramvalue == "1" then
-                os.execute("/etc/init.d/ndhttpd start >/dev/null 2>&1; /etc/init.d/dumaos start >/dev/null 2>&1")
-                shell_output("uci -q set dumaos.tr69.dumaos_enabled=1; uci -q commit dumaos")
+                os.execute("/etc/init.d/ndhttpd start >/dev/null 2>&1")
+                shell_output("export ACTION=dumaos_enabled; /sbin/hotplug-call dumaos >/dev/null 2>&1")
             else
+                shell_output("export ACTION=dumaos_disabled; /sbin/hotplug-call dumaos >/dev/null 2>&1")
                 os.execute("/etc/init.d/dumaos stop >/dev/null 2>&1; /etc/init.d/ndhttpd stop >/dev/null 2>&1")
-                shell_output("uci -q set dumaos.tr69.dumaos_enabled=0; uci -q commit dumaos")
             end
         end,
     }

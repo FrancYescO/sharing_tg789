@@ -2,6 +2,11 @@
 
 . $IPKG_INSTROOT/lib/functions.sh
 
+# Enable DumaOS (the Telstra-branded UI gates on dumaos.tr69.dumaos_enabled)
+uci -q set dumaos.tr69=tr69
+uci -q set dumaos.tr69.dumaos_enabled=1
+uci -q commit dumaos
+
 /etc/init.d/ndhttpd enable
 /etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable
