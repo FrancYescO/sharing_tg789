@@ -7,6 +7,24 @@ uci -q set dumaos.tr69=tr69
 uci -q set dumaos.tr69.dumaos_enabled=1
 uci -q commit dumaos
 
+# Per-app frontend translation catalogs: cli.lua asserts
+# <app>/frontend/shared/i18n.json exists for every app served over RPC.
+# English strings live in /www/language/dumaoslang-*.json (prepared at
+# first start by procmanager), so an empty catalog is enough.
+if [ -z "$IPKG_INSTROOT" ]; then
+  for app in /dumaos/apps/system/* /dumaos/apps/usr/*; do
+    [ -d "$app" ] || continue
+    [ -f "$app/frontend/shared/i18n.json" ] || { mkdir -p "$app/frontend/shared"; echo '{}' > "$app/frontend/shared/i18n.json"; }
+  done
+fi
+
+# Stash the stock AGTEF ubus stack outside the package filelist so postrm
+# can restore it after opkg has purged the package's own files.
+if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ] && ! [ -e /etc/dumaos-ubus-stock/ubusd ]; then
+  mkdir -p /etc/dumaos-ubus-stock
+  cp -f /etc/dumaos/ubus-agtef/* /etc/dumaos-ubus-stock/
+fi
+
 /etc/init.d/ndhttpd enable
 /etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable

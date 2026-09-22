@@ -94,6 +94,13 @@ Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
 
 ## Notes / TODO
 
+- **ubus stack**: DumaOS RPC requires the newer (MR22) ubus stack — the
+  stock AGTEF lua binding has a different `ubus.so` API and its RPC path
+  crashes. The package replaces `/usr/lib/lua/ubus.so`, `/lib/libubus.so`,
+  `/lib/libubox.so`, `/sbin/ubusd` and `/bin/ubus` with the MR22 versions,
+  and stashes the stock AGTEF binaries in `/etc/dumaos/ubus-agtef/`
+  (also copied to `/etc/dumaos-ubus-stock/` by `postinst` so `postrm` can
+  restore them after `opkg remove`; reboot after install and after removal).
 - 3.3.90 patches for AGTEF: `ndhttpd` init binds `0.0.0.0:81` (the
   DJA0231 original binds loopback only and fronted it with nginx); the
   TELSTRA init branches got guards for missing platform bits

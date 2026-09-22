@@ -78,8 +78,18 @@ jobs:
           test -x "$work_dir/data/usr/sbin/ndhttpd"
           test -f "$work_dir/data/usr/lib/ndhttpd_lua.so"
           test -f "$work_dir/data/usr/lib/telemetrylua.so"
+          test -f "$work_dir/data/usr/lib/telemetry.so"
           test -x "$work_dir/data/usr/lib/dumaos/dpiclass.bin"
           test -f "$work_dir/data/usr/lib/dumaos/libnetfilter_queue.so.1"
+          test -f "$work_dir/data/usr/lib/detectlist.xor"
+
+          # MR22 ubus stack (stock AGTEF copies stashed for uninstall)
+          for f in usr/lib/lua/ubus.so lib/libubus.so lib/libubox.so sbin/ubusd bin/ubus; do
+            test -f "$work_dir/data/$f"
+          done
+          for f in ubus.so libubus.so libubox.so ubusd ubus; do
+            test -f "$work_dir/data/etc/dumaos/ubus-agtef/$f"
+          done
           test -f "$work_dir/data/dumaossystem/version"
           test -x "$work_dir/data/usr/bin/dpiclass"
           test -x "$work_dir/data/usr/bin/luac"
