@@ -1,0 +1,122 @@
+name: Build DumaOS Repack IPK
+
+on:
+  push:
+    branches:
+      - dumaos-repack
+    tags:
+      - "dumaos-repack-v*"
+  pull_request:
+    branches:
+      - dumaos-repack
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-ipk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      package_name: ${{ steps.package.outputs.package_name }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build IPK
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          sh ./ipkg-build.sh ./dumaos-repack ./dist
+
+          packages=(dist/dumaos-repack_*_all.ipk)
+          test "${#packages[@]}" -eq 1
+          package="${packages[0]}"
+          package_name="$(basename "$package")"
+          echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+
+      - name: Validate IPK
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="dist/${{ steps.package.outputs.package_name }}"
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+
+          test -s "$package"
+          tar -tzf "$package" | grep -Eq '^(\./)?debian-binary$'
+          tar -tzf "$package" | grep -Eq '^(\./)?control\.tar\.gz$'
+          tar -tzf "$package" | grep -Eq '^(\./)?data\.tar\.gz$'
+          ! tar -tzf "$package" | grep -Eq 'PaxHeader|(^|/)\._'
+
+          tar -xzf "$package" -C "$work_dir"
+          mkdir -p "$work_dir/control" "$work_dir/data"
+          tar -xzf "$work_dir/control.tar.gz" -C "$work_dir/control"
+          tar -xzf "$work_dir/data.tar.gz" -C "$work_dir/data"
+
+          test "$(awk -F ': ' '$1 == "Package" { print $2 }' "$work_dir/control/control")" = "dumaos-repack"
+          version="$(awk -F ': ' '$1 == "Version" { print $2 }' "$work_dir/control/control")"
+          test "$(basename "$package")" = "dumaos-repack_${version}_all.ipk"
+
+          for service in dumaos uhttpd ctwatch connwatch arpwatch dumaos_qos_tweaks; do
+            test -x "$work_dir/data/etc/init.d/$service"
+          done
+
+          test -f "$work_dir/data/dumaos/api/cli.lua"
+          test -f "$work_dir/data/dumaos/apps/system/com.netdumasoftware.procmanager/main.lua"
+          test -f "$work_dir/data/www/ndindex.html"
+          test -f "$work_dir/data/dumaossystem/model"
+
+          test -x "$work_dir/data/usr/sbin/uhttpd"
+          test -x "$work_dir/data/usr/bin/dpiclass"
+          test -x "$work_dir/data/usr/bin/luac"
+
+          (
+            cd dist
+            sha256sum "${{ steps.package.outputs.package_name }}" > \
+              "${{ steps.package.outputs.package_name }}.sha256"
+          )
+
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dumaos-repack-ipk
+          path: |
+            dist/${{ steps.package.outputs.package_name }}
+            dist/${{ steps.package.outputs.package_name }}.sha256
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/dumaos-repack-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: dumaos-repack-ipk
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_NAME: ${{ needs.build.outputs.package_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" \
+              --verify-tag --generate-notes
+          fi
