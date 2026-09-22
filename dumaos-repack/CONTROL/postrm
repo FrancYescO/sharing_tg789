@@ -5,11 +5,6 @@ case "$1" in
     upgrade|configure) exit 0 ;;
 esac
 
-# Restore the stock tc replaced by postinst
-if [ -f /usr/sbin/tc.stock ]; then
-    mv -f /usr/sbin/tc.stock /usr/sbin/tc
-fi
-
 # Artifacts created by setup.sh (kernel module + boot load list)
 rm -f /etc/modules.d/99-dumaos-qos
 rm -f /lib/modules/4.1.52/extra/act-connmark-damson-4.1.52.ko

@@ -38,14 +38,15 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_2.0-3_all.ipk
+opkg install dumaos-repack_2.0-4_all.ipk
 sh setup.sh
 ```
 
-No `--force-overwrite` is needed: the only file that collides with the
-stock firmware (`/usr/sbin/tc`, which lacks `htb`/`u32`/`ingress`) is not
-overwritten in place - `postinst` swaps it with the DumaOS `tc` keeping a
-one-time backup at `/usr/sbin/tc.stock` (restored on `opkg remove`).
+No `--force-overwrite` is needed and nothing of the firmware is replaced:
+DumaOS QoS uses the stock `/usr/sbin/tc` (AGTEF ships a full iproute2
+with `htb`/`u32`/`ingress`/`fq_codel`), OpenSSL 1.1 comes from the
+`libopenssl1.1` feed package and every other file is exclusive to this
+package.
 
 `setup.sh` installs the feed dependencies, loads the QoS modules, opens
 the firewall for the UI and enables the `ndhttpd` + `dumaos` services.
@@ -60,12 +61,11 @@ loopback-only DJA0231 bind, and it does not listen on `443` at all).
 opkg remove dumaos-repack
 ```
 
-`prerm` stops and disables `ndhttpd`/`dumaos`; `postrm` then restores the
-stock `/usr/sbin/tc`, removes the `act_connmark` kernel module and
-`/etc/modules.d/99-dumaos-qos` installed by `setup.sh`, the `dumaos_ui`
-firewall rule (with a firewall reload) and the `dumaos`/`ndhttpd`/`ndproxy`
-UCI configs. Reload nginx from the mod GUI (or `service nginx reload`) to
-drop the DumaOS card.
+`prerm` stops and disables `ndhttpd`/`dumaos`; `postrm` then removes the
+`act_connmark` kernel module and `/etc/modules.d/99-dumaos-qos` installed
+by `setup.sh`, the `dumaos_ui` firewall rule (with a firewall reload) and
+the `dumaos`/`ndhttpd`/`ndproxy` UCI configs. Reload nginx from the mod
+GUI (or `service nginx reload`) to drop the DumaOS card.
 
 ## Source firmware / versions
 

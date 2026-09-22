@@ -2,15 +2,6 @@
 
 . $IPKG_INSTROOT/lib/functions.sh
 
-# Stock TCH tc lacks htb/u32/ingress: swap in the DumaOS tc, keeping a
-# one-time backup at /usr/sbin/tc.stock (restored by postrm on remove).
-if [ -x /usr/lib/dumaos/tc ] && ! cmp -s /usr/lib/dumaos/tc /usr/sbin/tc; then
-    if [ -x /usr/sbin/tc ] && [ ! -f /usr/sbin/tc.stock ]; then
-        cp -a /usr/sbin/tc /usr/sbin/tc.stock
-    fi
-    cp -f /usr/lib/dumaos/tc /usr/sbin/tc
-fi
-
 /etc/init.d/ndhttpd enable
 /etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable
