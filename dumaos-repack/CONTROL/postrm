@@ -1,3 +1,27 @@
 #!/bin/sh
 
+# Keep setup artifacts on upgrade, only clean on remove.
+case "$1" in
+    upgrade|configure) exit 0 ;;
+esac
+
+# Artifacts created by setup.sh (kernel module + boot load list)
+rm -f /etc/modules.d/99-dumaos-qos
+rm -f /lib/modules/4.1.52/extra/act-connmark-damson-4.1.52.ko
+depmod -a 4.1.52 2>/dev/null || true
+
+# Firewall rule added by setup.sh
+for s in $(uci -q show firewall 2>/dev/null | grep "=rule" | cut -d. -f2); do
+    if [ "$(uci -q get firewall.$s.name)" = "dumaos_ui" ]; then
+        uci -q delete firewall.$s
+    fi
+done
+uci -q show firewall >/dev/null 2>&1 && uci -q commit firewall
+/etc/init.d/firewall reload >/dev/null 2>&1 || true
+
+# UCI configs left behind by uci commit
+uci -q delete dumaos
+uci -q delete ndhttpd
+uci -q delete ndproxy
+
 exit 0

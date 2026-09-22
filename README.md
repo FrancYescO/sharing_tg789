@@ -36,7 +36,7 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_2.0-0_all.ipk --force-overwrite
+opkg install dumaos-repack_2.0-1_all.ipk --force-overwrite
 sh setup.sh
 ```
 
@@ -46,6 +46,18 @@ the firewall for the UI and enables the `ndhttpd` + `dumaos` services.
 DumaOS UI: `http://<router-ip>:81/` (the stock nginx UI keeps `80`/`443`:
 3.3.90 `ndhttpd` is patched to bind `0.0.0.0:81` instead of the
 loopback-only DJA0231 bind, and it does not listen on `443` at all).
+
+## Uninstall
+
+```
+opkg remove dumaos-repack
+```
+
+`prerm` stops and disables `ndhttpd`/`dumaos`; `postrm` then removes the
+`act_connmark` kernel module and `/etc/modules.d/99-dumaos-qos` installed
+by `setup.sh`, the `dumaos_ui` firewall rule (with a firewall reload) and
+the `dumaos`/`ndhttpd`/`ndproxy` UCI configs. Reload nginx from the mod
+GUI (or `service nginx reload`) to drop the DumaOS card.
 
 ## Source firmware / versions
 
