@@ -38,7 +38,7 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_2.0-4_all.ipk
+opkg install dumaos-repack_2.0-5_all.ipk
 sh setup.sh
 ```
 
@@ -106,6 +106,14 @@ Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
 - `etc/firewallExt/M1_NetDuma_99.user` is a no-op on TCH (no firewallExt);
   the autoadmin firewall hooks are re-applied via ubus after a firewall
   restart, so a reload hook may need to be added to `/etc/hotplug.d/firewall`.
+- The TCH native-nginx integration snippets from the firmware
+  (`main_dumaos.conf`, `duma_proxy.conf`, `tch_auth.conf`) ship under
+  `/etc/nginx/dumaos-available/` and are NOT active: the stock/mod GUI
+  `nginx.conf` includes `main_*.conf` inside its server block, so leaving
+  `main_dumaos.conf` in `/etc/nginx/` puts those `location` blocks in the
+  mod GUI vhost and crash-loops nginx. The UI is served directly by
+  `ndhttpd` on `:81`; use the snippets only if you want the nginx-proxied
+  integration (then include them manually in your own server block).
 - A tch-nginx-gui card is included: `www/cards/015_dumaos.lp` (status +
   link to the DumaOS UI on port 81), backed by the
   `usr/share/transformer/mappings/rpc/dumaos.map` rpc domain
