@@ -21,9 +21,16 @@ The firmware must provide (AGTEF does):
 Provided by the [GUI_ipk](https://github.com/FrancYescO/GUI_ipk) feed:
 
 - `libedit`, `libncurses`, `terminfo`
-- `kmod-ifb`, `kmod-sched-core`, `kmod-sched-connmark` (DumaOS QoS needs
-  `ifb`/`sch_ingress`/`cls_u32`/`act_police`; on AGTEF the stock kernel
-  only ships `sch_qos_tch`, so the modules must match kernel 4.1.52)
+Kernel (AGTEF Damson VBNTJ 4.1.52): `ifb`, `sch_ingress`, `cls_u32` and
+`act_police` are built into the stock kernel (see stock
+`/etc/modules.d/34-ifb` and `70-sched-core`), `xt_connmark`/`xt_mark`/`xt_set`
+are shipped as modules. The only missing QoS module is `act_connmark`:
+`setup.sh` downloads it from the
+[GUI_ipk kmods-4.1.52 artifacts](https://github.com/FrancYescO/GUI_ipk/tree/kmods-4.1.52/artifacts)
+(vermagic `4.1.52 SMP preempt mod_unload ARMv7`, verified against the stock
+AGTEF modules), checks its SHA-256, installs it into
+`/lib/modules/4.1.52/extra/`, runs `depmod` and adds
+`/etc/modules.d/99-dumaos-qos`.
 
 ## Install
 
@@ -37,6 +44,29 @@ the firewall for the UI and enables the `uhttpd` + `dumaos` services.
 
 DumaOS UI: `http://<router-ip>:81/` (https moved to `8443` so the stock
 nginx UI keeps `443`).
+
+## Source firmware / versions
+
+The repacked DumaOS is **3.0.56** ("A7Legit", May 2020, from the DJA0231
+Telstra dumps `vcnt-a_ACR-13-*`/`vbnt-v_ACR-14-*`). Newer DumaOS exists in
+`tch_firmware_extracted` (all ARM/BCM63136, same platform):
+
+| branch | DumaOS | date |
+|---|---|---|
+| `vcnt-a_20.3.c.0501-MR22.1-RA` | **3.3.90** | Oct 2022 |
+| `vcnt-a_20.3.c.0432-MR21.1-RA` | 3.2.126+2 | Feb 2022 |
+| `vbnt-v_20.3.c.0389-MR20-RA` | 3.0.370 | Sep 2021 |
+
+Upgrading to MR22 (3.3.90) is the natural next step: it is built for the
+new TCH stack, so `dpiclass` there links `libjson-c.so.4` (stock on AGTEF,
+the `.so.2` symlink below becomes unnecessary), it ships the missing
+`dumaos/setup_done.sh` plus a `dumaos/custom-platforms.sh` platform
+abstraction, and `dumaos_status.sh`/`rapp_status.sh` helpers. Caveats: its
+lua `ssl.so` needs `libssl/libcrypto 1.1` (bundle from the same firmware,
+AGTEF has 1.0.0) and `dpiclass` adds a `libadpi.so` DPI dependency.
+
+Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
+(MIPS) with no known OSCK key: it is not a usable DumaOS source for AGTEF.
 
 ## Notes / TODO
 
@@ -55,7 +85,10 @@ nginx UI keeps `443`).
   `usr/share/transformer/mappings/rpc/dumaos.map` rpc domain
   (`rpc.dumaos.status` / `rpc.dumaos.enabled`) and translated in
   `www/lang/it-it/webui-dumaos.po`.
-- A per-model `/dumaossystem` profile (currently DJA0231/TELSTRA) is still TODO.
+- The `/dumaossystem` profile is still DJA0231/TELSTRA (BCM63136, the
+  closest ARM Technicolor platform and the only working code path in the
+  init scripts). The `custom-platforms.sh` abstraction shipped by DumaOS
+  3.3.90 (see above) is the proper way to add an AGTEF profile.
 
 ## CI
 
