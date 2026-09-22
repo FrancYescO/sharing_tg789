@@ -19,9 +19,11 @@ The firmware must provide (AGTEF does):
   `libnetfilter_queue/conntrack`
 - `libjson-c.so.4` (stock json-c 0.13, used directly by `dpiclass`/`geoip`)
 
-Provided by the [GUI_ipk](https://github.com/FrancYescO/GUI_ipk) feed:
+Provided by the [GUI_ipk](https://github.com/FrancYescO/GUI_ipk) feed
+(already installed with the mod GUI):
 
-- `libedit`, `libncurses`, `terminfo`
+- `libedit`, `libncurses`, `terminfo`, `libopenssl1.1` (the 3.3.90 lua
+  `ssl`/`crypto` modules need OpenSSL 1.1, declared as `Depends`)
 Kernel (AGTEF Damson VBNTJ 4.1.52): `ifb`, `sch_ingress`, `cls_u32` and
 `act_police` are built into the stock kernel (see stock
 `/etc/modules.d/34-ifb` and `70-sched-core`), `xt_connmark`/`xt_mark`/`xt_set`
@@ -36,7 +38,7 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_2.0-2_all.ipk
+opkg install dumaos-repack_2.0-3_all.ipk
 sh setup.sh
 ```
 
@@ -82,9 +84,10 @@ class as AGTEF). Previous repacks were based on 3.0.56
 (stock on AGTEF, no more `.so.2` symlink), `ndhttpd` replaces `uhttpd`,
 and it ships `setup_done.sh` + `custom-platforms.sh` (platform
 abstraction) + `dumaos_status.sh`/`rapp_status.sh`. Bundled because AGTEF
-does not ship them: `ndhttpd`/`ndhttpd_lua.so`, `libssl.so.1.1` /
-`libcrypto.so.1.1` (the 3.3.90 lua `ssl`/`crypto` modules need 1.1),
-`libadpi.so` (DPI), `libahc.so`, `libmisc.so`, `libtrie.so`, `luac5.1`.
+does not ship them: `ndhttpd`/`ndhttpd_lua.so`, `libadpi.so` (DPI),
+`libahc.so`, `libmisc.so`, `libtrie.so`, `luac5.1`. OpenSSL 1.1 is not
+bundled: it comes from the `libopenssl1.1` feed package (already present
+on mod GUI routers, coexists with the stock 1.0.0).
 
 Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
 (MIPS) with no known OSCK key: it is not a usable DumaOS source for AGTEF.

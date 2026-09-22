@@ -7,7 +7,7 @@
 
 set -e
 
-FEED_DEPS="libedit libncurses terminfo"
+FEED_DEPS="libedit libncurses terminfo libopenssl1.1"
 
 echo "Installing dependencies from feed..."
 opkg update || true
