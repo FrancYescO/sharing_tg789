@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <script src="/custom-elements/drag-table/dragula.js"></script> <dom-module id="drag-table"> <template> <style include="duma-theme"> /*
+<link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script src="/custom-elements/drag-table/dragula.js?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"></script> <dom-module id="drag-table"> <template> <style include="duma-theme"> /*
       credit to: https://embed.plnkr.co/2b1tjQ/ for basic code
       */
 
@@ -43,31 +43,8 @@
         margin: 0px;
       }
 
-
-      td.drag-table > div:not(.non-overflow) {
-        padding: 0px;
-        margin: 0px;
-        overflow-y: auto;
-        height: inherit;
-      }
-
       .dropdown-small {
         width: 5em;
-      }
-
-      td.drag-table > div.row-layout {
-        display: flex;
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-      }
-      td.drag-table > div.row-layout.center {
-        justify-content: center;
-        align-items: center;
-        align-self: center;
-      }
-      td.drag-table > div.row-layout.top {
-        margin-top: -1.5em;
       }
 
       div.overflow {

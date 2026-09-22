@@ -1,9 +1,15 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
+
+var legendElem = $("duma-legend",context);
+var chartElem = $("#second-level-breakdown-graph",context);
+chartElem[0].ariaValueFormatter = function(val){
+  return format_bps(val * 1000 * 1000,1,1000);
+}
 
 var processor;
 var nm;
@@ -58,7 +64,7 @@ function secondLevelBreakdownGraph(deviceId, download, marks, category) {
         if (!applications[application]) {
           applications[application] = sampler_create(maximumVisibleConnections);
         }
-        sampler_add(applications[application], applicationTotals[application]);
+        sampler_add(applications[application], applicationTotals[application] / (duration / 1000));
       }
     }
     applicationTotals = {};
@@ -67,6 +73,7 @@ function secondLevelBreakdownGraph(deviceId, download, marks, category) {
   }
 
   function plot() {
+    var legend = [];
     var graph = {
       labels: [],
       meta: {
@@ -86,9 +93,11 @@ function secondLevelBreakdownGraph(deviceId, download, marks, category) {
 
     for (var applicaton in applications) {
       if (applications.hasOwnProperty(applicaton)) {
+        var label = applicaton === "null" ? "<%= i18n.unknown %>" : applicaton;
+        var colour = colourGenerator();
 
         graph.meta.map.push(applicaton);
-        graph.labels.push(applicaton === "null" ? "<%= i18n.unknown %>" : applicaton);
+        graph.labels.push(label);
 
         graph.datasets[0].data.push(
           nm.convertToCorrectUnit(sampler_moving_average(
@@ -96,11 +105,19 @@ function secondLevelBreakdownGraph(deviceId, download, marks, category) {
           ))
         );
         
-        graph.datasets[0].backgroundColor.push(colourGenerator());
+        graph.datasets[0].backgroundColor.push(colour);
+        legend.push({
+          label: label,
+          result: 0,
+          colour: colour,
+          bgColour: colour,
+          visible: true
+        });
       }
     }
 
-    $("#second-level-breakdown-graph", context).prop("data", nm.roundGraph(graph, 1));
+    chartElem.prop("data", nm.roundGraph(graph, 1));
+    legendElem.prop("legendStats", legend);
     secondLevelBreakdownPanel.loaded = true;
   }
   
@@ -144,10 +161,13 @@ function initialise() {
     nm.setChartTitle(
       devices,
       data.deviceId,
-      $("#second-level-breakdown-graph", context),
-      data.download
+      chartElem,
+      data.download,
+      ["<%= i18n.app %>", "<%= i18n.bandwidthPerSecond %>"]
     );
   });
+
+  legendElem[0].bindToChart(chartElem[0]);
 }
 
 secondLevelBreakdownPanel.destructorCallback = function () {

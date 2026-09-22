@@ -79,7 +79,7 @@ function wait_is_stopped( polling ){
 /*
 * Engine processing
 */
-
+//TODO fix setTimeout recursive stack overflow. Make it an actual proper useful scheduler
 function start_cycle( gen_input_promise, process, wait, inductive_case ){
   var start;
 

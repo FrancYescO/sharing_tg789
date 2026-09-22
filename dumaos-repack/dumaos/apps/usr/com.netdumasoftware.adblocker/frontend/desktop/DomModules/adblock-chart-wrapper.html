@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/iron-icons/iron-icons.html"> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/paper-range-slider/paper-range-slider.html"> <link rel="import" href="/custom-elements/paper-dropdown-menu/paper-dropdown-menu.html"> <link rel="import" href="/custom-elements/paper-toggle-button/paper-toggle-button.html"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html"> <link rel="import" href="/custom-elements/paper-item/paper-item.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html"> <link rel="import" href="/libs/devices.html"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-bubble-chart.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-device-entry.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-queries-blocked-entry.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-device-key.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-pause-button.html"> <dom-module id="adblock-chart-wrapper"> <template> <style include="duma-theme iron-flex"> :host ::content > div {
+<link rel="import" href="/custom-elements/iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-range-slider/paper-range-slider.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dropdown-menu/paper-dropdown-menu.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-toggle-button/paper-toggle-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/devices.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-bubble-chart.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-device-entry.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-queries-blocked-entry.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-device-key.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-pause-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="adblock-chart-wrapper"> <template> <style include="duma-theme iron-flex"> :host ::content > div {
         width: 100%;
         height: 100%;
       }
@@ -23,11 +23,15 @@
         --paper-range-slider-knob-start-color: var(--primary-color);
         --paper-range-slider-knob-start-border-color: var(--primary-color);
         --paper-single-range-slider-font-color: var(--primary-text-color);        
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
       }
-      ::content #historySlider ::content #sliderKnob .slider-knob-inner:before {
+      ::content #historySlider ::content .slider-knob .slider-knob-inner:before {
         display: none;
       }
-      ::content #historySlider ::content #sliderKnob .slider-knob-inner:after {
+      ::content #historySlider ::content .slider-knob .slider-knob-inner:after {
         width: auto;
         white-space: nowrap;
         margin-left: 0;
@@ -52,7 +56,7 @@
       ::content .smallColumn {
         width: 1px;
         white-space: nowrap;
-      } </style> <!-- Adblock bubble chart dom start --> <div> <div class="layout vertical"> <!-- Top bar --> <div id="topBar" class="inner"> <div class="topButton"> <paper-button id="enableDisableAdblockerButton" on-tap="EnableDisableAdblock" background>[[AdblockEnableDisableButtonText]]</paper-button> <adblock-pause-button disable-button adblock-enabled="{{AdblockEnabled}}" disabled-remainder="{{GlobalDisabledRemainder}}"></adblock-pause-button> </div> <div id="slider"> <paper-range-slider id="historySlider" always-show-pin min="0" max="[[SliderMax]]" value-diff-min="60" immediate-value="{{historySliderPosition}}"></paper-range-slider> </div> <paper-dropdown-menu label="Display" on-selected-item-changed="TimeDropdownChanged"> <paper-listbox class="dropdown-content" selected="{{TimeDropdownSelection}}"> <paper-item>5 Min</paper-item> <paper-item>15 Mins</paper-item> <paper-item>30 Mins</paper-item> <paper-item>1 Hour</paper-item> <paper-item>24 Hours</paper-item> </paper-listbox> </paper-dropdown-menu> </div> <!-- Body --> <div class="layout vertical"> <!-- Table header --> <table style="padding: 0px;"> <thead> <tr> <td class="smallColumn"> Pause </td> <td class="smallColumn"> Devices ([[DeviceCount]] Total) </td> <td> <div id="deviceLegend" class="layout horizontal" style="justify-content: center; flex-wrap: wrap;"> </div> </td> <td class="smallColumn"> Queries Blocked </td> </tr> </thead> <tbody id="mainTableBody"> <tr> <td id="tableGraph" rowspan$="[[DeviceCount]]" style="overflow: visible;"> <div id="chartWrap" style="width: 100%; height: 100%; overflow: visible;"> </div> </td> </tr> </tbody> </table> </div> </div> </div> <adblock-domain-burst-dialog id="domainDialog" devices="[[Devices]]" lists="[[Lists]]"></adblock-domain-burst-dialog> </template> <script> Polymer(
+      } </style> <!-- Adblock bubble chart dom start --> <div role="region" aria-label="<%= i18n.ariaRegion %>"> <div class="layout vertical"> <!-- Top bar --> <div id="topBar" class="inner"> <div class="topButton"> <paper-button id="enableDisableAdblockerButton" on-tap="EnableDisableAdblock" background>[[AdblockEnableDisableButtonText]]</paper-button> <adblock-pause-button disable-button adblock-enabled="{{AdblockEnabled}}" disabled-remainder="{{GlobalDisabledRemainder}}"></adblock-pause-button> </div> <div id="slider"> <paper-range-slider id="historySlider" always-show-pin min="0" max="[[SliderMax]]" value-diff-min="60" immediate-value="{{historySliderPosition}}" aria-label-min="<%= i18n.ariaSliderMin %>" aria-label-max="<%= i18n.ariaSliderMax %>" aria-value-text-override="[[getAriaOverride()]]"></paper-range-slider> </div> <paper-dropdown-menu label="<%= i18n.display %>" on-selected-item-changed="TimeDropdownChanged"> <paper-listbox class="dropdown-content" selected="{{TimeDropdownSelection}}"> <paper-item><%= i18n.min_5 %></paper-item> <paper-item><%= i18n.min_15 %></paper-item> <paper-item><%= i18n.min_30 %></paper-item> <paper-item><%= i18n.hour_1 %></paper-item> <paper-item><%= i18n.hour_24 %></paper-item> </paper-listbox> </paper-dropdown-menu> </div> <!-- Body --> <div class="layout vertical"> <!-- Table header --> <table style="padding: 0px;"> <caption class="sr-only"><%= i18n.tableCaption %></caption> <thead> <tr> <th scope="col" class="smallColumn"> <%= i18n.pause %> </th> <th scope="col" class="smallColumn"> [[_format("<%= i18n.devicesTotal %>",DeviceCount)]] </th> <th scope="col"> <div id="deviceLegend" class="layout horizontal" style="justify-content: center; flex-wrap: wrap;"> </div> </th> <th scope="col" class="smallColumn"> <%= i18n.queriesBlocked %> </th> </tr> </thead> <tbody id="mainTableBody"> <tr> <td id="tableGraph" rowspan$="[[DeviceCount]]" style="overflow: visible;"> <div id="chartWrap" style="width: 100%; height: 100%; overflow: visible;"> </div> </td> </tr> </tbody> </table> </div> </div> </div> <adblock-domain-burst-dialog id="domainDialog" devices="[[Devices]]" lists="[[Lists]]"></adblock-domain-burst-dialog> </template> <script> Polymer(
     {
       is: 'adblock-chart-wrapper',
       properties:
@@ -108,12 +112,28 @@
           value: -1,
         }
       },
+      _timeOptions: [
+        "<%= i18n.timeAgo %>".format("<%= i18n.min_5 %>"),
+        "<%= i18n.timeAgo %>".format("<%= i18n.min_15 %>"),
+        "<%= i18n.timeAgo %>".format("<%= i18n.min_30 %>"),
+        "<%= i18n.timeAgo %>".format("<%= i18n.hour_1 %>"),
+        "<%= i18n.timeAgo %>".format("<%= i18n.hour_24 %>"),
+      ],
+      getAriaOverride: function(){
+        return function(val){
+          if(val >= this.SliderMax) return "<%= i18n.presentTime %>";
+          return FormatTimeAgo(this.SliderMax - val,true,true);
+        }.bind(this);
+      },
       AdblockEnabledObserver: function (newValue, oldValue)
       {
         $("adblock-pause-button").each(function(index, button)
         {
           button.adblockEnabled = newValue;
         }.bind(this));
+      },
+      _format: function(){
+        return String.format.apply(this,arguments);
       },
       ready: function ()
       {
@@ -173,7 +193,7 @@
       },
       GetAdblockEnableDisableButtonText(AdblockEnabled, GlobalDisabledRemainder)
       {
-        return (!(!AdblockEnabled && GlobalDisabledRemainder <= 0)) ? "Disable Adblocker" : "Enable Adblocker";
+        return (!(!AdblockEnabled && GlobalDisabledRemainder <= 0)) ? "<%= i18n.disableAdblocker %>" : "<%= i18n.enableAdblocker %>";
       },
       GetListsCallback(reload, result)
       {
@@ -188,7 +208,7 @@
             if ((old == 1) == (typeof result[0][i].old != "undefined"))
             {
               if (result[0][i].old)
-                result[0][i].name += " (Deleted)";
+                result[0][i].name += " <%= i18n.markDeleted %>";
 
               this.AddLegendKey(this.colours, i, result[0][i].name);
               lists.push(
@@ -310,7 +330,8 @@
         var buttonHtml = document.createElement("adblock-pause-button");
         buttonHtml.DeviceID = device.DeviceID;
         buttonHtml.DeviceEnabled = device.Enabled;
-        buttonHtml.disabledRemainder = device.disabledRemainder;
+        buttonHtml.DeviceName = device.Name;
+        buttonHtml.disabledRemainder = device.disabledRemainder || -1;
         buttonHtml.adblockEnabled = this.AdblockEnabled;
 
         Polymer.dom(html).appendChild(buttonHtml);
@@ -336,6 +357,7 @@
         html.className = "rowHeight";
         var entry = document.createElement("adblock-queries-blocked-entry")
         entry.deviceIndex = device.DeviceID;
+        entry.deviceName = device.Name;
         Polymer.dom(html).appendChild(entry);
 
         device.html = entry;

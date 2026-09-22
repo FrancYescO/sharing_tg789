@@ -1,12 +1,15 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
  * Iain Fraser <iainf@netduma.com>
+ * Luke Meppem
 */
 
 (function (context) {
 
 var geoMapLoaderDialog = $("#geo-map-loader-dialog", context)[0];
+var locationSearcher = $("duma-location-search", context)[0];
+var tourStartDiag = $("#geo-filter-tour-start");
 
 var idleTime = 1000 * 60 * 2; // milliseconds
 var milesInKm = 0.621371;
@@ -34,6 +37,57 @@ peer_icons[geoFilter.constants.GEO_CSTATE_VERDICT_USER_ALLOW] = "peer-whiteliste
 peer_icons[geoFilter.constants.GEO_CSTATE_VERDICT_USER_DENY] = "peer-blacklisted";
 
 var host_icons = [ peer_icons, dedi_icons ];
+
+var icon_names = [];
+icon_names["server"] = "<%= i18n.icon_server %>";
+icon_names["server-blocked"] = "<%= i18n.icon_serverBlocked %>";
+icon_names["server-ping-assist"] = "<%= i18n.icon_serverPingAssist %>";
+icon_names["server-whitelisted"] = "<%= i18n.icon_serverWhitelisted %>";
+icon_names["server-blacklisted"] = "<%= i18n.icon_serverBlacklisted %>";
+icon_names["peer"] = "<%= i18n.icon_player %>";
+icon_names["peer-blocked"] = "<%= i18n.icon_playerBlocked %>";
+icon_names["peer-ping-assist"] = "<%= i18n.icon_playerPingAssist %>";
+icon_names["peer-whitelisted"] = "<%= i18n.icon_playerWhitelisted %>";
+icon_names["peer-blacklisted"] = "<%= i18n.icon_playerBlacklisted %>";
+
+var legendIconOrder = ["server","peer","server-blocked","peer-blocked","server-ping-assist","peer-ping-assist","server-whitelisted","peer-whitelisted","server-blacklisted","peer-blacklisted"];
+
+function set_legend_items(){
+  var items = [];
+  for(var i = 0; i < legendIconOrder.length; i++){
+    var id = legendIconOrder[i];
+    items.push({
+      icon: "duma-icons:" + id,
+      display: icon_names[id] || "N/A",
+      type: id
+    });
+  }
+  var legendRepeat = $("#iconLegendRepeat")[0];
+  legendRepeat.items = items;
+  return items;
+}
+
+function set_legend_open_state(state){
+  state = (state === true || state === "true") ? true : false;
+  var legendWrapper = $(".icon-legend-wrapper");
+  var legend = legendWrapper.find(".icon-legend");
+  var checkbox = legendWrapper.find("paper-checkbox");
+  if(state) set_legend_items();
+  legend.attr("hidden", state ? null : true);
+  checkbox.prop("checked", state);
+  duma.storage(geoFilter.getPackageId(),"legend_open",state);
+}
+
+function init_legend_open_state(){
+  var init = duma.storage(geoFilter.getPackageId(),"legend_open");
+  if(!init || init === ""){
+    init = "true";
+  }
+  set_legend_open_state(init === "true");
+  $(".icon-legend-wrapper paper-checkbox").on("checked-changed",function(event){
+    set_legend_open_state(event.detail.value);
+  });
+}
 
 function category_key( type, verdict ){
   return "host_" + type + "_" + verdict;
@@ -73,8 +127,6 @@ function displayHosts() {
 function cycle_end(processedHosts) {
   hosts = processedHosts;
 
-  var is_dash = $("duma-panel",context).prop("desktop");
-
   displayHosts();
 }
 
@@ -88,74 +140,11 @@ function save_cookie( x, y ){
   /* TODO: move to api */
 }
 
-
-var zoomfactor = 2.5;
-var is_zoomed = false;
-
-function do_more_zoom( x, y, k, width, height ){
-  var dims = $("duma-map",context)[0].__getDims();
-  var t = svg_translate( dims[0], dims[1] ) + svg_scale( k )  + svg_translate( -x, -y ); 
-
-   d3.select(context).select("#zoomg").transition()
-      .duration(750)
-      .attr("transform",t);
-
-/*  doing_zoom = true;
-  d3.selectAll(".hostobj").transition()
-    .duration(750)
-    .attr("transform", world_host_zoom_transform )
-    .call( endall, function(){
-      doing_zoom = false; 
-    }); */
-  
-}
-
-
-function do_zoom( mx, my, projection, width, height, dont_set_cursor  ){
-  var scalefactor = zoomfactor;
-  var dm = $("duma-map", context)[0];
-
-  duma.storage(geoFilter.getPackageId(), "zoomx", mx / width );
-  duma.storage(geoFilter.getPackageId(), "zoomy", my / height );
-  duma.storage(geoFilter.getPackageId(), "zoomon", !is_zoomed );
-  var dims = dm.__getDims();
-  var x,y, k;
-  if( is_zoomed ){
-    x = dims[0];
-    y = dims[1];
-    k = 1;
-    if(!dont_set_cursor)
-      removeMapClass("zoomed-cursor");
-  } else {
-    /* bound check */
-    var l = projection.invert( [mx,my] );
-    var lng = l[0];
-    var lat = l[1];
-
-    if( lat < -90 || lat > 90 ) return;
-    if( lng < -180 || lng > 180 ) return;
-
-    x = mx;
-    y = my;
-    zoom_x = mx;
-    zoom_y = my;
-    k = scalefactor;
-    if(!dont_set_cursor)
-      setMapClass("zoomed-cursor");
-  }
-  is_zoomed = !is_zoomed;
-  dm.zoomfactor = k;
-  dm.zoomx = x;
-  dm.zoomy = y;
-  do_more_zoom( x, y, k, width, height );
-}
-
 function clampto(input,minMax){
   return Math.max(0-minMax,Math.min(minMax, input));
 }
 
 function map_to_lat_long(x,y,projection,width,height){
-  var scalefactor = zoomfactor;
   
   loc = projection.invert( [x,y] );
   
@@ -168,31 +157,31 @@ function map_to_lat_long(x,y,projection,width,height){
   return [flat,flng];
 }
 function lat_long_to_map(lat,lng,projection){
-  var scalefactor = zoomfactor;
 
   loc = projection( [lng,lat] );
 
   return loc;
 }
 
-function set_home( mx, my, projection, width, height ){
+function set_home_coord(lng, lat){
   var dm = $("duma-map", context)[0];
+  var lng = Math.max(Math.min(Math.round(lng),180),-180);
+  var lat = Math.max(Math.min(Math.round(lat),90),-90);
 
-  var f = map_to_lat_long(mx,my,projection,width,height);
-  var flat = f[0];
-  var flng = f[1];
-
-  if( flat < -90 || flat > 90 ) return;
-  if( flng < -180 || flng > 180 ) return;
-
-
-  var promise = long_rpc_promise(geoFilter.getPackageId(), "home", [1, flat, flng ]);
+  var promise = long_rpc_promise(geoFilter.getPackageId(), "home", [1, lat, lng ]);
   geoFilter.showLoaderDialog(geoMapLoaderDialog, promise);
   promise.done(function () {
-    dm.home[0] = flat; 
-    dm.home[1] = flng;
+    dm.home[0] = lat; 
+    dm.home[1] = lng;
     dm._distance_change();    // force redraw
   });
+
+  $("#homeLocationChangedToast",context)[0].open();
+}
+
+function set_home( mx, my, projection, width, height ){
+  var f = map_to_lat_long(mx,my,projection,width,height);
+  set_home_coord(f[1], f[0]);
 }
 
 function addPolygon(open) {
@@ -276,17 +265,18 @@ function deletePolygon(open) {
 
 
 var g_map_buttons = {
-  "#zoom" : {
-    "icon" : "zoom-in",
-    "handler" : do_zoom,
-    "autoclose" : false,
-    "class" : "zoom-cursor"
-  },
   "#home" : {
     "icon" : "maps:person-pin-circle",
     "handler" : set_home,
     "autoclose" : true,
-    "class" : "home-cursor"
+    "class" : "home-cursor",
+    "keyHandler" : openLocationSearch
+  },
+  "#search-home" : {
+    "icon" : "home",
+    "onClick" : openLocationSearch,
+    "justClick" : true,
+    "keyHandler" : openLocationSearch
   },
   "#add-polygon" : {
     "icon" : "editor:mode-edit",
@@ -308,7 +298,6 @@ function resetMapClass() {
       removeMapClass(g_map_buttons[icon].class);
     }
   }
-  removeMapClass("zoomed-cursor");
 }
 
 function setMapClass(mapClass) {
@@ -317,11 +306,14 @@ function setMapClass(mapClass) {
 function removeMapClass(mapClass) {
   $("duma-map", context).removeClass(mapClass);
 }
+function setPanLeftClick(val) {
+  $("duma-map", context)[0]._canUseLeftClickToPan = val;
+}
 
 
 function mapclick_get_selected(){
   for( var id in g_map_buttons ){
-    if( $(id, context).prop("icon") == "close" )
+    if( $(id, $(".geo-menu",context)).prop("icon") == "close" )
       return g_map_buttons[id];
   }
   return false;
@@ -343,11 +335,12 @@ function mapclick_auto_cancel(force=false){
   if(!force && e && !e.autoclose ) return;
 
   for( var id in g_map_buttons ){
-    $(id, context).prop("disabled", false );
-    $(id, context).prop("icon", g_map_buttons[id].icon );
+    $(id, $(".geo-menu",context)).prop("disabled", false );
+    $(id, $(".geo-menu",context)).prop("icon", g_map_buttons[id].icon );
   }
 
   resetMapClass();
+  setPanLeftClick(true);
 }
 
 function mapclick_init(){
@@ -355,13 +348,15 @@ function mapclick_init(){
     var entry = g_map_buttons[id];
 
     function create_closure( id, entry ){
-      return function(){
+      return function(event){
+        //close all other buttons
         for( var fid in g_map_buttons ){
           if( id == fid ) continue;
-          var other = $(fid);
+          var other = $(fid,context);
           var otherEntry = g_map_buttons[fid];
           // $( fid ).prop("disabled", is_open_state );
           var other_open_state = other.prop("icon") == otherEntry.icon;
+          //if other buttons are 'open', close them
           if(!other_open_state){
             if(typeof otherEntry.onClick === "function"){
               otherEntry.onClick(other_open_state);
@@ -370,15 +365,22 @@ function mapclick_init(){
             resetMapClass();
           }
         }
+        // if keyboard event, and has keyHandler
+        // if justClick, treat as single click, and not as 2-state on/off click
+        if(entry.justClick && typeof entry.onClick === "function"){
+          entry.onClick(true);
+          return;
+        }
         var is_open_state = $(this).prop("icon") == entry.icon 
         $(this).prop("icon", is_open_state ? "close" : entry.icon ); 
         
         if( is_open_state ){
-          if( id === "#zoom" && is_zoomed)
-            setMapClass("zoomed-cursor")
           setMapClass( entry.class );
-        }else
+          setPanLeftClick(false);
+        }else{
           resetMapClass();
+          setPanLeftClick(true);
+        }
         
         if (typeof entry.onClick === "function") {
           entry.onClick(is_open_state);
@@ -387,7 +389,7 @@ function mapclick_init(){
       }
     }
 
-    $(id).click( create_closure( id, entry ) );
+    $(id,$(".geo-menu",context)).click( create_closure( id, entry ) );
   }
 }
 
@@ -414,7 +416,9 @@ function getDistance() {
 function changeDistanceUnit(miles) {
   var min = 111;
   var max = 20037;
-  var value = $("#distance-slider", context).prop("value");
+  var distanceSlider = $("#distance-slider");
+  var geoUnit = $("#geo-unit");
+  var value = distanceSlider.prop("value");
 
   if (miles) {
     min = min * milesInKm;
@@ -425,15 +429,17 @@ function changeDistanceUnit(miles) {
     }
 
     duma.storage(geoFilter.getPackageId(), "distanceUnit", "miles");
-    $("#geo-unit", context).text("<%= i18n.milesUnit %>");
-
+    geoUnit.text("<%= i18n.milesUnit %>");
+    distanceSlider.attr("aria-value-unit","<%= i18n.miles %>");
+    
   } else {
     if (duma.storage(geoFilter.getPackageId(), "distanceUnit") === "miles") {
       value = value * (1 / milesInKm);
     }
     
     duma.storage(geoFilter.getPackageId(), "distanceUnit", "km");
-    $("#geo-unit", context).text("<%= i18n.kmUnit %>");
+    geoUnit.text("<%= i18n.kmUnit %>");
+    distanceSlider.attr("aria-value-unit","<%= i18n.kilometers %>");
   }
 
   if (value < min) {
@@ -444,36 +450,20 @@ function changeDistanceUnit(miles) {
     value = max;
   }
 
-  $("#distance-slider", context).prop("max", Math.round(max));
-  $("#distance-slider", context).prop("value", Math.round(value));
-  $("#distance-slider", context).prop("min", Math.round(min));
+  distanceSlider.prop("max", Math.round(max));
+  distanceSlider.prop("value", Math.round(value));
+  distanceSlider.prop("min", Math.round(min));
 }
 
 function pollCloudReady() {
   long_rpc_promise(geoFilter.getPackageId(), "cloud_ready", [])
     .then(function (ready) {
       if (JSON.parse(ready)) {
-        $("paper-toast", context)[0].close();
+        $("#cloudToast", context)[0].close();
       } else {
-        $("paper-toast", context)[0].open();
+        $("#cloudToast", context)[0].open();
       }
     }).done();
-}
-
-function getZoomDropdown() {
-  return Polymer.dom($("#zoomf", context)[0]).querySelector(".dropdown-content");
-}
-
-function setZoomDropdownValue( val ){
-  var zdp = getZoomDropdown();
-  zdp.selected = 0; 
-  for( var i = 0; i < zdp.items.length; i++ ){
-    var itemVal = Number( zdp.items[i].getAttribute("value") );
-    if( itemVal == zoomfactor ){
-      zdp.selected = i;
-      break;
-    }
-  }
 }
 
 function onAutoPingPanelClose() {
@@ -517,29 +507,16 @@ function loadSavedValues() {
   $("#auto-ping", context).on("change", onAutoPingChange);
   onAutoPingChange();
 
-  zoomfactor = duma.storage(geoFilter.getPackageId(), "zoomfactor" );
-  zoomfactor = zoomfactor ? JSON.parse( zoomfactor ) : 2.5;
-  setZoomDropdownValue( zoomfactor );
-  $("#zoomf", context).on("iron-select", function(){ 
-    zoomfactor = Number( $("#zoomf", context ).val() );
-    duma.storage(geoFilter.getPackageId(), "zoomfactor", zoomfactor );
-  } );
-
-  var rx = duma.storage(geoFilter.getPackageId(), "zoomx" );
-  var ry = duma.storage(geoFilter.getPackageId(), "zoomy" );
-  var zoomon = duma.storage(geoFilter.getPackageId(), "zoomon" );
-  zoomon = zoomon ? JSON.parse( zoomon ) : false;
-  if( zoomon ){
-    var details = $("duma-map",context)[0].get_zoom_info();
-    var mx = parseFloat( rx ) * details.width;
-    var my = parseFloat( ry ) * details.height;
-    do_zoom( mx, my, details.projection, details.width, details.height , true); 
-  }
-
+  var map = $("duma-map",context);
+  map[0].loadZoom(geoFilter.getPackageId());
+  map.on("zoom-info-changed",function(){
+    map[0].saveZoom(geoFilter.getPackageId());
+  }.bind(this));
+  $("duma-zoom-slider",context)[0].setMap($("duma-map",context)[0]);
 }
 
 function on_profile_click(){
-  $("geofilter-device-selector", context)[0].open(function (device, service, profile) {
+  $("geofilter-device-selector", context)[0].open(function (device, service, profile, onError) {
     var profile = service.profile;
     var distance;
     var strict;
@@ -590,20 +567,47 @@ function on_profile_click(){
         if( strict !== null ){
           $("#strict-mode", context).prop("checked", strict);
         }
-      });
+      }).catch(onError);
 
       geoFilter.showLoaderDialog(geoMapLoaderDialog, p);
     } 
   });
 
-  $("geofilter-device-selector", context)[0]._selectedPageIndex = 1;
+  $("geofilter-device-selector", context)[0]._selectedPageIndex = "apps";
   $("geofilter-device-selector", context)[0].tags = [ "gfprofile" ];
-  $("geofilter-device-selector", context)[0].header = "<%= i18n.profileSelector %>";
+  $("geofilter-device-selector", context)[0]._profileHeader = "<%= i18n.profileSelector %>";
+  $("geofilter-device-selector", context)[0]._profileMode = true;
 }
+
+function __geofilter__setTour(circle){
+  if(circle){
+    if(typeof __geofilter__setToNormalTour__ === "function") __geofilter__setToNormalTour__();
+  }else{
+    if(typeof __geofilter__setToPolygonTour__ === "function") __geofilter__setToPolygonTour__();
+  }
+}
+
+function attemptStartPolygonMode(){
+  var doneTour = duma.storage(geoFilter.getPackageId(),"polytour");
+  var doneOrigTour = tourStartDiag[0].hasTourTriggered();
+  if(doneTour !== "true" && doneOrigTour){
+    duma.storage(geoFilter.getPackageId(),"polytour","true");
+    hopscotch.endTour();
+    setTimeout(function(){
+      __geofilter__setTour(false);
+      hopscotch.startTour(duma.tour.getTour()(0), 0);
+    },10);
+  }else{
+    __geofilter__setTour(false);
+  }
+}
+
 function changeFilteringMode(circle) {
-  var map = $("duma-map", context)[0]
+  var map = $("duma-map", context)[0];
   if (circle) {
-    $("#home",context).show();
+    __geofilter__setTour(true);
+    $("#home",$(".geo-menu",context)).show();
+    $("#search-home",$(".geo-menu",context)).show();
     $("#add-polygon",context).hide();
     $("#delete-polygon",context).hide();
     $("#zoomg > #radial",context).show();
@@ -614,7 +618,8 @@ function changeFilteringMode(circle) {
     map.stopDeletingPolygons();
     mapclick_auto_cancel(true);
   } else {
-    $("#home",context).hide();
+    $("#home",$(".geo-menu",context)).hide();
+    $("#search-home",$(".geo-menu",context)).hide();
     $("#add-polygon",context).show();
     $("#delete-polygon",context).show();
     $("#zoomg > #radial",context).hide();
@@ -622,6 +627,7 @@ function changeFilteringMode(circle) {
     console.log("Changing mode to polygon filtering");
     long_rpc_promise(geoFilter.getPackageId(), "mode", [1, 1]);
     load_polygons();
+    attemptStartPolygonMode();
   }
   $(".template-when-polygon",context).each(function(index,elem){elem.if = !circle;})
   $(".template-when-circle",context).each(function(index,elem){elem.if = !!circle;})
@@ -634,6 +640,10 @@ function load_polygons(filename="polygon.json"){
     reload_polygons(data);
   });
 }
+function showNoPolygonsWarning(){
+  $("#geofilter-duma-alert",context)[0].open("<%= i18n.noPolygonsWarning %>");
+}
+var showNoPolygonsWarningOnClose = false;
 function reload_polygons(data){
   var map = $("duma-map", context)[0];
   var polygons = $("duma-map #polygons",context);
@@ -659,9 +669,36 @@ function reload_polygons(data){
     map._showFill(group, svg_points);
   }
   if(!data.polygons || data.polygons.length === 0){
-    $("#geofilter-duma-alert",context)[0].open("All designated traffic will be blocked until a shape is drawn. Please draw a shape to begin.");
+    if(tourStartDiag[0].hasTourTriggered()){
+      showNoPolygonsWarningOnClose = true;
+    }else{
+      showNoPolygonsWarning();
+    }
   }
   updatePolygonCount();
+}
+
+function doOpenTourStart(){
+  tourStartDiag.on("skip-tour",function(){
+    if(showNoPolygonsWarningOnClose) showNoPolygonsWarning();
+  });
+  tourStartDiag.on("start-tour",function(){
+    showFoundHere = false;
+    $("#filtering-mode", context).prop("checked",false);
+  });
+}
+
+function openTourStarter(){
+  if(!tourStartDiag[0].hasTourTriggered()){
+    doOpenTourStart();
+  }
+}
+
+function openLocationSearch(){
+  locationSearcher.open((location) => {
+    var coord = location.geometry.coordinates;
+    set_home_coord(coord[0],coord[1]);
+  });
 }
 
 /*
@@ -717,10 +754,12 @@ function initialise(e, data) {
         function create_closure( path ){
           return function( s ){
             var svg = duma.svg.fromIconset("duma-icons:" + path);
-            s.html(svg ? svg.innerHTML : "");
+            var inner = $(svg ? svg.innerHTML : "");
+            inner.attr("transform", "translate(-10,-10)");
+            s.html(inner[0].outerHTML);
             s.attr("width", 20);
             s.attr("height", 20);
-            s.select("g").classed("icon-content",true).attr("type", path);;
+            s.select("g").classed("icon-content",true).attr("type", path);
           }
         }
 
@@ -735,7 +774,6 @@ function initialise(e, data) {
 
       var distance = getDistance();
       var promise = rpc_dist([1, distance]);
-      geoFilter.showLoaderDialog(geoMapLoaderDialog, promise);
       promise.done(function () {
         if (distance > 3000 || distance < 500)  {
           $("#geofilter-duma-alert", context)[0].show(
@@ -763,8 +801,34 @@ function initialise(e, data) {
     filtering.prop("checked",real_bool);
     changeFilteringMode(!real_bool);
 
-    $("#filtering-mode", context).on("checked-changed", function () {
+    filtering.on("checked-changed", function () {
       changeFilteringMode(!this.checked);
+    });
+    // when switching to polygon mode via keyboard
+    filtering.on("keyup", function (e) {
+      if(!this.checked){
+        var code = e.originalEvent.code;
+        if(code === "Space" || code === "Enter"){
+          $("#polygon-keyboard-warning",context)[0].show(
+            "",
+            [
+              // on cancel, set back to radius mode
+              { text: "<%= i18n.cancel %>", action: "dismiss", callback: function(){
+                filtering.prop("checked",false)[0];
+                Polymer.RenderStatus.afterNextRender(this,function(){
+                  filtering[0].focus();
+                });
+              }},
+              // on confirm, just do nothing, as already in polygon mode
+              { text: "<%= i18n.continue %>", action: "confirm", callback: function(){
+                Polymer.RenderStatus.afterNextRender(this,function(){
+                  filtering[0].focus();
+                });
+              }}
+            ]
+          )
+        }
+      }
     });
     $("duma-map", context).on('polygon-complete',function(group){
       save_polygons();
@@ -794,8 +858,6 @@ function initialise(e, data) {
 
       var value = $("#ping-assist",context).prop("value");
       var promise = pingAssistRpc([1, value]);
-
-      geoFilter.showLoaderDialog(geoMapLoaderDialog, promise);
 
       promise.done(function () {
         if (value > 200)  {
@@ -875,7 +937,7 @@ function initialise(e, data) {
       /* this may take a while so pause engine or you'll get timeout errors */
       geoFilter.stopConnectionProcessor();
 
-      var promise = long_rpc_promise(geoFilter.getPackageId(), "cloud_flush", []);
+      var promise = long_rpc_promise(geoFilter.getPackageId(), "cloud_flush", [], 80);
       geoFilter.showLoaderDialog(geoMapLoaderDialog, promise);
       promise.done( function(){
         startConnectionProcessing();
@@ -888,6 +950,10 @@ function initialise(e, data) {
     setInterval(pollCloudReady, 1000 * 15);
     
     startConnectionProcessing();
+
+    openTourStarter();
+
+    init_legend_open_state();
       
     $("duma-panel", context).prop("loaded", true);
   }).done();

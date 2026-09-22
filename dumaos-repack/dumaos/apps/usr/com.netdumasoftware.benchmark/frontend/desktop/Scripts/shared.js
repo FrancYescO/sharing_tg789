@@ -27,13 +27,13 @@ function GetNetflixRating(speed)
   // Netflix rating, numbers based off netflix support website for each minimal speed
   var netflixRating = "-";
   if (speed > 25000)
-    netflixRating = "Ultra HD";
+    netflixRating = "<%= i18n.ultraHD %>";
   else if (speed > 5000)
-    netflixRating = "HD";
+    netflixRating = "<%= i18n.HD %>";
   else if (speed > 3000)
-    netflixRating = "SD";
+    netflixRating = "<%= i18n.SD %>";
   else
-    netflixRating = "Insufficient";
+    netflixRating = "<%= i18n.insufficient %>";
 
   return netflixRating;
 }

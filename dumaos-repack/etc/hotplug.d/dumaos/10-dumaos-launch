@@ -1,103 +1,105 @@
 #!/bin/sh
 
-if [ "$ACTION" = "dumaos_enabled" ];then
-	PERSIST_DUMAOS="/old_root/usr/share/config/etc/config/dumaos"
-	DUMA_STATUS=$(uci show dumaos | grep "dumaos_enabled" | wc -l)
-	if [ "$DUMA_STATUS" = "0" ];then
-		echo -e "\nconfig  tr69 'tr69'\n\toption 'dumaos_enabled' '0'\n\toption 'dumaos_started' '0'" >> /etc/config/dumaos
-		uci commit dumaos
-		uci set dumaos.tr69.dumaos_enabled=1
-		uci set dumaos.tr69.dumaos_started=0
-		uci commit dumaos
-		if [ "$(ps ww | grep "procmanager" | grep -v grep | wc -l)" -lt 1 ];then
-			#logger DumaOS "DumaOS Starting"
-			/etc/init.d/dumaos start &
-		fi	
-		#rm -f /tmp/dumaos_enabled
-	elif [ "$DUMA_STATUS" = "1" ];then
-		uci set dumaos.tr69.dumaos_enabled=1
-		uci set dumaos.tr69.dumaos_started=0
-		 uci commit dumaos
-		if [ "$(ps ww | grep "procmanager" | grep -v grep | wc -l)" -lt 1 ];then
-                        #logger DumaOS "DumaOS Starting"
-                        /etc/init.d/dumaos start &
-                fi
-		#rm -f /tmp/dumaos_enabled
-	fi
-	if [ "$(cat /dumaossystem/model)" = "LH1000" ];then
-		echo "Arcadyan LH1000 Platform"
-	#if [ "$(grep -r "dumaos_started" /etc/crond/root | wc -l)" = "0" ];then 
-		#echo "* * * * * ACTION=dumaos_started /sbin/hotplug-call dumaos" >> /etc/crond/root
-		#killall -9 crond
-		#crond -c /etc/crond/
-	#fi
-	cp -f /etc/config/dumaos $PERSIST_DUMAOS && sync
-	elif [ "$(cat /dumaossystem/model)" = "DJA0231" ];then
-		echo "Technicolor DJA0231 Platform"
-		#if [ "$(grep -r "dumaos_started" /etc/crontabs/root | wc -l)" = "0" ];then
-		#echo "* * * * * ACTION=dumaos_started /sbin/hotplug-call dumaos" >> /etc/crontabs/root
-                #killall -9 crond
-                #/usr/sbin/crond -f -c /etc/crontabs -l 5 &
-		#fi
-	fi	
-fi	
-
-if [ "$ACTION" = "dumaos_disabled" ];then
-	PERSIST_DUMAOS="/old_root/usr/share/config/etc/config/dumaos"
-        DUMA_STATUS=$(uci show dumaos | grep "dumaos_enabled" | wc -l)
-        if [ "$DUMA_STATUS" = "1" ];then
-                uci set dumaos.tr69.dumaos_enabled=0
-		uci set dumaos.tr69.dumaos_started=0
-		uci commit dumaos
-		#rm -f /tmp/dumaos_enabled
-                /etc/init.d/dumaos stop &
-        elif [ "$DUMA_STATUS" = "0" ];then
-		echo -e "\nconfig  tr69 'tr69'\n\toption 'dumaos_enabled' '0'\n\toption 'dumaos_started' '0'" >> /etc/config/dumaos
-		uci set dumaos.tr69.dumaos_enabled=0
-		uci set dumaos.tr69.dumaos_started=0
-		uci commit dumaos
-                /etc/init.d/dumaos stop &
-		#rm -f /tmp/dumaos_enabled
-        fi
-	if [ "$(cat /dumaossystem/model)" = "LH1000" ];then
-		echo "Arcadyan LH1000 Platform"
-	#if [ "$(grep -r "dumaos_started" /etc/crond/root | wc -l)" = "1" ];then
-        #       sed -i '/dumaos_started/d' /etc/crond/root
-        #fi
-	cp -f /etc/config/dumaos $PERSIST_DUMAOS && sync
-	elif [ "$(cat /dumaossystem/model)" = "DJA0231" ];then
-		echo "Technicolor DJA0231 Platform"
-		/etc/init.d/uhttpd stop && /etc/init.d/uhttpd disable
-		/etc/init.d/ctwatch stop && /etc/init.d/ctwatch disable
-		/etc/init.d/connwatch stop && /etc/init.d/connwatch disable
-		/etc/init.d/arpwatch stop && /etc/init.d/arpwatch disable
-		#if [ "$(grep -r "dumaos_started" /etc/crontabs/root | wc -l)" = "1" ];then
-               	#	sed -i '/dumaos_started/d' /etc/crontabs/root
-        	#fi
-	fi
+if [ -f "/dumaossystem/model" ];then
+SYSROOT_PREFIX="/"
+else
+SYSROOT_PREFIX="/media/dumaos_output"
 fi
 
-if [ "$ACTION" = "dumaos_started" ];then
-	PERSIST_DUMAOS="/old_root/usr/share/config/etc/config/dumaos"
-	DUMA_LOADED=$(ps ww | grep "cleaner.lua" | grep -v grep | wc -l)
-	if [ "$DUMA_LOADED" = "1" ];then
-		uci set dumaos.tr69.dumaos_started=1
-		uci commit dumaos
-		#touch /tmp/dumaos_enabled
-	fi
-	if [ "$(cat /dumaossystem/model)" = "LH1000" ];then
-		cp -f /etc/config/dumaos $PERSIST_DUMAOS && sync
-	fi	
+if [ -e "$SYSROOT_PREFIX/dumaos/api/libs/shell/dumaos_helper.sh" ];then
+  . $SYSROOT_PREFIX/dumaos/api/libs/shell/dumaos_helper.sh
+else
+  printf "DumaOS API doesn't exist, Exiting \n"
+  exit 1
 fi
 
-if [ "$ACTION" = "rappstart" ];then
-        if [ "$RAPP" = "com.netdumasoftware.pingheatmap" ];then
-                if [ "$(ubus list | grep com.netdumasoftware.devicemanager | wc -l)" = 1 ];then
-                        uci set dumaos.tr69.dumaos_started=1;uci commit dumaos
-                fi
-        fi
+uci_commits(){
+if [ "$1" = "enable" ];then
+  uci set dumaos.tr69.dumaos_enabled=1
+elif [ "$1" = "disable" ];then
+  uci set dumaos.tr69.dumaos_enabled=0   	
+else
+  return 0
+fi
+uci commit dumaos
+if [ "$(cat $SYSROOT_PREFIX/dumaossystem/odm)" = "ARCADYAN" ];then
+  mngcli commit
+fi
+}
+
+services_trigger(){
+if [ "$1" = "start" ];then
+    /dumaos/system_cleanup.sh
+fi
+if [ "$(cat $SYSROOT_PREFIX/dumaossystem/odm)" = "IOPSYS" ];then
+  /etc/init.d/ngcompat" $1"
+fi
+  /etc/init.d/ctwatch "$1"
+  /etc/init.d/connwatch "$1"
+  /etc/init.d/arpwatch "$1"
+  if [ -f "/etc/init.d/telemetry-daemon" ]; then
+    /etc/init.d/telemetry-daemon "$1"
+  fi
+  /etc/init.d/dumaos "$1" "dumaos_hotplug_action" &
+}
+
+if [ -z "$(uci_get dumaos.tr69.dumaos_enabled)" ];then
+  generate_dumaos_config
 fi
 
-if [ "$ACTION" = "cleanup" ];then
-        uci set dumaos.tr69.dumaos_started=0;uci commit dumaos
-fi
+case "$ACTION" in
+  "dumaos_enabled")
+    uci_commits "enable"
+    if [ "$(uci get dumaos.tr69.dumaos_enabled)" = "1" ] && change_state "stopped" "starting" "stopping" ;then
+            services_trigger "start"
+    else
+      printf "You need to set dumaos.tr69.dumaos_enabled to 1 to start DumaOS or dumaos already started\n"
+      exit 1
+    fi
+    ;;
+  "rappstart")
+    if [ "$RAPP" = "com.netdumasoftware.geofilter" ];then
+      if [ "$(uci get dumaos.tr69.dumaos_enabled)" = "1" ] ;then
+          dumaos_swap_status "starting" "running"
+      else
+          printf "You can only check DumaOS running status if dumaos.tr69.dumaos_enabled is set to 1\n"
+          exit 1
+      fi
+    fi
+    ;;
+  "dumaos_disabled")
+    uci_commits "disable"
+    if [ "$(uci get dumaos.tr69.dumaos_enabled)" = "0" ] && change_state "running" "stopping" "starting" ;then
+      services_trigger "stop"
+    else
+      printf "You need to set dumaos.tr69.dumaos_enabled to 0 to stop DumaOS or dumaos already stopped\n"
+      exit 1
+    fi
+    ;;
+  "begin_cleanup")
+    dumaos_swap_status "running" "stopping"
+    ;;
+  "cleanup")
+    dumaos_swap_status "stopping" "stopped"
+    ;;
+  "dumaos_resume")
+    if [ "$(uci get dumaos.tr69.dumaos_enabled)" = "1" ] && change_state "stopped" "starting" "stopping" ;then
+      services_trigger "start"
+    else
+      printf "You need to set dumaos.tr69.dumaos_enabled to 1 to resume DumaOS or dumaos already resumed\n"
+      exit 1
+    fi
+    ;;
+  "dumaos_suspend")
+    if [ "$(uci get dumaos.tr69.dumaos_enabled)" = "1" ] && change_state "running" "stopping" "starting";then
+      services_trigger "stop"
+    else
+      printf "You need to set dumaos.tr69.dumaos_enabled to 1 to suspend DumaOS or dumaos already suspended\n"
+      exit 1
+    fi
+    ;;
+  *)
+    printf "No valid ACTION passed\n"
+    exit 1
+    ;;
+esac

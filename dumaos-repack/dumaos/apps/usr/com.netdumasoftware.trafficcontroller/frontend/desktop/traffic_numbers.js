@@ -5,8 +5,7 @@
 
 	function display_analytic(ruleName,enabled,status,packets,bytes) {
 		var row = $("<tr></tr>").attr("active",enabled ? "true" : null)
-			.append($("<td></td>")
-        		.text(ruleName))
+			.append($('<td></td>').append($('<span class="rule-name"></span>').text(ruleName)))
 			.append($("<td></td>")
 				.html("<granite-led "+(status ? "powered" : "")+"></granite-led>"))
 			.append($("<td></td>")

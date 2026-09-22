@@ -1,5 +1,5 @@
 [
-        "Uncategorised",
+        "Uncategorized",
         "Gaming",
         "Media",
         "Livestream",
@@ -7,5 +7,7 @@
         "File Sharing",
         "Chat & Messaging",
         "VPN",
-        "VoIP"
+        "VoIP",
+        "WorkAtHome",
+        "Cloud Gaming"
 ]

@@ -131,19 +131,6 @@ function post_commands(commands,callback) {
 	}
 }
 
-var ip_regex = new RegExp("^(?:[0-9]{1,3}\.?){4}$","");
-
 function set_location(path) {
-	var hostname = null;
-	
-	if (ip_regex.test(hostname)) {
-		hostname = hostname;
-	} else {
-		hostname = "<%= platform_information == "NETGEAR"
-				and "routerlogin.net"
-				or "dumaos" %>";
-		
-	}
-
-	location.replace("http://" + hostname + path);
+	location.replace(location.origin + path);
 }

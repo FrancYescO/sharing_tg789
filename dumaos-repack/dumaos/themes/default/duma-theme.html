@@ -1,39 +1,87 @@
 <!--
   Default Theme
   (C) 2018 NETDUMA Software
-  Josh Clarke <josh.clarke@netduma.com>
---> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/nd-css/duma-styles.html"> <!-- custom-style.html --> <dom-module id="duma-theme"> <template> <style is="custom-style" include="duma-styles"> /* loading */
+  Josh Clarke
+--> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/nd-css/duma-styles.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!-- custom-style.html --> <dom-module id="duma-theme"> <template> <style is="custom-style" include="duma-styles"> /* polymer mixins */
+			/* basic */
+      :root {  
+        --shadow-opacity: 0.15;
+        --primary-text-rgb: <%= theme.PRIMARY_TEXT_RGB %>;
+
+        --paper-dialog-background-color: #ffffff;
+        --paper-dialog-color: var(--primary-text-color);
+        --paper-dialog: {
+          box-shadow: 0 12px 36px 0 rgba(var(--primary-text-rgb), var(--shadow-opacity));
+        };
+				
+        --paper-listbox-background-color: transparent;
+        --paper-listbox-color: var(--primary-background-color);
+				
+        --paper-toggle-button-unchecked-button-color: var(--primary-text-color);
+        --paper-toggle-button-unchecked-button: {
+        	@apply(--shadow-none);
+        };
+
+        --hopscotch-background: #fff;
+        --hopscotch-color: var(--primary-text-color);
+        --hopscotch-bubble-background: var(--accent-color);
+        --hopscotch-bubble-color: var(--primary-background-color);
+        
+        --geofilter-icon-color: var(--primary-text-color);
+        --geofilter-icon-blocked-color: var(--accent-color);
+        --geofilter-radial-color: var(--primary-color);
+        --geofilter-country-stroke: #ebebeb;        
+        
+      }      
+      
+      /* loading */
 			paper-spinner-lite ::content .spinner-layer,
 			.spinner-layer {
 				border-color: var(--primary-color);
 			}
 			.loading {
-				background-color: #fff !important;
+				background-color: var(--primary-background-color);
 			}
       
 			/* gridstack resize icon */
+      duma-panels ::content .panel-wrapper:after {
+        background: #fff;
+        box-shadow: 0 1px 3px 0 rgba(var(--primary-text-rgb), var(--shadow-opacity));
+      }
 			duma-panels ::content .grid-stack > .grid-stack-item > .ui-resizable-se {
 				filter: brightness(0);
 		    opacity: 0.75;
 			}
 			
-			/* sidebar */
-			.main-wrapper application-sidebar:not([collapsed]) ::content ul {
-				background: transparent;
+      application-sidebar:not([collapsed]),
+      application-sidebar:hover {
+        background: #fff;
+      }
+      application-sidebar:not([collapsed]) {
+        box-shadow: 0 1px 3px 0 rgba(var(--primary-text-rgb), var(--shadow-opacity));
+      }
+      application-sidebar:not([collapsed]):hover {
+        box-shadow: 0 2px 6px 0 rgba(var(--primary-text-rgb), var(--shadow-opacity));
+      }
+      application-sidebar ::content ul {
+        padding: 0;
+      }
+      application-sidebar ::content ul li {
+        color: var(--primary-text-color);
+        fill: var(--primary-text-color);
 			}
-			.main-wrapper application-sidebar ::content ul li {
-				color: var(--primary-text-color);
-				fill: var(--primary-text-color);
-			}
-			.main-wrapper application-sidebar ::content ul li:hover {
-				fill: var(--primary-color);
+      application-sidebar ::content ul li:first-child {
+        border-radius: 0 2px 0 0;
+      }
+			application-sidebar ::content ul li:hover {
 				color: var(--primary-color);
+        fill: var(--primary-color);
 			}
-			.main-wrapper application-sidebar ::content ul li[active]:hover,
-			.main-wrapper application-sidebar ::content ul li[active] {
-				color: var(--primary-background-color);
-				fill: var(--primary-background-color);
-				background: var(--primary-color);
+      application-sidebar ::content ul li[active]:hover,
+      application-sidebar ::content ul li[active] {
+        color: #fff;
+        fill: #fff;
+        background: var(--primary-color);
 			}
 			
 			/* logos/nav */
@@ -52,14 +100,12 @@
 			}			
 			
 			/* drawer */
+      paper-drawer-panel,
 			::content paper-drawer-panel {
 				--paper-drawer-panel-drawer-container: {
 					background-color: var(--transparent-background-color);
-
 				};
-				--paper-drawer-panel-scrim: {
-					background-color: var(--transparent-background-color);
-				};
+        --paper-drawer-panel-scrim-opacity: 0.75;
 			}
 
 			paper-tooltip  {
@@ -67,14 +113,7 @@
 			}
 
 			iron-overlay-backdrop {
-				background: var(--primary-background-color);
-			}
-			
-			/* duma-map */
-			::content duma-map {
-				left: 0;
-				top: 12px;
-				width: 100%;
+				--iron-overlay-backdrop-background-color: var(--primary-background-color);
 			}
 			
 			/* qos flower */
@@ -138,189 +177,54 @@
 				color: var(--primary-background-color);
 			}
 			/* tables  */
+      ::content thead tr > td,
+			::content thead tr > th,
 			thead tr > td,
 			thead tr > th {
-				background: var(--map-color);
+				background: transparent;
+        border-bottom: thin solid var(--divider-color);
 			}
+      
+      ::content table,
 			table {
 				color: inherit;
-			}
+      }      
 			
-			/* polymer mixins */
-			/* basic */
-			:root {
-				--paper-dialog-background-color: var(--dark-primary-color);
-				--paper-dialog-color: var(--primary-background-color);
-				
-				--paper-menu-button-content: {
-					background-color: var(--primary-color);
-				};
-				
-				--paper-listbox-background-color: transparent;
-				--paper-listbox-color: var(--primary-background-color);
-								
-				--paper-toggle-button-unchecked-button: {
-					box-shadow: none;
-				};
-	      --hopscotch-background: var(--dark-primary-color);
-        --hopscotch-color: var(--primary-background-color);
-        --hopscotch-bubble-background: var(--accent-color);
-        --hopscotch-bubble-color: var(--primary-background-color);
-        
-        --geofilter-icon-color: var(--primary-text-color);
-        --geofilter-icon-blocked-color: var(--accent-color);
-        --geofilter-radial-color: var(--primary-color);
-        --geofilter-country-stroke: #ebebeb;
-			}
-			
+      paper-button,
 			::content paper-button  {
 				--paper-button: {
 					font-weight: bold;
 				};			
 			}
       
-      /* paper-dropdown-menu */
-      paper-dropdown-menu{
-        --paper-dropdown-menu: {
-          color: var(--primary-background-color);
-        };
-      }
-      
-      /* paper-menu-button */      
+      /* paper-menu-button */
+      ::content paper-dropdown-menu,
+      paper-dropdown-menu,
+      ::content paper-menu-button,
       paper-menu-button {
         --paper-menu-button-content: {
-          background-color: var(--primary-color);
+          background-color: #fafafa;
+          box-shadow: 0 2px 6px 0 rgba(var(--primary-text-rgb), var(--shadow-opacity));
         };
       }      
-      
-      duma-checkbox-tree {
-        --duma-checkbox-tree-color: var(--dark-primary-color);
-        --duma-checkbox-tree-tick-color: var(--primary-background-color);
-        --paper-checkbox-unchecked-color: var(--primary-background-color);
-        --paper-checkbox-checked-color: var(--dark-primary-color);
-      }
-			
-			/* paper items not in dropdowns */
-      paper-item,
-			::content paper-item {
-				--paper-item: {
-					color: var(--primary-background-color);
-					white-space: nowrap;
-					cursor: pointer;					
-				};	
-				--paper-item-selected: {
-					color: var(--primary-color);
-					background: rgba(var(--primary-background-rgb), 0.1);
-				};				
-				--paper-item-focused: {
-					color: var(--primary-color);
-				};
-			}
+
+      paper-icon-button[background],
+      ::content paper-icon-button[background]	{   
+        color: var(--primary-background-color);
+      }		      
 			
       paper-button[background],
       ::content paper-button[background]	{   
 				color: var(--primary-background-color);
-			}			
-			
-			paper-dialog paper-button[background],
-      ::content paper-dialog paper-button[background]	{   
-				color: inherit;
-			}						
-			
-			/* paper items in dropdowns */
-			::content paper-dropdown-menu paper-item,
-			paper-dropdown-menu paper-item,
-			::content paper-menu-button paper-item,
-			paper-menu-button paper-item {       
-				--paper-item-selected: {
-					color: var(--dark-primary-color);
-					background: rgba(var(--primary-background-rgb), 0.1);
-				};				
-				--paper-item-focused: {
-					color: var(--dark-primary-color);
-				};
-			}
-			::content paper-item:hover:not(.iron-selected), 
-			paper-item:hover:not(.iron-selected) {
-				color: rgba(var(--primary-background-rgb), 0.75);
 			}
 			
 			/* drawer contents */
 			::content paper-drawer-panel {
 				--paper-drawer-panel-left-drawer-container: {
-					background: var(--map-color);
+					background: #fff;
 					box-shadow: none !important;
 				};
 			}		
-			
-			/* list items/controls in dialogs/dropdowns */
-			::content paper-dialog paper-dropdown-menu,
-			paper-dialog paper-dropdown-menu {
-				--paper-input-container-color: var(--primary-background-color);
-				--paper-input-container-label: {
-					color: var(--primary-background-color);
-				};		
-				--paper-input-container-input: {
-					color: var(--primary-background-color);
-				}
-				--paper-dropdown-menu-icon: {
-					color: var(--primary-background-color) !important;
-				};										
-			}
-			
-      ::content paper-dropdown-menu paper-textarea,
-      paper-dropdown-menu paper-textarea,
-			::content paper-dialog paper-textarea,
-			paper-dialog paper-textarea	 {
-				--paper-input-container-color: var(--primary-background-color);
-				--paper-input-container-label: {
-					color: var(--primary-background-color);
-				};		
-				--paper-input-container-input: {
-					color: var(--primary-background-color);
-				}
-			}
-						
-      ::content paper-dropdown-menu paper-radio-button {
-        --paper-radio-button-checked-color: var(--dark-primary-color);        
-      }
-      ::content paper-dropdown-menu paper-radio-button,
-			::content paper-dialog paper-radio-button {
-				--paper-radio-button-unchecked-color: var(--primary-background-color);
-				--paper-radio-button-label-color: var(--primary-background-color);				
-			}
-			
-      ::content paper-dropdown-menu paper-checkbox {
-        --paper-checkbox-checked-color: var(--dark-primary-color);
-      }
-      ::content paper-dropdown-menu paper-checkbox,
-			::content paper-dialog paper-checkbox {									
-				--paper-checkbox-unchecked-color: var(--primary-background-color);
-				--paper-checkbox-label-color: var(--primary-background-color);	
-			}
-      ::content paper-dropdown-menu paper-input  {
-        --paper-input-container-focus-color: var(--dark-primary-color);
-      }
-			
-      ::content paper-dropdown-menu paper-input,
-			::content paper-dialog paper-input	{				
-				--paper-input-container-color: var(--primary-background-color);
-				--paper-input-container-input: {
-					color: var(--primary-background-color);
-				};
-				--paper-input-container-label: {
-					color: rgba(var(--primary-background-rgb), 0.75);
-				};			
-				--paper-input-container-input-color: var(--primary-background-color);
-			}
-			
-			/*  button styles on dialogs */
-			::content paper-dialog {
-				--paper-button: {
-					color: var(--accent-color);
-				};
-				/*--paper-dialog-button-color: var(--accent-color);*/
-			}
       
       duma-map.home-cursor {
         cursor: url("geofilter icons/cursor-home.svg") 12 22, url("geofilter icons/cursor-home.cur"), crosshair;
@@ -335,9 +239,14 @@
         cursor: url("geofilter icons/cursor-edit.svg") 3 21, url("geofilter icons/cursor-edit.cur"), crosshair;
       }      
 
-			/*
-			::content paper-dialog paper-listbox {
-				--paper-listbox-background-color: transparent;
-				--paper-listbox-color: var(--primary-color);
-			}
-			*/ </style> </template> </dom-module> 
+      /* paper-toast */
+      ::content paper-toast,
+      paper-toast {
+        --paper-toast-background-color: var(--dark-primary-color);
+        --paper-toast-color: var(--primary-background-color);
+      }
+      
+      ::content granite-led ::content #ledSocket,
+      granite-led ::content #ledSocket {
+        @apply(--shadow-none);
+      } </style> </template> </dom-module> 

@@ -1,19 +1,24 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
+  Kian Cross
 --> <script> var Duma = Duma || {};
   Duma.InputBehavior = {
     properties: {
-      value: String,
+      value: {
+        type: String,
+        notify: true,
+      },
+      invalid: {type: Boolean, value: true},
       errorMessage: { type: String, value: "Invalid" },
       parts: Array,
-      disabled: Array
+      disabled: Array,
+      allowEmpty: Boolean
     },
 
     validate: function () {
-      var valid = this.$$(".paper-input-input").validate(this.value);
-      this.$$("paper-input-error").update({invalid: !valid});
-      this.$$("paper-input-container").invalid = !valid;
+      var valid = (this.allowEmpty && (this.value == undefined || this.value.trim() == "...")) || this.$$(".paper-input-input").validate(this.value);
+      //this.$$("paper-input-error").update({invalid: !valid});
+      //this.$$("paper-input-container").invalid = !valid;
       this.invalid = !valid;
       return valid;
     },

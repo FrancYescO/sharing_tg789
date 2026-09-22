@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-media-query/iron-media-query.html"> <link rel="import" href="../iron-selector/iron-selector.html"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-media-query/iron-media-query.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-selector/iron-selector.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Navigation drawer](https://www.google.com/design/spec/patterns/navigation-drawer.html)
 
 `paper-drawer-panel` contains a drawer panel and a main panel.  The drawer
@@ -775,6 +775,44 @@ Custom property | Description | Default
           }
         },
 
+        /**
+         * Recurse to next parent elem, until one with all Iron Overlay behaviors is found, or has reached [this] elem.
+         * Need this because when an item in [main] content is focused, but the [drawer] is open, then paper-drawer-panel will auto-focus to the drawer items.
+         * But this is only a problem for items in a paper-dialog, that's technically inside the [main] content.
+         * So this tests is a descendant of an IronOverlay (paper-dialog) element, that is not [this] elem.
+         */
+        _isElemInIronOverlay: function(elem){
+          var overlayBehaviors = Polymer.IronOverlayBehavior;
+          var testElem = elem;
+          while(testElem !== this && testElem !== document){
+            var behaviors = testElem.behaviors;
+            if(behaviors){
+              //if has behaviors, then test for Iron Overlay behaviors
+              var elemHasAllBehaviors = true;
+              for(var o = 0; elemHasAllBehaviors && o < overlayBehaviors.length; o++){ //loop behaviors to for Iron Overlay, until 1 is missing
+                var ov = overlayBehaviors[o];
+                var elemHasOverlayBehavior = false;
+                for(var b = 0; !elemHasOverlayBehavior && b < behaviors.length; b++){ //loop behaviors on elem
+                  if(behaviors[b] === ov){
+                    elemHasOverlayBehavior = true;
+                  }
+                }
+                //if element does not have a behavior, set elemHasAllBehaviors to false, to check next parent element
+                if(!elemHasOverlayBehavior) {
+                  elemHasAllBehaviors = false;
+                }
+              }
+              if(elemHasAllBehaviors){
+                //if elemHasAllBehaviors === true, then all of the IronOverlayBehaviors must be in the elem, meaning it's an iron overlay
+                //if not, then do not return false, as we want to check the next parent elem
+                return true;
+              }
+            }
+            testElem = testElem.parentElement;
+          }
+          return false;
+        },
+
         _didFocus: function(event) {
           var autoFocusedNode = this._getAutoFocusedNode();
           if (!autoFocusedNode) {
@@ -784,7 +822,7 @@ Custom property | Description | Default
           var path = Polymer.dom(event).path;
           var focusedChild = path[0];
           var drawerContent = this._getDrawerContent();
-          var focusedChildCameFromDrawer = path.indexOf(drawerContent) !== -1;
+          var focusedChildCameFromDrawer = this._isElemInIronOverlay(focusedChild) || path.indexOf(drawerContent) !== -1;
 
           if (!focusedChildCameFromDrawer) {
             event.stopPropagation();

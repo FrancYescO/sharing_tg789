@@ -1,6 +1,6 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 <%
@@ -12,6 +12,18 @@ local platform_information = os.platform_information()
 
 var deviceManagerPackageId = "com.netdumasoftware.devicemanager";
 var deviceTreePanel = $("#device-tree-panel", context)[0];
+var deviceEdit = $("#device-edit", context)[0];
+
+var exportContent = "";
+
+function setDeviceClipboardExport(devices){
+  exportContent = "";
+  for(var i = 0; i < devices.length; i++){
+    var device = devices[i];
+    var toAdd = "{0} {1}\n".format(device.mac, device.name || "unnamed device");
+    exportContent += toAdd;
+  }
+}
 
 function isDeviceOnline(device,matches) {
 
@@ -147,7 +159,7 @@ function processDevicesForTree(devices, extenders, matches) {
         var extinfo = findExtender(device.interfaces,extenders,matches)
         if(extinfo && extinfo.length){
           p = extinfo[0].tree_node;
-          connect_type = extinfo[1].connect_type == "Ether" ? "wired" : "wireless";
+          connect_type = (extinfo[1].connect_type == "Ether" || extinfo[1].connect_type == "wired") ? "wired" : "wireless";
         }else if (getOnlineInterface(device).wifi) {
           var inf = device.interfaces.find( function( v ){ 
             return typeof v.ssid === 'string';
@@ -222,7 +234,9 @@ function processDevicesForTree(devices, extenders, matches) {
   
   ext_nodes.forEach( function( v ){
     //Add different 5Ghz and 2.4 Ghz here?
-    if(v.type === "wireless")
+    if(v.type === "offline")
+      offline.children.push( v )
+    else if(v.type === "wireless")
       wireless.children.push( v );
     else if(v.type === "wired")
       wired.children.push( v );
@@ -304,16 +318,6 @@ function showDeviceView(mode) {
       $("#device-tree", context).hide();
       $("#table-wrapper", context).show();
 
-      var devicesTable = $("#devices-table", context)[0];
-      if (devicesTable) {
-        devicesTable.notifyResize();
-      }
-
-      var portsTable = $("#ports-table", context)[0];
-      if (portsTable) {
-        portsTable.notifyResize();
-      }
-
       break;
   }
 }
@@ -351,6 +355,15 @@ function setProcessedDeviceIndexes(processedDevice) {
   processedDevice.duplexIndex = processedDevice.duplex.toLowerCase();
 }
 
+function get_ipv4(ips){
+  for(var i = 0; i < ips.length; i++){
+    var ip = ips[i];
+    if(ip.indexOf(".") > -1){
+      return ip;
+    }
+  }
+}
+
 function processDevicesForTable(devices, portStates, arlTable) {
   var processedDevices = [];
 
@@ -370,7 +383,8 @@ function processDevicesForTable(devices, portStates, arlTable) {
         connectionType: interface.wifi ? "<%= i18n.wireless %>" : "<%= i18n.wired %>",
         ssid: interface.ssid ? interface.ssid : "<%= i18n.notAplicable %>",
         mac: interface.mac.toUpperCase(),
-        ips: isDeviceOnline(device) ? interface.ips.join(", ") : "<%= i18n.notAplicable %>",
+        //we just want to display the ipv4 here, not all ips.
+        ips: isDeviceOnline(device) ? get_ipv4(interface.ips) : "<%= i18n.notAplicable %>",
         frequency: interface.freq ? interface.freq + "GHz" : "<%= i18n.notAplicable %>",
         signalStrength: interface.signal ? interface.signal + "dBm" : "<%= i18n.notAplicable %>",
         connectionStatus: isDeviceOnline(device) ? "<%= i18n.online %>" : "<%= i18n.offline %>",
@@ -398,6 +412,8 @@ function processDevicesForTable(devices, portStates, arlTable) {
       processedDevices.push(processedDevice);
     }
   }
+
+  setDeviceClipboardExport(processedDevices);
 
   return processedDevices;
 }
@@ -433,70 +449,21 @@ function processPortsForTable(portStates) {
 }
 
 function bindOnDeviceClicks() {
-  var devicePanel = null;
-  var panels = $("duma-panels")[0];
-
-  function onPanelClosed() {
-    devicePanel = null;
-    panels.update(deviceTreePanel, { width: 12 });
-    $("#devices-table", context)[0].clearSelection();
-  }
-
-  function openPanel(id) {
-    if (
-      deviceTreePanel.desktop ||
-      checkIfInternalDevice(id) ||
-      devicePanel === true
-    ) {
-      return;
-    }
-
-    if (devicePanel) {
-      panels.remove(devicePanel);
-    }
-
-    panels.update(deviceTreePanel, { width: 7 });
-  
-    devicePanel = panels.add(
-      "/apps/" + deviceManagerPackageId + "/desktop/device.html", 
-      deviceManagerPackageId, { deviceId: id }, {
-        height: 12, width: 5, x: 7, y: 0,
-        initialisationCallback: function (panel) {
-          devicePanel = panel;
-          $(panel).find("duma-panel").one("closeClick", onPanelClosed);
-        }
-    });
-  }
 
   $("#device-tree", context).on("iconclick", function (e, id) {
-    openPanel(id);
-
-    var deviceTable = $("#table-binder", context)[0].devices;
-
-    var deviceIndex = deviceTable.find(function (device) {
-      return id === device.deviceId;
-    });
-
-    $("#devices-table", context)[0].selectItem(deviceIndex);
-  });
-
-  $("#devices-table", context).on("selecting-item", function (event) {
-    openPanel(event.detail.item.deviceId);
+    deviceEdit.open(id);
   });
   
-  $("#devices-table", context).on("deselecting-item", function () {
-    if (devicePanel) {
-      panels.remove(devicePanel);
-      onPanelClosed();
-    }
+  $("#devices-table", context).on("selecting-item", function (event) {
+    deviceEdit.open(event.detail.item.deviceId);
   });
 
   $("#offline-delete",context).on("click",function(){
-    $("#device-alert")[0].open("WARNING: This will remove ALL devices currently offline.",[
-      {text:"Yes",default:true,action:"confirm",callback: function(){
+    $("#delete-offline-alert")[0].open("",[
+      {text:"<%= i18n.cancelDeleteOffline %>",default:false,action:"dismiss"},
+      {text:"<%= i18n.continueDeleteOffline %>",default:true,action:"confirm",callback: function(){
         deleteAllOffline();
       }.bind(this)},
-      {text:"No",default:false,action:"dismiss"}
     ]);
   });
 }
@@ -563,7 +530,7 @@ function processDeviceUpdateForTable(properties) {
 }
 
 function bindOnDeviceUpdate() {
-  $(deviceTreePanel).on("device-update", function (e, properties) {
+  $(deviceTreePanel).add(document).on("device-update", function (e, properties) {
     processDeviceUpdateForTree(properties);
     processDeviceUpdateForTable(properties);
   });
@@ -631,10 +598,15 @@ function processExtenders(extenders){
       name: extender.name || "Unknown Extender",
       mac: extender.mac,
       brand: extender.brand,
-      type: "wireless"
+      type: "offline"
     }
     if(extender.owl){
       append.type = extender.owl.connect_type == "Ether" ? "wired" : "wireless";
+      append.name = extender.owl.device_name;
+    }else if(extender.agent){
+      if(extender.agent.NoOfRadios !== "")
+      append.type = extender.agent.NoOfRadios == "" ? "offline" : "wireless";
+      append.name = extender.agent.Alias;
     }
     new_exts[i] = append;
   }
@@ -692,6 +664,97 @@ function updatePortsTable(portStates) {
   }
 }
 
+var validMACRegex = /^[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}$/gm;
+function isValidMAC(str){
+  return str.match(validMACRegex);
+}
+var validDevName = /^.{1,35}$/g;
+function isValidName(str){
+  return str.match(validDevName);
+}
+
+var _importExportDeviceMap = {};
+function updateImportExportMap(devices){
+  _importExportDeviceMap = {};
+
+  for(var devID in devices){
+    var dev = devices[devID];
+    if(dev.interfaces && dev.interfaces[0] && dev.interfaces[0].mac){
+      _importExportDeviceMap[dev.interfaces[0].mac] = dev.id;
+    }
+  }
+}
+
+function bulkImportNames(content,dialogJElem,confirmJElem){
+  var rows = content.split("\n");
+
+  var error = "";
+  var promises = [];
+
+  for(var i = 0; i < rows.length; i++){
+    var row = rows[i];
+    if(!row) continue;
+    var split = row.split(/\s+?/g);
+    if(!split[1]){
+      error += "<%= i18n.errorImport_no_name %> ".format(i);
+      continue;
+    };
+    var mac = split.splice(0,1)[0];
+    if(!isValidMAC(mac)){
+      error += "<%= i18n.errorImport_invalid_mac %> ".format(i);
+      continue;
+    }
+    var devID = _importExportDeviceMap[mac.toLowerCase()];
+    if(!devID && devID !== 0){
+      error += "<%= i18n.errorImport_no_dev %> ".format(mac);
+      continue;
+    }
+    var name = split.join(" ");
+    if(!isValidName(name)){
+      error += "<%= i18n.errorImport_invalid_name %> ".format(i);
+      continue;
+    }
+    promises.push(long_rpc_promise(deviceManagerPackageId,"set_device_name",[devID,name]));
+  }
+  Q.all(promises).then(function(){
+    if(!error){
+      dialogJElem[0].close();
+    }
+    confirmJElem.prop("disabled",false);
+  });
+  return error;
+}
+
+function bindImportExport(){
+  var importButton = $("#import-names-button");
+  var importDialog = $("#import-names-dialog");
+  var importTextArea = importDialog.find("#import-textarea");
+  var importConfirm = importDialog.find("#import-confirm");
+
+  importButton.on('click',function(){
+    importDialog[0].open();
+    importTextArea.prop("value","");
+    importTextArea[0].errorMessage = "";
+    importTextArea[0].invalid = false;
+  });
+
+  importConfirm.on('click',function(){
+    importConfirm.prop("disabled",true);
+    var error = bulkImportNames(importTextArea.prop("value"),importDialog,importConfirm);
+    importTextArea[0].errorMessage = error;
+    importTextArea[0].invalid = !!error;
+  });
+
+  importTextArea.on('value-changed',function(){
+    importDialog[0].notifyResize();
+  });
+
+  var exportButton = $("#export-names-button");
+  exportButton[0].getText = function(){
+    return exportContent;
+  }
+}
+
 function startDeviceCycle(interval, callback) {
   
   $("#table-binder", context)[0].devices = [];
@@ -713,9 +776,20 @@ function startDeviceCycle(interval, callback) {
     updateDeviceTree(devices, extenders, matches);
     updateDeviceTable(devices, portStates, arlTable);
     updatePortsTable(portStates);
+    updateImportExportMap(devices);
     
     callback();
   }, interval);
+}
+
+function bind_flush_cloud(){
+  var flushCloudButton = $("#flush-cloud",context);
+  flushCloudButton.on("click",function(){
+    flushCloudButton.prop("disabled",true);
+    long_rpc_promise(deviceManagerPackageId,"flush_cloud",[]).done(function(){
+      flushCloudButton.prop("disabled",false);
+    });
+  });
 }
 
 function initialise() {
@@ -725,6 +799,10 @@ function initialise() {
 
   bindOnDeviceUpdate();
   flush_devices_cache();
+
+  bind_flush_cloud();
+
+  bindImportExport();
 
   var executed = false;
   startDeviceCycle(1000 * 5, function () {

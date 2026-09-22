@@ -1,14 +1,23 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
 
+var legendElem = $("duma-legend",context);
+var chartElem = $("#overview-graph",context);
+chartElem[0].ariaValueFormatter = function(val){
+  return format_bps(val * 1000 * 1000,1,1000);
+}
+
 var nm;
 
 function overviewGraph () {
-  var maximumVisibleConnections = nm.getMaximumVisibleConnections();
+  // the rest of network monitor works off a basis of a 10-second timespan (nm.getMaximumVisibleConnections()).
+  // However, the line-overview graph can handle more, and it would be more useful if it did
+  // So it's increased to 60 seconds for better use
+  var maximumVisibleConnections = 60;
   
   var totals = {
     transmitted: sampler_create(maximumVisibleConnections),
@@ -44,27 +53,42 @@ function overviewGraph () {
       transmitted.unshift(0);
       received.unshift(0);
     }
+    var legend = [
+      {
+        label: "<%= i18n.download %>",
+        result: 0,
+        colour: "<%= theme.PRIMARY_COLOR %>",
+        colour: "<%= theme.PRIMARY_COLOR %>",
+        visible: true
+      },{
+        label: "<%= i18n.upload %>",
+        result: 0,
+        colour: "<%= theme.ACCENT_COLOR %>",
+        visible: true
+      }
+    ];
     
-    $("#overview-graph", context).prop("data", {
+    chartElem.prop("data", {
       labels: new Array(maximumVisibleConnections).fill(""),
       datasets: [
         {
           label: "<%= i18n.download %>",
           data: nm.roundArray(received, 1),
-          pointBackgroundColor: "<%= theme.PRIMARY_BACKGROUND_COLOR %>",
+          pointBackgroundColor: "<%= theme.PRIMARY_COLOR %>",
           pointBorderWidth: "3",
           lineTension: 0.1,
 		      borderColor: "<%= theme.PRIMARY_COLOR %>"
         }, {
           label: "<%= i18n.upload %>",
           data: nm.roundArray(transmitted, 1),
-          pointBackgroundColor: "<%= theme.PRIMARY_BACKGROUND_COLOR %>",
+          pointBackgroundColor: "<%= theme.ACCENT_COLOR %>",
           pointBorderWidth: "3",
           lineTension: 0.1,
 		      borderColor: "<%= theme.ACCENT_COLOR %>"
         }
       ]
     });
+    legendElem.prop("legendStats", legend);
 
     $("duma-panel", context).prop("loaded", true);
   }
@@ -76,28 +100,52 @@ if (typeof nm != "function") {
   nm = networkMonitor();
 }
 
-$("#overview-graph", context).prop("options", {
+chartElem.prop("options", {
   animation: {
     duration: 0
   },
   scales: {
     yAxes: [{
       ticks: {
-        beginAtZero: true
+        beginAtZero: true,
+        suggestedMax: 0.1
       },
       scaleLabel: {
         display: true,
-        labelString: "<%= i18n.yAxisLabel %>"
+        labelString: "<%= i18n.bandwidthPerSecond %>"
       }
     }],
-    "xAxes": [{
-      "display": false
+    xAxes: [{
+      display: false,
+      scaleLabel: {
+        display: false,
+        // remains here for accessibility mode
+        labelString: "<%= i18n.downloadUpload %>"
+      }
     }]
-  }
+  },
+  elements: {
+    point: {
+      radius: 0,
+      hitRadius: 5,
+      hoverRadius: 5
+    }
+  },
+  legend: {
+    display: false
+  },
+  tooltips: {
+    callbacks: {
+      label: function(tx, ctx){
+        return ctx.datasets[tx.datasetIndex].label + ": " + format_bps(ctx.datasets[tx.datasetIndex].data[tx.index] * 1000 * 1000,1,1000);
+      }
+    }
+  },
 });
 
 overviewGraph();
 
+legendElem[0].bindToChart(chartElem[0]);
 })(this);
 
 //# sourceURL=overview-graph.js

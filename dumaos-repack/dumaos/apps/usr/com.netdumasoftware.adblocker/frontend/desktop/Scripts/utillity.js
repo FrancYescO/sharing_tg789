@@ -26,12 +26,28 @@ function AddThousandsSeparators(value)
   return value.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,'); //add decimal points
 }
 
-function FormatTimeAgo(secondsAgo, addAgo = false)
+var _time_ago_strings = {
+  hours: "<%= i18n.hoursFormat %>",
+  minutes: "<%= i18n.minutesFormat %>",
+  seconds: "<%= i18n.secondsFormat %>",
+  hoursAndMinutes: "<%= i18n.hoursAndMinutesFormat %>",
+  minutesAndSeconds: "<%= i18n.minutesAndSecondsFormat %>",
+}
+var _time_ago_strings_long = {
+  hours: "<%= i18n.hoursFormat_long %>",
+  minutes: "<%= i18n.minutesFormat_long %>",
+  seconds: "<%= i18n.secondsFormat_long %>",
+  hoursAndMinutes: "<%= i18n.hoursAndMinutesFormat_long %>",
+  minutesAndSeconds: "<%= i18n.minutesAndSecondsFormat_long %>",
+}
+function FormatTimeAgo(secondsAgo, addAgo = false, long = false)
 {
   secondsAgo = Math.round(secondsAgo);
+
+  var strings = long ? _time_ago_strings_long : _time_ago_strings;
   
   if (secondsAgo == 0)
-    return "Now";
+    return "<%= i18n.now %>";
 
   var minsAgo = Math.floor(secondsAgo / 60);
   var hoursAgo = Math.floor(minsAgo / 60);
@@ -42,21 +58,17 @@ function FormatTimeAgo(secondsAgo, addAgo = false)
 
   if (hoursAgo > 0)
   {
-    outputString = hoursAgo + "h";
-    if (remainingMinsAgo != 0)
-      outputString += " " + remainingMinsAgo + "m";
+    outputString = remainingMinsAgo != 0 ? strings.hoursAndMinutes.format(hoursAgo,remainingMinsAgo) : strings.hours.format(hoursAgo);
   }
   else if (remainingMinsAgo > 0)
   {
-    outputString = remainingMinsAgo + "m";
-    if (remainingSecondsAgo != 0)
-      outputString += " " + remainingSecondsAgo + "s";
+    outputString = remainingSecondsAgo != 0 ?  strings.minutesAndSeconds.format(remainingMinsAgo,remainingSecondsAgo) : strings.minutes.format(remainingMinsAgo);
   }
   else
-    outputString = remainingSecondsAgo + "s";
+    outputString = strings.seconds.format(remainingSecondsAgo);
   
   if (addAgo)
-    outputString += " Ago";
+    outputString = "<%= i18n.timeAgo %>".format(outputString);
 
   return outputString;
 }

@@ -22,9 +22,9 @@
   }
 
   function alertRunning(){
-    $("duma-alert",context)[0].open("A ping test is currently in progress. Please wait for it to finish, or cancel it forcefully.",[
-      { text: "Ok", default: true, action: "dismiss" },
-      { text: "Force stop", default: false, action: "confirm", callback: function(){
+    $("duma-alert",context)[0].open("<%= i18n.alertRunning %>",[
+      { text: "<%= i18n.ok %>", default: true, action: "dismiss" },
+      { text: "<%= i18n.forceStop %>", default: false, action: "confirm", callback: function(){
         forceStopActive();
       }}
     ]);
@@ -98,10 +98,12 @@
         console.error("Invalid category:",category)
         return;
       }
-      pingWebSocket = new WebSocket("ws://" + document.domain + ":8082", "pingheatmap");
-      pingWebSocket.onopen = onOpen.bind(this,category);
-      pingWebSocket.onmessage = onPing.bind(this,category);
-      pingWebSocket.onclose = onClose.bind(this,category);
+      newFetchedWebSocket("com.netdumasoftware.pingheatmap", "pingheatmap").then(function(socket) {
+        pingWebSocket = socket;
+        pingWebSocket.onopen = onOpen.bind(this,category);
+        pingWebSocket.onmessage = onPing.bind(this,category);
+        pingWebSocket.onclose = onClose.bind(this,category);
+      }.bind(this));
     }else{
       alertRunning();
     }
@@ -156,6 +158,7 @@
       autoEndTimeout = null;
     }
     updateRunning();
+    psvg.setD3Data();
   }
 
   function addCount(data,reset=false){
@@ -279,7 +282,7 @@
     function catSort(a,b){
       if(categories[a].custom) return -1;
       if(categories[b].custom) return 1;
-      return 0;
+      return categories[a].display < categories[b].display ? -1 : 1;
     }
     var hasNonCustom = false;
     forObject(categories,function(key,cat,i){
@@ -316,7 +319,7 @@
     listbox.node.select(null);
     if(hasNonCustom === false){
       if(forcedCloudUpdate)
-        $("duma-alert",context)[0].open("Downloading data from the cloud has failed. Make sure you are connected to the internet, or the cloud servers are down.")
+        $("duma-alert",context)[0].open("<%= i18n.downloadFailed %>")
       else
         RequestCloudUpdate();
     }
@@ -363,7 +366,7 @@
     var text = "";
     var within_a_second = Math.abs( (scheduleMoment.unix() * 1000) - Date.now() ) <= 1000;
     if(within_a_second){
-      text = "Now";
+      text = "<%= i18n.now %>";
       if(activeTest){
         setTimeout(updateTimeUntil.bind(this,activeTest.category.identifier),5000);
         setTimeUntilInterval(false);
@@ -411,13 +414,17 @@
       }
     });
     if(!panel.desktop && data){
-      var existing = $("duma-panel");
+      var existing = panels.list();
       if(existing[1]){
-        reload_panel(existing[1],data);
+        reload_panel(existing[1].element,data,{
+          _file: getFilePath("ping-graph.html"),
+          _package: packageId,
+          _data: data
+        });
       }
       else{
         panels.add(getFilePath("ping-graph.html"), packageId, data, {
-          x: 0, y: 12, width: 12, height: 8
+          x: 0, y: 23, width: 12, height: 16
         });
       }
     }
@@ -426,9 +433,9 @@
   function clusterToggleChanged(event){
     var label = $(event.target).closest("paper-toggle-button").parent().children("p");
     if(event.detail.value){
-      label.text("Expanded");
+      label.text("<%= i18n.clusterExpandMode %>");
     }else{
-      label.text("Collapsed");
+      label.text("<%= i18n.clusterCollapseMode %>");
     }
     psvg.closedByDefault = !event.detail.value;
     duma.storage(packageId,"ping_cluster_default",event.detail.value);
@@ -436,9 +443,9 @@
   function manualToggleChanged(event){
     var label = $(event.target).closest("paper-toggle-button").parent().children("p");
     if(event.detail.value){
-      label.text("Enabled");
+      label.text("<%= i18n.enabled %>");
     }else{
-      label.text("Disabled");
+      label.text("<%= i18n.disabled %>");
     }
     saveManualPings = event.detail.value;
     duma.storage(packageId,"save_manual_pings",event.detail.value);
@@ -476,9 +483,9 @@
   }
 
   function RequestCloudUpdate(){
-    $("duma-alert",context)[0].open("There are no target categories that are not custom categories. This means that the cloud data has not been downloaded.",[
-      { text: "Close", default: false, action: "dismiss" },
-      { text: "Force Update", default: true, action: "confirm", callback: function(){
+    $("duma-alert",context)[0].open("<%= i18n.noNonCustom %>",[
+      { text: "<%= i18n.close %>", default: false, action: "dismiss" },
+      { text: "<%= i18n.forceUpdate %>", default: true, action: "confirm", callback: function(){
         ForceCloudUpdate();
       }}
     ]);
@@ -559,6 +566,23 @@
       refresh_categories(event.detail);
     });
     $("ping-servers-svg, ping-log",context).on("server-click",OnServerClick.bind(this));
+    
+    var pingLog = $("ping-log",context);
+    pingLog.on("collapsed-changed",function(e){
+      setTimeout(function(){
+        psvg.resize();
+      },2);
+      duma.storage(packageId,"table_collapsed",e.detail.value);
+    });
+    var startingCollapsed = duma.storage(packageId,"table_collapsed");
+    if(startingCollapsed){
+      pingLog[0].collapsed = startingCollapsed === "true" || startingCollapsed === true;
+    }
+    if(panel.desktop){
+      pingLog.attr("desktop",true);
+      jsvg.attr("desktop",true);
+    }
+    $("duma-zoom-slider",context)[0].setMap(map);
     $("#reping-button",context).on("tap",RePing.bind(this));
     $("#force-cloud-update-button",context).on("tap",ForceCloudUpdate.bind(this));
     setToggles();

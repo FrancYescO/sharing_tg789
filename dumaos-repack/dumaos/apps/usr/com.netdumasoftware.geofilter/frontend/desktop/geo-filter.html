@@ -1,7 +1,7 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="/custom-elements/duma-panels/duma-panels.html"> <link rel="import" href="/libs/sampler.html"> <link rel="import" href="/libs/connection-processor.html"> <link rel="import" href="/libs/jquery.html"> <link rel="import" href="/libs/rpc.html"> <link rel="import" href="/libs/q.html"> <script> var geoFilter = (function () {
+  Kian Cross
+--> <link rel="import" href="/custom-elements/duma-panels/duma-panels.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/sampler.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/connection-processor.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/jquery.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/rpc.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/q.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> var geoFilter = (function () {
     var packageId = "com.netdumasoftware.geofilter";
     var pingPanel = false;
 
@@ -131,7 +131,7 @@
       // process them in the background, will only be used once resolved
       // TODO: handle failure by redoing IP lookup
       if( ips.length > 0 ) {
-        long_rpc_promise(packageId, "geomap_ip", [ ips ] )
+        long_rpc_promise(packageId, "geomap_ip", [ ips ] , 80)
           .spread( function (locations) {
             for (var i = 0; i < locations.length; i++){
               var entry = hosts[ ips[i] ];

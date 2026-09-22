@@ -65,7 +65,7 @@ jobs:
           version="$(awk -F ': ' '$1 == "Version" { print $2 }' "$work_dir/control/control")"
           test "$(basename "$package")" = "dumaos-repack_${version}_all.ipk"
 
-          for service in dumaos uhttpd ctwatch connwatch arpwatch dumaos_qos_tweaks; do
+          for service in dumaos ndhttpd ndproxy ctwatch connwatch arpwatch dumaos_qos_tweaks; do
             test -x "$work_dir/data/etc/init.d/$service"
           done
 
@@ -74,9 +74,12 @@ jobs:
           test -f "$work_dir/data/www/ndindex.html"
           test -f "$work_dir/data/dumaossystem/model"
 
-          test -x "$work_dir/data/usr/sbin/uhttpd"
+          test -x "$work_dir/data/usr/sbin/ndhttpd"
+          test -f "$work_dir/data/usr/lib/ndhttpd_lua.so"
+          test -f "$work_dir/data/dumaossystem/version"
           test -x "$work_dir/data/usr/bin/dpiclass"
           test -x "$work_dir/data/usr/bin/luac"
+          test -x "$work_dir/data/usr/bin/luac5.1"
 
           (
             cd dist

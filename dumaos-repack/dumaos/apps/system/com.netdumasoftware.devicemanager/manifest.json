@@ -66,6 +66,11 @@
         "func" : "on_domain_map",
         "package" : "com.netdumasoftware.dpiclass",
         "method" : "domainmapped"
+      },
+      {
+        "func" : "on_devclass_change",
+        "package" : "com.netdumasoftware.deviceclass",
+        "method" : "devclass_change"
       }
   ],
   "methods" : [
@@ -97,6 +102,17 @@
         "mac" : "string",
         "optdata" : "string"
       }
+    },
+    {
+      "func" : "on_update_device_name_and_type",
+      "method" : "update_device_name_and_type",
+      "arguments" : {}
+    },
+
+    {
+      "func" : "on_get_devlist",
+      "method" : "get_devlist",
+      "arguments" : {}
     }
   ],
   "dependency" : [

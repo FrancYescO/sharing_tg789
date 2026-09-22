@@ -1,6 +1,6 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 var duma = duma || {};
@@ -88,6 +88,8 @@ duma.devices.processDevice = function(raw_device, online_interfaces) {
         device.name = found_interface.dhost;
       } else if( duma.devices.is_nonempty_string( found_interface.ghost ) ){
         device.name = found_interface.ghost;
+      } else {
+        device.name = "";
       }
     }
     

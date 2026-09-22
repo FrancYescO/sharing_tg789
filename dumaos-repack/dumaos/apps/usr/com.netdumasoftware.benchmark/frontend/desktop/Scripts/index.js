@@ -1,6 +1,6 @@
 /*
  * (C) 2019 NETDUMA Software
- * Andy Adshead <andy.adshead@netduma.com>
+ * Andy Adshead
 */
 
 function getFilePath(file, packageId)

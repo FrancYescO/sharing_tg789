@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/apps/com.netdumasoftware.benchmark/desktop/DomModules/rating.html"> <link rel="import" href="/libs/jquery.html"> <dom-module id="duma-bloat-rating"> <template> <style> </style> <!-- local DOM HTML --> <duma-rating id="rating" animated="[[animated]]" tooltip="[[tooltip]]" tooltip-icons="[[tooltipIcons]]" thresholds="[[thresholds]]"></duma-rating> </template> <script> Polymer(
+<link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.benchmark/desktop/DomModules/rating.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/jquery.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-bloat-rating"> <template> <style> </style> <!-- local DOM HTML --> <duma-rating id="rating" value="[[score]]" animated="[[animated]]" tooltip="[[tooltip]]" tooltip-icons="[[tooltipIcons]]" thresholds="[[thresholds]]"></duma-rating> </template> <script> Polymer(
     {
       is: 'duma-bloat-rating',
       properties:
@@ -50,9 +50,9 @@
           type: Object,
           value:
           {
-            0: "schedule",
-            1: "schedule",
-            2: "schedule",
+            0: "<%= i18n.download %>",
+            1: "<%= i18n.upload %>",
+            2: "<%= i18n.idle %>",
           },
         },
         tooltip:
@@ -67,19 +67,37 @@
             };
           },
         },
+        up: Number,
+        down: Number,
+        idle: Number,
+        score: Number
       },
+      
+      observers: [
+        "calcScore(up, down, idle)"
+      ],
 
       // Upload and download as percentages of expected speeds
-      setRating: function (up, down, idle)
+      calcScore: function (up, down, idle)
       {
+        this.score = null;
+        //if any are null, we don't want to calculate score
+        if(up === null || down === null || idle === null) return;
         // Bloat rating is calculated by taking the average of upload and download then taking the difference from idle
-        var score = Math.min(Math.max(70 - (((up + down) / 2) - idle), 0), 70);
-
-        this.$.rating.setRating(score);
+        this.tooltip = {
+          line0: down.toFixed(1) + " ms",
+          line1: up.toFixed(1) + " ms",
+          line2: idle.toFixed(1) + " ms",
+        }
+        this.score = Math.min(Math.max(70 - (((up + down) / 2) - idle), 0), 70);
+        return this.score;
       },
 
       reset: function ()
       {
+        this.up = null;
+        this.down = null;
+        this.idle = null;
         this.$.rating.reset();
       },
     }); </script> </dom-module> 

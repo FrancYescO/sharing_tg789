@@ -1,6 +1,6 @@
 /*
  * 2018 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 var duma = duma || {};

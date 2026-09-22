@@ -1,4 +1,4 @@
-<link rel="import" href="/libs/score-util.html"> <script> var constants = {
+<link rel="import" href="/libs/score-util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> var constants = {
     /* host type classification */
     GEO_CSTATE_HOST_PEER: 0,      // host is peer (default for code to work)
     GEO_CSTATE_HOST_DEDI: 1,      // host is server
@@ -97,7 +97,9 @@
     if(panels[0]){
       var all_panels = panels[0].list();
       for(var i = 0; i < all_panels.length; i ++){
-        var get_panel = $(all_panels[i].element).find("duma-panel");
+        var elem = all_panels[i].element;
+        if(elem === panel) return all_panels[i];
+        var get_panel = $(elem).find("duma-panel");
         if(get_panel[0]){
           if (get_panel[0] === panel || get_panel[0]._file === panel){
             return all_panels[i];
@@ -108,16 +110,19 @@
     return {};
   }
 
-  function reload_panel(panel, newdata, defaultOptions){
+  function reload_panel(panel, newdata, defaultPanel){
     var panels = $("duma-panels")[0];
     var options = Object.assign({},getGridstackOptions(panel));
     if(Object.keys(options).length > 0){
-      if(typeof panel === "string") panel = $(options.element).find("duma-panel")[0];
-      if(!newdata) newdata = panel.data;
-      delete options.element;
-      options._desktop = panel.hasOwnProperty("desktop") ? panel.desktop : false;
+      panel = $(options.element).find("duma-panel")[0];
+      options._desktop = panel && panel.hasOwnProperty("desktop") ? panel.desktop : false;
       
-      panels.remove(panel);
-      panels.add(panel._file, panel._package, newdata, options);
+      panels.remove(options.element);
+      delete options.element;
+
+      var file = panel && panel._file || defaultPanel._file;
+      var package = panel && panel._package || defaultPanel._package;
+      newdata = newdata || (panel && panel.data ? panel.data : defaultPanel._data);
+      panels.add(file, package, newdata, options);
     }
   } </script> 

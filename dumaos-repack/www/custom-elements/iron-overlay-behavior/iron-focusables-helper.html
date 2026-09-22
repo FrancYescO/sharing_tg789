@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <script> (function() {
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> (function() {
     'use strict';
 
     var p = Element.prototype;
@@ -104,7 +104,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var element = /** @type {HTMLElement} */ (node);
         var tabIndex = this._normalizedTabIndex(element);
         var needsSortByTabIndex = tabIndex > 0;
-        if (tabIndex >= 0) {
+        // when collecting what you can tab to, ignore paper-dialog
+        if (tabIndex >= 0 && element.localName !== "paper-dialog") {
           result.push(element);
         }
 

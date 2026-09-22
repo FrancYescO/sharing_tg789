@@ -8,8 +8,8 @@
   subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 --> <!--
   Modifications made for dumaOS.
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-input/iron-input.html"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html"> <link rel="import" href="../duma-input-behavior/duma-input-inputs-behavior.html"> <dom-module id="duma-ip-input-inputs"> <template> <style> :host {
+  Kian Cross
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-input/iron-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../duma-input-behavior/duma-input-inputs-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-ip-input-inputs"> <template> <style> :host {
         display: inline-block;
       }
 
@@ -39,7 +39,8 @@
       validRanges: {
         type: Array,
         value: ["0.0.0.0/0"]
-      }
+      },
+      allowEmpty: { type: Boolean, value: false}
     },
     
     behaviors: [
@@ -57,7 +58,22 @@
       }
 
       var value = this.parts;
+
       if(value.length == 4) {
+        var valid = true;
+        if (this.allowEmpty) {
+          for (var i = 0; i < value.length; i++) {
+            if (value[i].trim() != "") {
+              valid = false;
+              break;
+            }
+          }
+
+          if (valid) {
+            return true;
+          }
+        }
+
         for (var i = 0; i < value.length; i++) {
           if (
             value[i] == "" || Number(value[i]) == NaN ||

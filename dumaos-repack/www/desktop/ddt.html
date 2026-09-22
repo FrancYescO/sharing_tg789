@@ -27,11 +27,11 @@
         float:right;
       }
       button:hover {
-        background-color: <%= theme.DARK_PRIMARY_COLOR %>; /* Green */
-        color: <%= theme.PRIMARY_TEXT_COLOR %>;
+        background-color: <%= theme and theme.DARK_PRIMARY_COLOR or "maroon" %>; /* Green */
+        color: <%= theme and theme.PRIMARY_TEXT_COLOR or "white" %>;
       }
       button.accent:hover {
-        background-color: <%= theme.DARK_ACCENT_COLOR %>; /* Green */
+        background-color: <%= theme and theme.DARK_ACCENT_COLOR or "navy" %>; /* Green */
       }
       div[hidden] {
         display: none;

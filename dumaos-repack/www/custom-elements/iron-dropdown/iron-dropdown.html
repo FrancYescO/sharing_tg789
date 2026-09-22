@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <link rel="import" href="../iron-behaviors/iron-control-state.html"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html"> <link rel="import" href="../neon-animation/neon-animation-runner-behavior.html"> <link rel="import" href="../neon-animation/animations/opaque-animation.html"> <link rel="import" href="iron-dropdown-scroll-manager.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-behaviors/iron-control-state.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/neon-animation-runner-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/animations/opaque-animation.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="iron-dropdown-scroll-manager.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 `<iron-dropdown>` is a generalized element that is useful when you have
 hidden content (`.dropdown-content`) that is revealed due to some change in
 state that should cause it to do so.
@@ -34,13 +34,13 @@ method is called on the element.
         position: fixed;
       }
 
-      #contentWrapper ::content > * {
+      .iron-dropdown-content-wrapper ::content > * {
         overflow: auto;
       }
 
-      #contentWrapper.animating ::content > * {
+      .iron-dropdown-content-wrapper.animating ::content > * {
         overflow: hidden;
-      } </style> <div id="contentWrapper"> <content id="content" select=".dropdown-content"></content> </div> </template> <script> (function() {
+      } </style> <div class="iron-dropdown-content-wrapper"> <content class="iron-dropdown-content" select=".dropdown-content"></content> </div> </template> <script> (function() {
       'use strict';
 
       Polymer({
@@ -149,7 +149,7 @@ method is called on the element.
          * The element that is contained by the dropdown, if any.
          */
         get containedElement() {
-          return Polymer.dom(this.$.content).getDistributedNodes()[0];
+          return Polymer.dom(this.$content).getDistributedNodes()[0];
         },
 
         /**
@@ -158,6 +158,14 @@ method is called on the element.
          */
         get _focusTarget() {
           return this.focusTarget || this.containedElement;
+        },
+
+        get $content() {
+          return this.__$content || (this.__$content = this.$$(".iron-dropdown-content"));
+        },
+
+        get $contentWrapper() {
+          return this.__$contentWrapper || (this.__$contentWrapper = this.$$(".iron-dropdown-content-wrapper"));
         },
 
         ready: function() {
@@ -207,7 +215,7 @@ method is called on the element.
          */
         _renderOpened: function() {
           if (!this.noAnimations && this.animationConfig.open) {
-            this.$.contentWrapper.classList.add('animating');
+            this.$contentWrapper.classList.add('animating');
             this.playAnimation('open');
           } else {
             Polymer.IronOverlayBehaviorImpl._renderOpened.apply(this, arguments);
@@ -220,7 +228,7 @@ method is called on the element.
         _renderClosed: function() {
 
           if (!this.noAnimations && this.animationConfig.close) {
-            this.$.contentWrapper.classList.add('animating');
+            this.$contentWrapper.classList.add('animating');
             this.playAnimation('close');
           } else {
             Polymer.IronOverlayBehaviorImpl._renderClosed.apply(this, arguments);
@@ -234,7 +242,7 @@ method is called on the element.
          * none.
          */
         _onNeonAnimationFinish: function() {
-          this.$.contentWrapper.classList.remove('animating');
+          this.$contentWrapper.classList.remove('animating');
           if (this.opened) {
             this._finishRenderOpened();
           } else {

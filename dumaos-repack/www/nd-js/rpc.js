@@ -9,9 +9,20 @@ var g_rpc_id = 0
 function generate_url( packid ){
   return "/apps/" + packid + "/rpc/"
 }
+class APRPCError extends Error {
+  constructor(message){
+    super(message);
+    this.name = "AP RPC Error"
+  }
+}
 
-
-function do_long_rpc_promise( packid, method, params, deferred, retry ){
+function do_long_rpc_promise( packid, method, params, timeout, deferred, retry ){
+  if(window.apMode){
+    var apdef = Q.defer();
+    var apError = new APRPCError("Router is in AP Mode. RPC is disabled.");
+    apdef.reject( apError );
+    return apdef.promise;
+  }
   deferred = deferred || Q.defer();
   retry = retry || 0;
   var url = generate_url( packid );
@@ -24,7 +35,9 @@ function do_long_rpc_promise( packid, method, params, deferred, retry ){
     "jsonrpc" : "2.0",
     "method" : method,
     "id" : id,
-    "params" : params
+    "params" : params,
+    "clienttype": "web",
+    "timeout": timeout
   }
 
 
@@ -61,7 +74,7 @@ function do_long_rpc_promise( packid, method, params, deferred, retry ){
       console.log("Retrying rpc call " + packid + "::" + method )
       setTimeout( 
         function(){
-          long_rpc_promise( packid, method, params, deferred, retry );
+          long_rpc_promise( packid, method, params, timeout, deferred, retry );
         }, 1000 );
       return;
     }
@@ -70,7 +83,7 @@ function do_long_rpc_promise( packid, method, params, deferred, retry ){
       if( ( retry++ ) < 4 ){
         setTimeout( 
           function(){
-            long_rpc_promise( packid, method, params, deferred, retry );
+            long_rpc_promise( packid, method, params, timeout, deferred, retry );
           }, 1000 );
       } else {
         deferred.reject( new Error("Missing JSON response.") );
@@ -120,7 +133,7 @@ function do_long_rpc_promise( packid, method, params, deferred, retry ){
                     console.log("Retrying rpc assume reboot: " + packid + "::" + method )
                     setTimeout( 
                       function(){
-                        long_rpc_promise( packid, method, params, deferred, retry );
+                        long_rpc_promise( packid, method, params, timeout, deferred, retry );
                       }, 6000 );
                     return;
                   }
@@ -373,6 +386,11 @@ function netgear_soap_rpc( service, method, params, deferred, retry ){
       code : $(data).find("ResponseCode").text()
     }
 
+    /*if( out.code == 401 ){
+      top.location = "/ndindex.html";
+      return;
+    }*/
+
     deferred.resolve( out );
   })
   .fail( function(data){
@@ -385,6 +403,10 @@ function netgear_soap_rpc( service, method, params, deferred, retry ){
       top.location="/multi_guestlogin.html";
       return;
     }
+    /*if( data.status == 401 ){
+      top.location = "/ndindex.html";
+      return;	    
+    }*/	    
 
     /*
     * On some platforms the server resets based on extraneous

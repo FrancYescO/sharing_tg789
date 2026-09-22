@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <link rel="import" href="../iron-behaviors/iron-control-state.html"> <script> // Generate unique, monotonically increasing IDs for labels (needed by
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-behaviors/iron-control-state.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> // Generate unique, monotonically increasing IDs for labels (needed by
   // aria-labelledby) and add-ons.
   Polymer.PaperInputHelper = {};
   Polymer.PaperInputHelper.NextLabelID = 1;
@@ -356,6 +356,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         type: Boolean
       },
 
+      // dontAnnounceValueOnFocus: {
+      //   type: Boolean,
+      //   value: false
+      // },
+
       _ariaDescribedBy: {
         type: String,
         value: ''
@@ -364,7 +369,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _ariaLabelledBy: {
         type: String,
         value: ''
-      }
+      },
+
+      role: {
+        type: String,
+        value: "textbox"
+      },
 
     },
 
@@ -384,7 +394,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      * Returns a reference to the input element.
      */
     get inputElement() {
-      return this.$.input;
+      return this.__$input || (this.__$input = this.$$(".paper-input-input"));
     },
 
     /**
@@ -446,8 +456,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer.IronControlState._focusBlurHandler.call(this, event);
 
       // Forward the focus to the nested input.
-      if (this.focused && !this._shiftTabPressed)
+      if (this.focused && !this._shiftTabPressed){
         this._focusableElement.focus();
+        // remove announcing value, as that seems to be fixed
+        // if(!this.dontAnnounceValueOnFocus && this._focusableElement && this._focusableElement._announceValue) this._focusableElement._announceValue();
+      }
     },
 
     /**

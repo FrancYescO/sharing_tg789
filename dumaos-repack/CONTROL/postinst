@@ -2,8 +2,8 @@
 
 . $IPKG_INSTROOT/lib/functions.sh
 
-/etc/init.d/uhttpd enable
-/etc/init.d/uhttpd start
+/etc/init.d/ndhttpd enable
+/etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable
 /etc/init.d/dumaos start
 

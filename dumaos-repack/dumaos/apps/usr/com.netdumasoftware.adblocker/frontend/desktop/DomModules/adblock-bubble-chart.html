@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/iron-icons/iron-icons.html"> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/libs/d3v5.html"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-domain-burst-dialog.html"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="adblock-bubble-chart"> <template> <style include="duma-theme iron-flex"> :host
+<link rel="import" href="/custom-elements/iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/d3v5.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.adblocker/desktop/DomModules/adblock-domain-burst-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="adblock-bubble-chart"> <template> <style include="duma-theme iron-flex"> :host
       {
         overflow: visible;
       }
@@ -10,7 +10,7 @@
 
       .bubbles:hover
       {
-        stroke: black;
+        stroke: var(--primary-background-color);
         opacity: 1;
       }
 
@@ -25,7 +25,7 @@
       .breakLine
       {
         stroke-width: 2px;
-        stroke: white;
+        stroke: var(--primary-text-color);
         opacity: 0.5;
       }
 
@@ -46,9 +46,11 @@
         z-index: 1000;
         position: absolute;
         text-align: center;
-        padding: 5px;
+        font-size: 0.75em;     
+        padding: 8px;
         border: 0px;
-        background: black;
+        color: var(--primary-text-color);
+        background: var(--primary-background-color);
         pointer-events: all;
         border-radius: 2px;
         white-space: nowrap;
@@ -67,20 +69,20 @@
       .tooltipArrowBelow::after
       {
         bottom: 100%; /* At the bottom of the tooltip */
-        border-color: transparent transparent black transparent;
+        border-color: transparent transparent var(--primary-background-color) transparent;
       }
 
       .tooltipArrowAbove::after
       {
         top: 100%; /* At the top of the tooltip */
-        border-color: black transparent transparent transparent;
+        border-color: var(--primary-background-color) transparent transparent transparent;
       }
 
       #tooltipWrap
       {
         position: relative;
         overflow: visible;
-      } </style> <!-- Adblock bubble chart dom start --> <div id="tooltipWrap" class="maxSize"> <div id="bubbleGraph" class="maxSize"> <svg id="svgChart" class="maxSize"> <g id="svgContent" class="maxSize"> </g> </svg> </div> </div> <adblock-domain-burst-dialog id="dialog" devices="[[devices]]"></adblock-domain-burst-dialog> </template> <script> var breaks = []
+      } </style> <!-- Adblock bubble chart dom start --> <div id="tooltipWrap" class="maxSize"> <div id="bubbleGraph" class="maxSize"> <svg id="svgChart" class="maxSize" aria-label="<%= i18n.ariaLabel %>"> <g id="svgContent" class="maxSize"> </g> </svg> </div> </div> <adblock-domain-burst-dialog id="dialog" devices="[[devices]]"></adblock-domain-burst-dialog> </template> <script> var breaks = []
 
     Polymer(
     {
@@ -179,11 +181,11 @@
           return;
 
         this.oldestTime = start;
-        long_rpc_promise("com.netdumasoftware.adblocker", "burst_range", [false, {time: (start + 5).toFixed(1), relative: true}, {time: (end + 5).toFixed(1), relative: true}]).done(this.ProcessData.bind(this, cont));
+        long_rpc_promise("com.netdumasoftware.burstwatch", "burst_range", ["false", "true", (start + 5).toFixed(1), "true", (end + 5).toFixed(1)]).done(this.ProcessData.bind(this, cont));
       },
       ProcessData(cont, result)
       {
-        var data = JSON.parse(result);
+        var data = result[0];
         var currentTime = (parseFloat(data.current_time) - 5).toString();
 
         this.latestTime = parseFloat(currentTime);
@@ -215,7 +217,7 @@
         if (cont || !this.runningProcessingLoop)
         {
           this.runningProcessingLoop = true;
-          setTimeout(function () { long_rpc_promise("com.netdumasoftware.adblocker", "burst_range", [false, {time: currentTime, relative: false}, {time: "5.0", relative: true}]).done(this.ProcessData.bind(this, true)) }.bind(this), 1000);
+          setTimeout(function () { long_rpc_promise("com.netdumasoftware.burstwatch", "burst_range", ["false", "false", currentTime, "true", "5.0"]).done(this.ProcessData.bind(this, true)) }.bind(this), 1000);
         }
       },
       InitGraph()
@@ -473,7 +475,7 @@
       UpdateTooltipText()
       {
         if (this.currentTooltipItem != null)
-          this.tooltip.html(FormatTimeAgo(this.latestTime - parseFloat(this.currentTooltipItem.time), true) + "<br/>" + this.currentTooltipItem.hits + " Domains Blocked");
+          this.tooltip.html(FormatTimeAgo(this.latestTime - parseFloat(this.currentTooltipItem.time), true) + "<br/>" + this.currentTooltipItem.hits + " <%= i18n.domainsBlocked %>");
       },
       HideTooltip(d)
       {

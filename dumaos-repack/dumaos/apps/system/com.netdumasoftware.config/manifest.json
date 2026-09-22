@@ -15,37 +15,38 @@
       "func": "on_config_changed",
       "package": "com.netdumasoftware.config",
       "method": "configchanged"
+    },
+    {
+      "func": "on_bandwidth_changed",
+      "package": "com.netdumasoftware.config",
+      "method": "bandwidth_changed"
     }
   ],
   "methods" : [
     {
-      "func": "set",
-      "method": "set_config",
-      "arguments": {
-        "key": "string",
-        "value": "object"
-      }
+      "func": "set_config",
+      "method": "set",
+      "arguments": {}
     },
     {
-      "func": "get",
-      "method": "get_config",
-      "arguments": {
-        "key": "object"
-      }
+      "func": "get_config",
+      "method": "get",
+      "arguments": {}
     },
     {
       "func": "set_config_many",
       "method": "set_config_many",
-      "arguments": {
-        "table": "object"
-      }
+      "arguments": {}
     },
     {
       "func": "get_config_many",
       "method": "get_config_many",
-      "arguments": {
-        "table": "object"
-      }
+      "arguments": {}
+    },
+    {
+      "func": "isp_speeds",
+      "method": "set_isp_bandwidth",
+      "arguments": {}
     }
   ]
 }

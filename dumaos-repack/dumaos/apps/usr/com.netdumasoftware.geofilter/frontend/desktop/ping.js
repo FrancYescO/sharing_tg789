@@ -1,6 +1,6 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
  */
 
 <%
@@ -11,6 +11,7 @@ local platform_information = os.platform_information()
 
 (function (context) {
 
+var reportDialog = $("#report-dialog", context)[0];
 var pingLoaderDialog = $("#ping-loader-dialog", context)[0];
 var pingHandle;
 
@@ -31,40 +32,48 @@ function padBeginningOfArrayWithValue(a, n, v) {
  
 function pingHost(ip, callback) {
   var expectingIp = true;
-  <% if platform_information.model == "DJA0231" then %>
-  var pingWebSocket = new WebSocket("ws://" + document.domain + ":8090", "ping");
-  <% else %>
-  var pingWebSocket = new WebSocket("ws://" + document.domain + ":8080", "ping");
-  <% end %>
+  // used to track if stop() was called before socket finished opening
+  var stopped = false;
+  var pingWebSocket = null;
 
   var stopPing = function() {
-    if(pingWebSocket.readyState < 2) {
+    stopped = true;
+    if(pingWebSocket && pingWebSocket.readyState < 2) {
       if(pingWebSocket.readyState === 1) {
-        pingWebSocket.send("end"); 
+        pingWebSocket.send("end");
       }
       pingWebSocket.close();
     }
   }
-  
-  pingWebSocket.onmessage = function (e) {
 
-    if (pingWebSocket.readyState !== 1) {
-      return;
+  newFetchedWebSocket("com.netdumasoftware.geofilter", "ping").then(function(socket) {
+    // it's already been stopped before rpc returned, and socket opened. So instantly close it
+    if(stopped){
+      socket.close();
+      stopped = false;
+      return
+    }
+    pingWebSocket = socket;
+    pingWebSocket.onmessage = function (e) {
+
+      if (pingWebSocket.readyState !== 1) {
+        return;
+      }
+
+      pingWebSocket.send("again");
+
+      if (expectingIp) {
+        expectingIp = false;
+        return;
+      }
+
+      callback(parseFloat(e.data));
     }
 
-    pingWebSocket.send("again"); 
-
-    if (expectingIp) {
-      expectingIp = false;
-      return;
+    pingWebSocket.onopen = function (e) {
+      pingWebSocket.send(ip);
     }
-
-    callback(parseFloat(e.data));
-  }
-
-  pingWebSocket.onopen = function (e) {
-    pingWebSocket.send(ip);
-  }
+  });
 
   return {
     stop: stopPing
@@ -265,13 +274,14 @@ function processHost(host, autoPing) {
   $(".host-type .value", context).text(
     isdedi ? "<%= i18n.dedicated %>" : "<%= i18n.peer %>" 
   );
+  $("#report-header",context).text(isdedi ? "<%= i18n.reportServer %>" : "<%= i18n.reportPeer %>");
 
   $("#allow-deny", context).toggleClass( "hidden", !allowBlock );
   $("#deny", context).prop("disabled", !allowBlock );
   $(".domain .value", context).text( "<%= i18n.performingLookup %>" );
   $(".id .value", context).text(inet_atoae(host.key));
 
-<% if platform_information.model ~= "LH1000" then %>
+<% if platform_information.vendor ~= "TELSTRA" and platform_information.vendor ~= "COMCAST" and platform_information.model ~= "RPI3" then %>
   long_rpc_promise(geoFilter.getPackageId(), "geoservice_reverse_lookup", [host.key])
     .done(function (domain) {
       if(domain && domain != "") {
@@ -280,15 +290,6 @@ function processHost(host, autoPing) {
         $(".domain .value",context).text( "<%= i18n.unnamed %>" );
       }
     });
-<% elseif platform_information.model ~= "DJA0231" then %>	
-  long_rpc_promise(geoFilter.getPackageId(), "geoservice_reverse_lookup", [host.key])
-    .done(function (domain) {
-      if(domain && domain != "") {
-        $(".domain .value",context).text( domain );
-      } else {
-        $(".domain .value",context).text( "<%= i18n.unnamed %>" );
-      }
-    });	
 <% end %>
 
   initialiseGraphData(autoPing);
@@ -482,6 +483,153 @@ if (host) {
   stopPingAndShowNoHost();
   $("#ping-panel", context).prop("loaded", true);
 }
+
+
+(function bindReportButton(ping_host){
+  // get either static host, or auto ping host.
+  var report_host = null;
+
+  var reportSend = $("#report-send",context);
+  
+  var abnormal = $("#report-abnormal", context);
+  var wrongServer = $("#report-wrong-server-class", context);
+  var masterServer = $("#report-is-master-server", context);
+  var other = $("#report-other", context);
+  var otherTextArea = $("#report-other-text",context);
+
+  other.on("checked-changed",function(e) {
+    otherTextArea.attr("disabled",!e.detail.value);
+  });
+
+  var countryDropdown = $("#country_dropdown",context);
+  var countryListbox = $("#country_listbox",context);
+  var countryItems = $("#country_items",context);
+  var stateDropdown = $("#state_dropdown",context);
+  var stateListbox = $("#state_listbox",context);
+  var stateItems = $("#state_items",context);
+
+  // open dialog, save current host
+  $("#report", context).on("click",function(){
+    report_host = ping_host || auto_ping_target;
+    reportDialog.open();
+  });
+
+  function loadStateList(list){
+    stateListbox[0].selected = "none";
+    if(list){
+      stateItems[0].items = list;
+      stateDropdown[0].disabled = false;
+    }else{
+      stateDropdown[0].disabled = true;
+    }
+  }
+  var checkBoxesSet = $("#report-abnormal, #report-wrong-server-class, #report-is-master-server, #report-other", context);
+  $("#report-abnormal, #report-wrong-server-class, #report-is-master-server, #report-other, #country_listbox, #report-other-text", context).on("checked-changed selected-changed change keyup",function(){
+    var checkboxesValid = (
+      abnormal[0].checked ||
+      wrongServer[0].checked ||
+      masterServer[0].checked ||
+      ( other[0].checked && otherTextArea[0].value )
+    );
+    var countryBoxValid = countryListbox[0].selected !== "none";
+    checkBoxesSet.prop("invalid",!checkboxesValid);
+    reportSend[0].disabled = !(checkboxesValid && countryBoxValid);
+  });
+
+  loadCountriesList().then(function(data){
+    countryItems[0].items = data.countries;
+
+    countryListbox.on("selected-item-changed",function(e){
+      if(!e.detail.value) return;
+      var index = e.detail.value.index;
+      var country = data.countries[parseInt(index)];
+      
+      var states = null;
+      if(country && country.stateList){
+        states = data.states[country.stateList];
+      }
+      loadStateList(states);
+
+      countryDropdown.prop("invalid",!country);
+
+      if(country){
+        duma.storage(geoFilter.getPackageId(),"selected-country-drop",country.name);
+      }
+
+    });
+
+    var startSelected = duma.storage(geoFilter.getPackageId(),"selected-country-drop");
+    if(startSelected){
+      countryListbox.prop("selected",startSelected);
+    }
+  });
+
+  
+  function showError(e){
+    reportDialog.close();
+    console.error(e);
+    $("#ping-duma-alert",context)[0].show(
+      "<%= i18n.errorContent %>",
+      [
+        { text: "<%= i18n.tryAgain %>", action: "dismiss", callback: function(){
+          reportSend.attr("disabled",false);
+          reportDialog.open();
+        }},
+        { text: "<%= i18n.goToSupport %>", action: "dismiss", callback: function(){
+          <% if platform_information.vendor == "TELSTRA" then %>
+          window.open("https://www.telstra.com.au/support/category/entertainment/gaming/game-optimiser",'_blank');
+          <% elseif platform_information.vendor == "NETGEAR" then %>
+          window.open("http://support.netgear.com",'_blank');
+          <% else %>
+          window.open("http://forum.netduma.com",'_blank');
+          <% end %>
+        }},
+        { text: "<%= i18n.ok %>", action: "confirm" },
+    ],
+    );
+  }
+
+  reportSend.on("click",function(){
+    var countryName = countryListbox.prop("selected");
+    if(!countryName || countryName === "none") {
+      countryDropdown.prop("invalid",true);
+      showError("No Country Selected");
+      return;
+    };
+    var stateName = stateListbox.prop("selected");
+    stateName = stateName === "none" ? null : stateName;
+    var payload = {
+      ip: report_host.key,
+      abnormalPing: abnormal.prop("checked"),
+      wrongServerClass: wrongServer.prop("checked"),
+      isMasterServer: masterServer.prop("checked"),
+      other: other.prop("checked") ? otherTextArea.prop("value") : null,
+      country: countryName,
+      state: stateName,
+    }
+    reportSend.attr("disabled",true);
+    
+    //TODO use geo-filter.html location caching. Can't do this until webgl map is merged in... which requires everything here to be re-written anyways
+    //TODO use geostats's map.json to automatically select the current country based off of home pos
+    long_rpc_promise(geoFilter.getPackageId(), "geomap_ip", [ [report_host.key] ] ).then(function(result){
+      if(result && result[0] && result[0][0]){
+        payload.lng = result[0][0].lng;
+        payload.lat = result[0][0].lat;
+        long_rpc_promise(geoFilter.getPackageId(),"report_server",[payload]).then(function(){
+          reportDialog.close();
+          abnormal.prop("checked",false);
+          wrongServer.prop("checked",false);
+          masterServer.prop("checked",false);
+          other.prop("checked",false);
+          otherTextArea.prop("value","");
+          reportSend.attr("disabled",false);
+        }).catch(showError);
+      }else{
+        showError("Failed to geomap ip address");
+      }
+    }).catch(showError);
+  });
+})(host);
 
 })(this);
 

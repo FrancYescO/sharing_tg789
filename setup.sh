@@ -48,7 +48,7 @@ else
 fi
 
 echo "Loading QoS modules..."
-for mod in ifb sch_ingress cls_u32 act_police nfnetlink_queue nf_conntrack_netlink ip_set ip_set_hash_ip ip_set_hash_ipport; do
+for mod in ifb sch_ingress cls_u32 act_police sch_fq_codel sch_prio nfnetlink_queue nf_conntrack_netlink ip_set ip_set_hash_ip ip_set_hash_ipport; do
     modprobe "$mod" 2>/dev/null || true
 done
 
@@ -69,15 +69,10 @@ EOF
     /etc/init.d/firewall restart 2>/dev/null || true
 fi
 
-# json-c compat: dpiclass/geoip are linked against libjson-c.so.2 (json-c 0.11),
-# AGTEF ships libjson-c.so.4 (json-c 0.13).
-if [ ! -e /usr/lib/libjson-c.so.2 ] && [ -e /usr/lib/libjson-c.so.4 ]; then
-    ln -sn /usr/lib/libjson-c.so.4 /usr/lib/libjson-c.so.2
-fi
 
 echo "Starting DumaOS..."
-/etc/init.d/uhttpd enable
-/etc/init.d/uhttpd start
+/etc/init.d/ndhttpd enable
+/etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable
 /etc/init.d/dumaos start
 

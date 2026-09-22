@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Luke Meppem <luke.meppem@netduma.com>
+ * Luke Meppem
 */
 
 (function (context) {
@@ -12,6 +12,7 @@ function initChart(){
   var cgen = getColourGenerator();
   colours = [cgen(),cgen(),cgen(),cgen()];
   $("duma-chart[type=doughnut]",context).prop("options", {
+    ariaHeaders: ["<%= i18n.trafficType %>", "<%= i18n.packetCount %>"],
     elements: {
       arc: {
         borderWidth: 0
@@ -21,15 +22,6 @@ function initChart(){
       display: false
     },
   });
-
-  $("duma-legend",context).on("legendItemSelect", function (event)
-  {
-    var chart = $("duma-chart[type=doughnut]",context)[0].chart;
-    var key = Object.keys(chart.data.datasets[0]._meta)[0];
-    var curr = chart.data.datasets[0]._meta[key].data[event.detail];
-    curr.hidden = !curr.hidden;
-    chart.update();
-  }.bind(this));
 }
 
 function updateChart(values){

@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
  * Iain Fraser <iainf@netduma.com>
 */
 <%
@@ -11,8 +11,10 @@ local platform = os.platform_information()
 
 var packageId = "com.netdumasoftware.qos";
 var dumaAlert = $("duma-alert", context)[0];
-var loaderDilaog = $("#sliders-loader-dialog", context)[0];
+var loaderDilaog = $("#sliders-loader-dialog", context)[0];1
 
+// upload, download
+var maxBandwidthSpeeds = [100,100];
 
 var dialogBoxHistory = {};
 function rateLimitShowDialogBox(id) {
@@ -59,11 +61,18 @@ function devicePrioritisationUnchanged( callback ) {
   return false;
 }
 
+function setQoSAutoSetupDisabled(){
+  var applyWhen = parseInt($("#atstate", context).prop("selected"));
+  $("qos-auto-setup",context).find("#auto-setup-button").prop("disabled",applyWhen === 3);
+}
+
 function onAntiBufferbloatStateChange() {
   
   var upload = $("#upload-slider", context).prop("value");
   var download = $("#download-slider", context).prop("value");
   var applyWhen = parseInt($("#atstate", context).prop("selected"));
+  
+  setQoSAutoSetupDisabled();
 
   switch (applyWhen) {
     case 1:
@@ -106,36 +115,53 @@ function pollQosStatus() {
 function setSliders(up, down) {
   $("#download-slider", context).prop("value", down * 100);
   $("#upload-slider", context).prop("value", up * 100);
+  var autoSetup = $("#auto-setup-require",context)[0];
+  if(autoSetup){
+    autoSetup.callback = function(){
+      var setup = $(this).find("qos-auto-setup")[0];
+      setup.download = down * 100;
+      setup.upload = up * 100;
+      setup.callback = function(upload,download){
+        $("#upload-slider", context)[0].value = upload * 100;
+        $("#download-slider", context)[0].value = download * 100;
+        updateBandwidthAndThrottle(false);
+        setAchievableBandwidthNumbers();
+      }
+      setQoSAutoSetupDisabled();
+    }
+  }
 }
 
 function setBandwidth(up, down) {
-  $("#upload-bandwidth", context).prop("value", up);
-  $("#download-bandwidth", context).prop("value", down);
+  maxBandwidthSpeeds[0] = up;
+  maxBandwidthSpeeds[1] = down;
+  setAchievableBandwidthNumbers();
 }
 
 function updateBandwidthAndThrottle(isband) {
-  var rpc_set_bandwidth = create_rate_limit_long_rpc_promise( 
-                                  qos.getPackageId(), "set_bandwidth", 1000 );
   var rpc_set_throttle = create_rate_limit_long_rpc_promise( 
                                   qos.getPackageId(), "set_link_throttle", 1000 );
 
   var nan = function(val,def) { return isNaN(val) ? (def || 100) : val; }
-  var up_band = nan( $("#upload-bandwidth", context).prop("value") * (1000 * 1000), 1000000);
-  var down_band = nan( $("#download-bandwidth", context).prop("value") * (1000 * 1000), 1000000);
   var up_throttle = nan( $("#upload-slider", context).prop("value") / 100, 1.0);
   var down_throttle = nan( $("#download-slider", context).prop("value") / 100, 1.0);
+  <% if platform.vendor == "TELSTRA" then %>
+  up_throttle = Math.max(0.5,up_throttle);
+  <% end %>
   var promise = Q.all([
-    rpc_set_bandwidth( [
-      Math.floor( up_band ),
-      Math.floor( down_band )
-    ]),
     rpc_set_throttle( [
       up_throttle.toString(),
       down_throttle.toString()
-    ])
+    ]),
+    <% if platform.odm == "TECHNICOLOR" or platform.model == "SMARTHUB3" then %>
+    $(top.document).find("network-speeds")[0]._promiseTchWait()
+    <% end %>
   ]);
-
+  
+  <% if platform.odm == "TECHNICOLOR" or platform.model == "SMARTHUB3" then %>
+  //only on DJA0231 because the _promiseTchWait takes a while
   qos.showLoaderDialog(loaderDilaog, promise);
+  <% end %>
   promise.done(function () {
     if (up_throttle < 0.1 || down_throttle < 0.1) {
       dumaAlert.show(
@@ -159,43 +185,33 @@ function updateBandwidthAndThrottle(isband) {
 function setAchievableBandwidthNumbers() {
   $("#download-achievable-bandwidth", context)
     .text(Math.round(
-      $("#download-bandwidth", context).prop("value") *
+      maxBandwidthSpeeds[1] *
       ($("#download-slider", context).prop("immediateValue") / 100) * 10
     ) / 10);
 
   $("#upload-achievable-bandwidth", context)
     .text(Math.round(
-      $("#upload-bandwidth", context).prop("value") *
+      maxBandwidthSpeeds[0] *
       ($("#upload-slider", context).prop("immediateValue") / 100) * 10
     ) / 10);
+
+    $("#download-slider",context).attr("aria-label","<%= i18n.ariaLabelDownload %>".format(maxBandwidthSpeeds[1]));
+    $("#upload-slider",context).attr("aria-label","<%= i18n.ariaLabelUpload %>".format(maxBandwidthSpeeds[0]));
 }
 
 function bindBandwidthChange() {
-  $("#download-slider, #upload-slider, #upload-bandwidth, #download-bandwidth", context)
+  $("#download-slider, #upload-slider", context)
     .on("change immediate-value-change", function () {
-      if (
-        !$("#download-bandwidth", context).prop("invalid") &&
-        !$("#upload-bandwidth", context).prop("invalid")
-      ) {
+      $(".qos-device-panel").trigger("bandwidth-total-change", {
+        uploadBandwidth: ( maxBandwidthSpeeds[0] * 1000 * 1000 ).toString(),
+        downloadBandwidth: ( maxBandwidthSpeeds[1] * 1000 * 1000 ).toString(),
+        uploadCap: $("#upload-slider",context).prop("immediateValue"),
+        downloadCap: $("#download-slider",context).prop("immediateValue")
+      });
 
-        $(".qos-device-panel").trigger("bandwidth-total-change", {
-          uploadBandwidth: ( $("#upload-bandwidth",context).prop("value") * 1000 * 1000 ).toString(),
-          downloadBandwidth: ( $("#download-bandwidth",context).prop("value") * 1000 * 1000 ).toString(),
-          uploadCap: $("#upload-slider",context).prop("immediateValue"),
-          downloadCap: $("#download-slider",context).prop("immediateValue")
-        });
-
-        setAchievableBandwidthNumbers();
-      }
+      setAchievableBandwidthNumbers();
     }).on("change", function () {
-      if (
-        !$("#download-bandwidth", context).prop("invalid") &&
-        !$("#upload-bandwidth", context).prop("invalid")
-      ) {
-        var eid = $(this).attr("id");
-        var isband = eid == "download-bandwidth" || eid == "upload-bandwidth";
-        updateBandwidthAndThrottle(isband);
-      }
+      updateBandwidthAndThrottle(false);
     });
 }
 
@@ -224,67 +240,114 @@ function bindGoodputChange() {
   });
 }
 
+function setDisabledForAllPanels(state){
+  var panels = $("duma-panels")[0].list();
+  for(var i = 0; i < panels.length; i++){
+    var panel = $(panels[i].element).find("duma-panel")[0];
+    if(location.pathname.indexOf("com.netdumasoftware.qos") !== -1){
+      panel.disabled = !!state;
+      panel.disabledText = "<%= i18n.qosDisabled %>";
+    }
+  }
+}
+
 function bindDisableAll(){
   var packdm = "com.netdumasoftware.devicemanager";
 
-  $("#disableall", context).change(function () {
-    var is = $("#disableall", context).prop("checked");
+  // set if dpi is enabled
+  function SetDPIEnabled(state){
+    state = state || false;
+
+    // the rpc previously switched between 0 & 8 when enabling / disabling.
+    // something to do with packet byte marks
+    var scan_size = 0;
+    if(state)
+      scan_size = 8;
+    var prom = long_rpc_promise(packdm, "set_dpi_settings", [ state, scan_size, 1024 * 1024 ]);
+    qos.showLoaderDialog(loaderDilaog, prom);
+    setDisableDPI(!state);
+  }
+  // set if qos is disabled
+  function SetQOSDisabled(state){
+    state = state || false;
+    // re-enable dpi when qos is enabled
+    if(!state){
+      SetDPIEnabled(true);
+    }
+    var prom = long_rpc_promise(qos.getPackageId(), "disabled", [ state.toString()]);
+    qos.showLoaderDialog(loaderDilaog, prom);
+    setDisableQoS(state);
+  }
+
+  $("#disableqos", context).change(function () {
+    var is = $("#disableqos", context).prop("checked");
     if( is ) {
       $("#disableqos-alert", context)[0].show(null,
         [
           { text: "<%= i18n.cancel %>", action: "dismiss", default: true, callback: function()
             {
-              setDisableAll(false);
+              setDisableQoS(false);
             }
            },
           {
             text: "<%= i18n.proceed %>", action: "confirm", callback: function () {
-              var pa = long_rpc_promise(qos.getPackageId(), "disabled", [ is.toString()]);
-              var pb = long_rpc_promise(packdm, "set_dpi_settings", [ false, 0, 1024 * 1024 ]);
-              qos.showLoaderDialog(loaderDilaog, Q.all([pa,pb]));
+              SetQOSDisabled(true);
            }
           }
         ]
       );
     } else {
-      var pa = long_rpc_promise(qos.getPackageId(), "disabled", [ is.toString()]);
-      var pb = long_rpc_promise(packdm, "set_dpi_settings", [ true, 8, 1024 * 1024 ]);
-      qos.showLoaderDialog(loaderDilaog, Q.all([pa,pb]));
+      SetQOSDisabled(false);
+    }
+    setDisabledForAllPanels(is);
+
+  });
+
+  $("#disabledpi", context).change(function () {
+    var is = $("#disabledpi", context).prop("checked");
+    if( is ) {
+      $("#disabledpi-alert", context)[0].show(null,
+        [
+          { text: "<%= i18n.cancel %>", action: "dismiss", default: true, callback: function()
+            {
+              setDisableDPI(false);
+            }
+           },
+          {
+            text: "<%= i18n.disableAllDPIConfirmButton %>", action: "confirm", callback: function () {
+              SetDPIEnabled(false);
+           }
+          }
+        ]
+      );
+    } else {
+      SetDPIEnabled(true);
     }
 
   });
-}
-
-function bindOptUpload(start){
-  var optUploadCheck = $("#optimiseUpload",context);
-  var uploadSlider = $("#upload-slider",context);
-  optUploadCheck.prop("checked",start);
-  optUploadCheck.on("checked-changed",function(e){
-    optUploadCheck.prop("disabled",true);
-    uploadSlider.prop("disabled",true);
-    var promise = long_rpc_promise(qos.getPackageId(), "throttle_upstream_hw", [e.detail.value]);
-    qos.showLoaderDialog(loaderDilaog, promise);
-    promise.done(function(){
-      uploadSlider.prop("disabled",!e.detail.value);
-      optUploadCheck.prop("disabled",false);
-    });
-  });
-  uploadSlider.prop("disabled",!start);
 }
 
 function setGoodput(goodput) {
   $("#goodput", context).prop("checked", goodput);
 }
 
-function setDisableAll(da){
-  $("#disableall", context).prop("checked", da);
+function setDisableDPI(da){
+  $("#disabledpi", context).prop("checked", da);
+}
+
+function setDisableDPIDisabled(state){
+  $("#disabledpi", context).prop("disabled", state || null);
+}
+
+function setDisableQoS(da){
+  $("#disableqos", context).prop("checked", da);
+  setDisabledForAllPanels(da);
+  setDisableDPIDisabled(!da);
 }
 
 function toggle_sliders( autoThrottle ){
   $("#download-slider", context).prop("disabled", autoThrottle == 3 );
-  <% if platform.vendor ~= "TELSTRA" then %>
   $("#upload-slider", context).prop("disabled", autoThrottle == 3 );
-  <% end %>
 }
 
 function setAutoThrottle(autoThrottle) {
@@ -338,32 +401,46 @@ function bindAutoThrottle() {
   });
 }
 
+function bindGlobalNetworkDialog(){
+  $("html").on("network-speeds-changed",function(e){
+    var data = e.detail;
+    setBandwidth(data.up,data.down);
+    setAchievableBandwidthNumbers();
+  });
+}
+
+function bindSetNetworkSpeedsButton(){
+  $("#show-network-speeds-dialog",context).on("click",function(){
+    $(top.document).find("#network-speeds-button").click();
+  })
+}
+
 Q.spread([
   qos.getThrottle(),
   qos.getBandwidth(),
   long_rpc_promise(qos.getPackageId(), "get_goodput", []),
   long_rpc_promise(packageId, "auto_throttling", []),
   long_rpc_promise(qos.getPackageId(), "disabled", []),
-  <% if platform.vendor == "TELSTRA" then %>
-  long_rpc_promise(qos.getPackageId(), "throttle_upstream_hw", []),
-  <% end %>
-], function (throttle, bandwidth, goodput, autoThrottle, da, optUpload) {
+  long_rpc_promise("com.netdumasoftware.devicemanager", "get_dpi_settings", []),
+], function (throttle, bandwidth, goodput, autoThrottle, da, dpi) {
   setSliders(throttle[0], throttle[1]);
   setBandwidth(bandwidth[0] / (1000 * 1000), bandwidth[1] / (1000 * 1000));
+  bindGlobalNetworkDialog();
+  bindSetNetworkSpeedsButton();
   setAutoThrottle(JSON.parse(autoThrottle[0]));
   setGoodput(goodput[0] === "true");
-  setDisableAll(da[0] === "true");
+  setDisableQoS(da[0] === "true");
+  setDisableDPI(dpi[0].enabled != true);
   setAchievableBandwidthNumbers();
   bindBandwidthChange();
   bindGoodputChange();
   bindAutoThrottle();
   bindDisableAll();
-  <% if platform.vendor == "TELSTRA" then %>
-  bindOptUpload(optUpload[0]);
-  <% end %>
 
   pollQosStatus();
   setInterval(pollQosStatus, 1000 * 15);
+  
+  setQoSAutoSetupDisabled();
 
   $("duma-panel", context).prop("loaded", true);
   

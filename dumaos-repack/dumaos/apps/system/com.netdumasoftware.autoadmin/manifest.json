@@ -18,6 +18,21 @@
   ],
   "methods" : [
     {
+      "func" : "on_print_graph_tags",
+      "method" : "print_graph_tags",
+      "arguments" : {}
+    },
+    {
+      "func" : "on_print_g_reserved",
+      "method" : "print_g_reserved",
+      "arguments" : {}
+    },
+    {
+      "func" : "on_print_zero_masks",
+      "method" : "print_zero_masks",
+      "arguments" : {}
+    },
+    {
       "func" : "on_firewall_restart",
       "method" : "fw_restart",
       "arguments" : {}
@@ -46,6 +61,11 @@
       "func" : "on_unreserve",
       "method" : "unreserve",
       "arguments" : {}
+    },
+    {
+      "func": "on_get_subfields",
+      "method": "get_subfields",
+      "arguments": {}
     },
     {
       "func" : "on_acquire_nfqueue",
@@ -98,6 +118,11 @@
       "arguments" : {}
     },
     {
+      "func" : "get_rapps_and_chains",
+      "method" : "get_rapps_and_chains",
+      "arguments" : {}
+    },
+    {
       "func" : "on_add_custom_rule",
       "method" : "add_custom_rule",
       "arguments" : {}
@@ -135,6 +160,16 @@
     {
       "func": "on_custom_rule_stats",
       "method": "custom_rule_stats",
+      "arguments": {}
+    },
+    {
+      "func": "on_rapp_end",
+      "method": "rapp_end",
+      "arguments": {}
+    },
+    {
+      "func": "on_mark_bits_status",
+      "method": "mark_bits_status",
       "arguments": {}
     }
   ]

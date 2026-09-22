@@ -1,57 +1,68 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
+ * Luke Meppem
 */
 
 (function (context) {
 
 var devicesLoaderDialog = $("#devices-loader-dialog", context);
 
-function generateRadioButtons(device, enabled, id, allowFiltering) {
-  var group = $("<paper-radio-group></paper-radio-group>")
-    .on("iron-select", function () {
+function generateToggle(device, enabled, id, allowFiltering) {
+  return $("<paper-toggle-button aria-label='<%= i18n.ariaFilterModeSwitch %>'><%= i18n.filteringMode %></paper-toggle-button>")
+    .on("checked-changed", function () {
       var p = geoFilter.getPackageId();
       var f = "capture_toggle";
-      var a = [1, device.id, id, JSON.stringify(this.selected === "filtering")];
+      var a = [1, device.id, id, JSON.stringify(this.checked)];
       var promise = long_rpc_promise( p, f, a);
       geoFilter.showLoaderDialog(devicesLoaderDialog, promise);
       promise.done();
     })
-    .prop("selected", enabled ? "filtering" : "spectating");
+    .prop("checked", enabled ? true : null).prop("disabled",!allowFiltering).addClass("filter-toggle");
+}
 
-  Polymer.dom(group[0]).appendChild(
-    $("<paper-radio-button><%= i18n.filteringMode %></paper-radio-button>")
-      .attr("name", "filtering")
-      .prop("disabled", !allowFiltering)[0]
+function refreshAddDeviceDisabled(){
+  var count = $("#geofilter-devices", context).children().length;
+  $("#add-device",context).attr("disabled",count >= 4 ? true : null);
+}
+
+function delete_device(device, id,callback){
+  var promise = long_rpc_promise(
+    geoFilter.getPackageId(), "del_capture", 
+    [ 1, device.id, id ]
   );
-
-  Polymer.dom(group[0]).appendChild(
-    $("<paper-radio-button><%= i18n.spectatingMode %></paper-radio-button>")
-      .attr("name", "spectating")[0]
-  );
-
-  return group;
+  geoFilter.showLoaderDialog(devicesLoaderDialog, promise);
+  promise.done(function () {
+    if(callback) callback();
+  });
 }
 
 function do_add_service( device, id, name, enabled, allowFiltering ) {
-  var geodevice = $("<div></div>")
+  var aria = "<%= i18n.ariaDeviceRegion %>".format(device.name,name);
+  var geodevice = $("<div role='region' aria-label='" + aria + "'></div>")
     .addClass("geo-device")
-    .append($("<div class='device'></div>").text(device.name))
+      .append($("<div class='delete-box'></div>")
+      .append(
+          $('<paper-button aria-label="<%= i18n.ariaDeleteButton %>"><%= i18n.delete %></paper-button>').click(
+          (function( device, id ){
+            return function () {
+              $("#geofilter-duma-alert", context)[0].show(
+                "<%= i18n.deleteConfirm %>",
+                [
+                  { text: "<%= i18n.cancel %>", action: "dismiss" },
+                  { text: "<%= i18n.delete %>", action: "confirm", callback: function(){
+                    delete_device(device,id,function(){ $(geodevice).remove(); refreshAddDeviceDisabled(); });
+                  }}
+                ]
+              )
+            }
+          })( device, id )
+        )
+      )
+    )
+    .append($("<div class='device-name'></div>").text(device.name))
     .append($("<div class='service'></div>").text(name))
-    .append(generateRadioButtons(device, enabled, id, allowFiltering))
-    .append($("<paper-button background><%= i18n.delete %></paper-button>").click((
-    function( device, id ){
-      return function () {
-        var promise = long_rpc_promise(
-          geoFilter.getPackageId(), "del_capture", 
-          [ 1, device.id, id ]
-        );
-        geoFilter.showLoaderDialog(devicesLoaderDialog, promise);
-        promise.done(function () {
-          $(geodevice).remove();
-        });
-      }
-    })( device, id ) ) );
+    .append(generateToggle(device, enabled, id, allowFiltering));
 
   $("#geofilter-devices", context).append( geodevice );
 
@@ -77,54 +88,46 @@ function loadGeoFilterDevices(devices, geoFilterDevices) {
       }
     }
   }
+  refreshAddDeviceDisabled();
 }
 
-function add_services( device, service, devices){
+function add_services( device, service, filter_mode, devices, onError){
   var services = service.services;
 
   var promise = long_rpc_promise(geoFilter.getPackageId(), "add_capture", [
     1, device.id, service.name,
     JSON.stringify(services),
     JSON.stringify(service.tags)
-  ]);
+  ]).fail(onError);
 
   geoFilter.showLoaderDialog(devicesLoaderDialog, promise);
 
-  promise.done(function (id ) {
+  var after = function (id ) {
     var card = do_add_service(
       devices[device.id],
       id[0],
       service.name,
-      service.tags.indexOf("console") > -1,
+      filter_mode,
       service.tags.indexOf("geofilter") > -1
     );
 
-    if (service.tags.indexOf("geofilter") > -1 && service.tags.indexOf("pc") > -1) {
-      $("duma-alert", context)[0].show(
-        "<%= i18n.addedPcMessage %>",
-
-        [{ text: "<%= i18n.gotIt %>", action: "confirm" }]
-      );
-
-    } else if (service.tags.indexOf("pc") > -1) {
-      $("#spectating-success", context)[0].show( 
-        null,
-        [{ text: "<%= i18n.gotIt %>", action: "confirm" }]
-      );
-
-    } else if (service.tags.indexOf("console") > -1) {
-      $("#filtering-success", context)[0].show(
-        null,
-        [{ text: "<%= i18n.gotIt %>", action: "confirm" }]
-      );
-    }
-  });
+    refreshAddDeviceDisabled();
+  }
+  if(filter_mode === true || filter_mode === false){
+    promise.done(function(id){
+      long_rpc_promise(geoFilter.getPackageId(), "capture_toggle", [1, device.id, id[0], JSON.stringify(filter_mode)]).catch(onError).done(function(){
+        after(id);
+      });
+    });
+  }else{
+    promise.done(after);
+  }
 }
 
 function on_add_device( ){
   get_devices().done(function ( d ){
-    function add_device_callback( device, service){
-      add_services( device, service, d);
+    function add_device_callback( device, service, filter, onError){
+      add_services( device, service, filter, d, onError);
     }
 
     $("geofilter-device-selector", context)[0].open(add_device_callback);

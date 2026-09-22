@@ -3,7 +3,7 @@
   "version" : "0.0.1",
   "foreground" : true,
   "system": true,
-  "name": "title",
+  "name": "Portal",
   "icon": "/apps/com.netdumasoftware.ngportal/shared/settings.svg",
   "bind" : [],
   "methods" : []

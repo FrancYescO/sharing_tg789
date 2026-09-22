@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Surface reaction](https://www.google.com/design/spec/animation/responsive-interaction.html#responsive-interaction-surface-reaction)
 
 `paper-ripple` provides a visual effect that other paper elements can
@@ -96,8 +96,8 @@ Apply `circle` class to make the rippling effect within a circle.
         transform: translate3d(0, 0, 0);
       }
 
-      #background,
-      #waves,
+      .background,
+      .waves,
       .wave-container,
       .wave {
         pointer-events: none;
@@ -108,12 +108,12 @@ Apply `circle` class to make the rippling effect within a circle.
         height: 100%;
       }
 
-      #background,
+      .background,
       .wave {
         opacity: 0;
       }
 
-      #waves,
+      .waves,
       .wave {
         overflow: hidden;
       }
@@ -123,14 +123,14 @@ Apply `circle` class to make the rippling effect within a circle.
         border-radius: 50%;
       }
 
-      :host(.circle) #background,
-      :host(.circle) #waves {
+      :host(.circle) .background,
+      :host(.circle) .waves {
         border-radius: 50%;
       }
 
       :host(.circle) .wave-container {
         overflow: hidden;
-      } </style> <div id="background"></div> <div id="waves"></div> </template> </dom-module> <script> (function() {
+      } </style> <div class="background"></div> <div class="waves"></div> </template> </dom-module> <script> (function() {
     var Utility = {
       distance: function(x1, y1, x2, y2) {
         var xDelta = (x1 - x2);
@@ -541,6 +541,14 @@ Apply `circle` class to make the rippling effect within a circle.
         'space:keyup': '_onSpaceKeyup'
       },
 
+      get $waves() {
+        return this.__$waves || (this.__$waves = this.$$(".waves"));
+      },
+
+      get $background() {
+        return this.__$background || (this.__$background = this.$$(".background"));
+      },
+
       attached: function() {
         // Set up a11yKeysBehavior to listen to key events on the target,
         // so that space and enter activate the ripple even if the target doesn't
@@ -642,15 +650,15 @@ Apply `circle` class to make the rippling effect within a circle.
 
       onAnimationComplete: function() {
         this._animating = false;
-        this.$.background.style.backgroundColor = null;
+        this.$background.style.backgroundColor = null;
         this.fire('transitionend');
       },
 
       addRipple: function() {
         var ripple = new Ripple(this);
 
-        Polymer.dom(this.$.waves).appendChild(ripple.waveContainer);
-        this.$.background.style.backgroundColor = ripple.color;
+        Polymer.dom(this.$waves).appendChild(ripple.waveContainer);
+        this.$background.style.backgroundColor = ripple.color;
         this.ripples.push(ripple);
 
         this._setAnimating(true);
@@ -691,7 +699,7 @@ Apply `circle` class to make the rippling effect within a circle.
 
           ripple.draw();
 
-          this.$.background.style.opacity = ripple.outerOpacity;
+          this.$background.style.opacity = ripple.outerOpacity;
 
           if (ripple.isOpacityFullyDecayed && !ripple.isRestingAtMaxRadius) {
             this.removeRipple(ripple);

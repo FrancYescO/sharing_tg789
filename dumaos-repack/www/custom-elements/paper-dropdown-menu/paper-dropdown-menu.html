@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <link rel="import" href="../iron-behaviors/iron-button-state.html"> <link rel="import" href="../iron-behaviors/iron-control-state.html"> <link rel="import" href="../iron-form-element-behavior/iron-form-element-behavior.html"> <link rel="import" href="../iron-icon/iron-icon.html"> <link rel="import" href="../iron-validatable-behavior/iron-validatable-behavior.html"> <link rel="import" href="../paper-input/paper-input.html"> <link rel="import" href="../paper-menu-button/paper-menu-button.html"> <link rel="import" href="../paper-ripple/paper-ripple.html"> <link rel="import" href="../paper-styles/default-theme.html"> <link rel="import" href="paper-dropdown-menu-icons.html"> <link rel="import" href="paper-dropdown-menu-shared-styles.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-behaviors/iron-button-state.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-behaviors/iron-control-state.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-form-element-behavior/iron-form-element-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icon/iron-icon.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-validatable-behavior/iron-validatable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-menu-button/paper-menu-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-ripple/paper-ripple.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/default-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-dropdown-menu-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-dropdown-menu-shared-styles.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Dropdown menus](https://www.google.com/design/spec/components/buttons.html#buttons-dropdown-buttons)
 
 `paper-dropdown-menu` is similar to a native browser select element.
@@ -61,7 +61,7 @@ respectively.
 @element paper-dropdown-menu
 @hero hero.svg
 @demo demo/index.html
---> <dom-module id="paper-dropdown-menu"> <template> <style include="paper-dropdown-menu-shared-styles"></style> <!-- this div fulfills an a11y requirement for combobox, do not remove --> <span role="button"></span> <paper-menu-button id="menuButton" vertical-align="[[verticalAlign]]" horizontal-align="[[horizontalAlign]]" dynamic-align="[[dynamicAlign]]" vertical-offset="[[_computeMenuVerticalOffset(noLabelFloat)]]" disabled="[[disabled]]" no-animations="[[noAnimations]]" on-iron-select="_onIronSelect" on-iron-deselect="_onIronDeselect" opened="{{opened}}" close-on-activate allow-outside-scroll="[[allowOutsideScroll]]"> <div class="dropdown-trigger"> <paper-ripple></paper-ripple> <!-- paper-input has type="text" for a11y, do not remove --> <paper-input type="text" invalid="[[invalid]]" readonly="readonly" disabled="[[disabled]]" value="[[selectedItemLabel]]" placeholder="[[placeholder]]" error-message="[[errorMessage]]" always-float-label="[[alwaysFloatLabel]]" no-label-float="[[noLabelFloat]]" label="[[label]]" dont-select-on-focus="false"> <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix></iron-icon> </paper-input> </div> <content id="content" select=".dropdown-content"></content> </paper-menu-button> </template> <script> (function() {
+--> <dom-module id="paper-dropdown-menu"> <template> <style include="paper-dropdown-menu-shared-styles"></style> <!-- this div fulfills an a11y requirement for combobox, do not remove --> <span role="button"></span> <paper-menu-button class="paper-dropdown-menu-button" vertical-align="[[verticalAlign]]" horizontal-align="[[horizontalAlign]]" dynamic-align="[[dynamicAlign]]" vertical-offset="[[_computeMenuVerticalOffset(noLabelFloat)]]" disabled="[[disabled]]" no-animations="[[noAnimations]]" on-iron-select="_onIronSelect" on-iron-deselect="_onIronDeselect" opened="{{opened}}" close-on-activate allow-outside-scroll="[[allowOutsideScroll]]"> <div class="dropdown-trigger"> <paper-ripple></paper-ripple> <!-- paper-input has type="text" for a11y, do not remove --> <paper-input type="text" invalid="[[invalid]]" readonly="readonly" disabled="[[disabled]]" value="[[selectedItemLabel]]" placeholder="[[placeholder]]" error-message="[[errorMessage]]" always-float-label="[[alwaysFloatLabel]]" no-label-float="[[noLabelFloat]]" label="[[label]]" dont-select-on-focus="false"> <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix></iron-icon> </paper-input> </div> <content class="paper-dropdown-content" select=".dropdown-content"></content> </paper-menu-button> </template> <script> (function() {
       'use strict';
 
       Polymer({
@@ -243,21 +243,29 @@ respectively.
          * The content element that is contained by the dropdown menu, if any.
          */
         get contentElement() {
-          return Polymer.dom(this.$.content).getDistributedNodes()[0];
+          return Polymer.dom(this.$content).getDistributedNodes()[0];
+        },
+
+        get $content() {
+          return this.__$content || (this.__$content = this.$$(".paper-dropdown-content"));
+        },
+
+        get $menuButton() {
+          return this.__$menuButton || (this.__$menuButton = this.$$(".paper-dropdown-menu-button"));
         },
 
         /**
          * Show the dropdown content.
          */
         open: function() {
-          this.$.menuButton.open();
+          this.$menuButton.open();
         },
 
         /**
          * Hide the dropdown content.
          */
         close: function() {
-          this.$.menuButton.close();
+          this.$menuButton.close();
         },
 
         /**

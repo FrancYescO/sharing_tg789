@@ -1,7 +1,8 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html"> <link rel="import" href="/custom-elements/paper-dialog-scrollable/paper-dialog-scrollable.html"> <link rel="import" href="/custom-elements/paper-dropdown-menu/paper-dropdown-menu.html"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html"> <link rel="import" href="/custom-elements/paper-button/paper-button.html"> <link rel="import" href="/custom-elements/paper-item/paper-item.html"> <link rel="import" href="/custom-elements/paper-input/paper-input.html"> <link rel="import" href="/custom-elements/paper-checkbox/paper-checkbox.html"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html"> <link rel="import" href="/custom-elements/iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="/custom-elements/duma-timewheel/duma-timewheel.html"> <link rel="import" href="/libs/devices.html"> <link rel="import" href="/libs/q.html"> <link rel="import" href="/libs/cron.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="rule-add-dialog"> <template> <style is="custom-style" include="duma-theme iron-flex iron-positioning"> :host paper-item:not(:disabled):focus {
+  Kian Cross
+  Luke Meppem
+--> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dialog-scrollable/paper-dialog-scrollable.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dropdown-menu/paper-dropdown-menu.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-checkbox/paper-checkbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-timewheel/duma-timewheel.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/devices.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/q.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/cron.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="rule-add-dialog"> <template> <style is="custom-style" include="duma-theme iron-flex iron-positioning"> :host paper-item:not(:disabled):focus {
         background-color: var(--transparent-primary-color);
       }
       .buttons {
@@ -17,7 +18,7 @@
       }
       #target-select-container {
         border-bottom:thin solid var(--divider-color);
-      } </style> <paper-dialog modal on-iron-overlay-closed="_on_close_reset"> <h2>[[ header ]]</h2> <paper-dialog-scrollable> <iron-pages selected="{{_selectedPageIndex}}"> <iron-page> <div class="inner"> <paper-input id="rule_add_name" label="Rule Name" auto-validate value="{{_name}}" pattern="{{_name_pattern}}" required></paper-input> <paper-checkbox checked="{{_notifications}}">Event Capture</paper-checkbox> </div> </iron-page> <iron-page> <div class="inner all-devices"> <label>All Devices</label><paper-checkbox checked="{{_allDevices}}"></paper-checkbox> </div> <paper-listbox id="rule_device_select" selected-items="{{_selectedDeviceElement}}" multi disabled="[[_allDevices]]"> <template is="dom-repeat" items="[[_devices]]" as="device" sort="_sortDevices" filter="_filterDevices"> <paper-item device="[[device]]" disabled="[[_allDevices]]">[[device.name]]</paper-item> </template> </paper-listbox> </iron-page> <iron-page> <!--seperate to create bar across hole thing--> <div id="target-select-container" class="inner"> <paper-dropdown-menu label="Select Target"> <paper-listbox class="dropdown-content" selected="{{selectedTargetIndex}}"> <template is="dom-repeat" items="[[targets]]" as="target"> <paper-item target="[[target]]">[[target]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </div> <div class="inner"> <!--Tried to use Iron Pages here, they did not work. Using a drop down so we can add more target types (such as category or URL) in the future--> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,0)]]" restamp> <h4>All Traffic will be affected</h4> </template> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,1)]]" restamp> <br> <label>Source Port</label> <!--Making the min = to Start means that you cannot properly type a number in the end box--> <paper-input label="Start" value="{{_port_sourceStart}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_sourceStart,_port_sourceEnd)}}" on-change="_onSourceStartChange"> </paper-input> <paper-input label="End" value="{{_port_sourceEnd}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_sourceStart,_port_sourceEnd)}}" error-message="{{_getPortErrorText(_port_sourceStart,_port_sourceEnd)}}"></paper-input> <br> <label>Destination Port</label> <paper-input label="Start" value="{{_port_destStart}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_destStart,_port_destEnd)}}" on-change="_onDestStartChange"> </paper-input> <paper-input label="End" value="{{_port_destEnd}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_destStart,_port_destEnd)}}" error-message="{{_getPortErrorText(_port_destStart,_port_destEnd)}}"></paper-input> <paper-dropdown-menu label="Select Protocol"> <paper-listbox class="dropdown-content" selected="{{_port_protocolIndex}}"> <template is="dom-repeat" items="[[protocols]]" as="prot"> <paper-item protocol="[[prot]]">[[prot]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </template> </div> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,2)]]" restamp> <div class="inner"> <label>Select applications</label> </div> <paper-listbox id="rule_app_select" selected-items="{{_selectedServiceElement}}" multi> <template is="dom-repeat" items="[[_services]]" as="service" sort="_sortServices"> <template is="dom-if" if="[[_shouldShowService(service, tags)]]"> <paper-item service="[[service]]">[[service.application]]</paper-item> </template> </template> </paper-listbox> </template> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,3)]]" restamp> <div class="inner"> <label>Select categories</label> </div> <paper-listbox id="rule_cat_select" selected-items="{{_selectedServiceElement}}" multi> <template is="dom-repeat" items="[[_categories]]" as="cat"> <paper-item cat="[[cat]]">[[cat.name]]</paper-item> </template> </paper-listbox> </template> </iron-page> <iron-page> <div class="inner"> <div class="horizontal layout"> <div class="flex-auto"> <duma-timewheel selected="{{schedule_am}}"></duma-timewheel> <duma-timewheel selected="{{schedule_pm}}" pm></duma-timewheel> </div> <div class="flex"> <paper-checkbox checked="{{Monday}}">Monday</paper-checkbox><br> <paper-checkbox checked="{{Tuesday}}">Tuesday</paper-checkbox><br> <paper-checkbox checked="{{Wednesday}}">Wednesday</paper-checkbox><br> <paper-checkbox checked="{{Thursday}}">Thursday</paper-checkbox><br> <paper-checkbox checked="{{Friday}}">Friday</paper-checkbox><br> <paper-checkbox checked="{{Saturday}}">Saturday</paper-checkbox><br> <paper-checkbox checked="{{Sunday}}">Sunday</paper-checkbox><br> <br><br> <paper-dropdown-menu label="Allow or block traffic"> <paper-listbox class="dropdown-content" selected="{{_blockAllow}}"> <template is="dom-repeat" items="[[_allowTypes('',_allDevices,_selectedPageIndex,selectedTargetIndex,_port_protocolIndex)]]" as="allow"> <paper-item allow="[[allow]]">[[allow]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </div> </div> </div> </iron-page> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <paper-button dialog-dismiss>Cancel</paper-button> <div> <template is="dom-if" if="[[_showBack(_selectedPageIndex)]]"> <paper-button on-tap="_onBackButtonClick"> Back </paper-button> </template> <paper-button on-tap="_onNextButtonClick" disabled="[[_isNextButtonDisabled(_name, _selectedPageIndex,_selectedDeviceElement,selectedTargetIndex,_selectedServiceElement,_blockAllow,_allDevices,
+      } </style> <paper-dialog modal on-iron-overlay-closed="_on_close_reset"> <h2 dialog-label>[[ header ]]</h2> <paper-dialog-scrollable> <iron-pages selected="{{_selectedPageIndex}}"> <iron-page> <div class="inner"> <paper-input id="rule_add_name" label="<%= i18n.ruleName %>" auto-validate value="{{_name}}" pattern="{{_name_pattern}}" required></paper-input> <paper-checkbox checked="{{_notifications}}"><%= i18n.captureToggle %></paper-checkbox> </div> </iron-page> <iron-page> <div class="inner all-devices"> <label><%= i18n.allDevices %></label><paper-checkbox checked="{{_allDevices}}" aria-label="<%= i18n.allDevices %>"></paper-checkbox> </div> <paper-listbox id="rule_device_select" selected-items="{{_selectedDeviceElement}}" multi disabled="[[_allDevices]]"> <template is="dom-repeat" items="[[_devices]]" as="device" sort="_sortDevices" filter="_filterDevices"> <paper-item device="[[device]]" disabled="[[_allDevices]]">[[device.name]]</paper-item> </template> </paper-listbox> </iron-page> <iron-page> <!--seperate to create bar across hole thing--> <div id="target-select-container" class="inner"> <paper-dropdown-menu label="<%= i18n.selectTarget %>"> <paper-listbox class="dropdown-content" selected="{{selectedTargetIndex}}"> <template is="dom-repeat" items="[[targets]]" as="target"> <paper-item target="[[target]]">[[target]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </div> <div class="inner"> <!--Tried to use Iron Pages here, they did not work. Using a drop down so we can add more target types (such as category or URL) in the future--> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,0)]]" restamp> <h4><%= i18n.allTrafficMsg %></h4> </template> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,1)]]" restamp> <br> <label><%= i18n.sourcePort %></label> <!--Making the min = to Start means that you cannot properly type a number in the end box--> <paper-input label="<%= i18n.start %>" value="{{_port_sourceStart}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_sourceStart,_port_sourceEnd)}}" on-change="_onSourceStartChange"> </paper-input> <paper-input label="<%= i18n.endPort %>" value="{{_port_sourceEnd}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_sourceStart,_port_sourceEnd)}}" error-message="{{_getPortErrorText(_port_sourceStart,_port_sourceEnd)}}"></paper-input> <br> <label><%= i18n.destPort %></label> <paper-input label="<%= i18n.start %>" value="{{_port_destStart}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_destStart,_port_destEnd)}}" on-change="_onDestStartChange"> </paper-input> <paper-input label="<%= i18n.endPort %>" value="{{_port_destEnd}}" type="number" min="1" max="65535" invalid="{{!_validPortRange(_port_destStart,_port_destEnd)}}" error-message="{{_getPortErrorText(_port_destStart,_port_destEnd)}}"></paper-input> <paper-dropdown-menu label="<%= i18n.selectProtocol %>"> <paper-listbox class="dropdown-content" selected="{{_port_protocolIndex}}"> <template is="dom-repeat" items="[[protocols]]" as="prot"> <paper-item protocol="[[prot]]">[[prot]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </template> </div> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,2)]]" restamp> <div class="inner"> <label><%= i18n.selectApps %></label> </div> <paper-listbox id="rule_app_select" selected-items="{{_selectedServiceElement}}" multi> <template is="dom-repeat" items="[[_services]]" as="service" sort="_sortServices"> <template is="dom-if" if="[[_shouldShowService(service, tags)]]"> <paper-item service="[[service]]">[[service.application]]</paper-item> </template> </template> </paper-listbox> </template> <template is="dom-if" if="[[_matchRestamp(selectedTargetIndex,3)]]" restamp> <div class="inner"> <label><%= i18n.selectCategories %></label> </div> <paper-listbox id="rule_cat_select" selected-items="{{_selectedServiceElement}}" multi> <template is="dom-repeat" items="[[_categories]]" as="cat"> <paper-item cat="[[cat]]">[[cat.name]]</paper-item> </template> </paper-listbox> </template> </iron-page> <iron-page> <div class="inner"> <div class="horizontal layout"> <div class="flex-auto timewheels"> <duma-timewheel selected="{{schedule_am}}" allow$="[[_getBlockAllowAttr(_blockAllow)]]"></duma-timewheel> <duma-timewheel selected="{{schedule_pm}}" allow$="[[_getBlockAllowAttr(_blockAllow)]]" pm></duma-timewheel> </div> <div class="flex"> <paper-checkbox checked="{{Monday}}"><%= i18n.monday %></paper-checkbox><br> <paper-checkbox checked="{{Tuesday}}"><%= i18n.tuesday %></paper-checkbox><br> <paper-checkbox checked="{{Wednesday}}"><%= i18n.wednesday %></paper-checkbox><br> <paper-checkbox checked="{{Thursday}}"><%= i18n.thursday %></paper-checkbox><br> <paper-checkbox checked="{{Friday}}"><%= i18n.friday %></paper-checkbox><br> <paper-checkbox checked="{{Saturday}}"><%= i18n.saturday %></paper-checkbox><br> <paper-checkbox checked="{{Sunday}}"><%= i18n.sunday %></paper-checkbox><br> <br><br> <paper-dropdown-menu label="<%= i18n.allowOrBlockTraffic %>" aria-label="<%= i18n.allowOrBlockTraffic %>"> <paper-listbox class="dropdown-content" selected="{{_blockAllow}}"> <template is="dom-repeat" items="[[_allowTypes('',_allDevices,_selectedPageIndex,selectedTargetIndex,_port_protocolIndex)]]" as="allow"> <paper-item allow="[[allow]]">[[_allowTypesTranslation(allow)]]</paper-item> </template> </paper-listbox> </paper-dropdown-menu> </div> </div> </div> </iron-page> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <paper-button dialog-dismiss><%= i18n.cancel %></paper-button> <div> <template is="dom-if" if="[[_showBack(_selectedPageIndex)]]"> <paper-button on-tap="_onBackButtonClick"> <%= i18n.back %> </paper-button> </template> <paper-button on-tap="_onNextButtonClick" disabled$="[[_isNextButtonDisabled(_name, _selectedPageIndex,_selectedDeviceElement,selectedTargetIndex,_selectedServiceElement,_blockAllow,_allDevices,
             _port_sourceStart,_port_sourceEnd,_port_destStart,_port_destEnd,schedule_am,schedule_pm,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday)]]"> [[_getNextButtonText(_selectedPageIndex)]] </paper-button> </div> </div> </paper-dialog> </template> <script> Polymer({
       is: "rule-add-dialog",
 
@@ -28,15 +29,11 @@
       properties: {
         protocols: {
           type: Array,
-          value: ["TCP and UDP", "TCP", "UDP"]
+          value: ["<%= i18n.TCPandUDP %>", "<%= i18n.TCP %>", "<%= i18n.UDP %>"]
         },
         targets: {
           type: Array,
-          value: ["All Traffic", "Port Range", "Application", "Category"]
-        },
-        days: {
-          type: Array,
-          value: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+          value: ["<%= i18n.allTraffic %>", "<%= i18n.portRange %>", "<%= i18n.application %>", "<%= i18n.category %>"]
         },
         tags: {
           type: Array,
@@ -55,7 +52,7 @@
         },
         header: {
           type: String,
-          value: "Add Rule"
+          value: "<%= i18n.addRule %>"
         },
         schedule_am: {
           type: Array,
@@ -97,7 +94,23 @@
           type: Boolean,
           value: false,
           observer: "_allDevicesChange"
+        },
+
+        _selectedPageIndex: {
+          type: Number,
+          value: 0,
+          observer: "onPageChange"
         }
+      },
+
+      onPageChange: function(){
+        // when chaning pages, focus on the first thing, don't remain focused on the diabled next button
+        Polymer.RenderStatus.afterNextRender(this,function(){
+          var nodes = this.$$("paper-dialog")._focusableNodes;
+          if(nodes && nodes.length > 0){
+            nodes[0].focus();
+          }
+        });
       },
 
       ready: function () {
@@ -109,6 +122,17 @@
 
       _firstAllDevicesChange: true,
       _allDevicesChange: function(newValue, oldValue){
+      },
+
+      _getBlockAllowAttr: function(blockAllow){
+        switch(blockAllow){
+          case 0:
+            return "allow";
+          case 1:
+            return "block";
+          case 2:
+            return "reject";
+        }
       },
 
       _refreshDevices: function () {
@@ -194,10 +218,6 @@
         return device.type == "__ALL__";
       },
 
-      _consoleLog: function (output) {
-        return console.log(output);
-      },
-
       _filterDevices: function (device) {
         return device.id > 0;
       },
@@ -225,9 +245,9 @@
 
       _getNextButtonText: function (selectedPageIndex) {
         if (this._finalPageIndex == selectedPageIndex) {
-          return "Done";
+          return "<%= i18n.done %>";
         } else {
-          return "Next";
+          return "<%= i18n.next %>";
         }
       },
 
@@ -275,8 +295,8 @@
       },
 
       _getPortErrorText: function (start, end) {
-        if (!(this._b(start) && this._b(end))) { return "Ports must be bewteen 0 to 65535."; }
-        else if (end < start) { return "End cannot be less than start"; }
+        if (!(this._b(start) && this._b(end))) { return "<%= i18n.errorPortRange %>"; }
+        else if (end < start) { return "<%= i18n.errorPortEndLessThanStart %>"; }
         return "";
       },
 
@@ -395,13 +415,13 @@
         } else if (this.selectedTargetIndex == 3) {
           newRule.categories = this._getCategories();
         } else {
-          newRule.services = [{}];
+          newRule.services = [[]];
         }
         var cron = new Cron();
         cron.setHours(this._getHours());
         cron.setWeekdays(this._getDays());
         newRule.schedule = cron.toString();
-        newRule.allow = this._allowTypes()[this._blockAllow].toLowerCase();
+        newRule.allow = this._allowTypes()[this._blockAllow];
         newRule.notifications = this._notifications;
         if (this._ruleId !== null) {
           newRule.id = this._ruleId;
@@ -483,10 +503,9 @@
 
         this._setDays(new Array(7).fill(true));
 
-        this._refreshDevices();
-
-        if(!delay) this.$$("paper-dialog").open();
-        return this._on_close_reset('__ON_CLOSE__');
+        return this._on_close_reset('__ON_CLOSE__').then(() => {
+          this.$$("paper-dialog").open();
+        });
       },
 
       close: function () {
@@ -513,7 +532,7 @@
           if(this.$.rule_device_select){
             this.$.rule_device_select.select(index);
           }else{
-            let rds = $("#rule_device_select");
+            var rds = $("#rule_device_select");
             if(rds[0]){
               rds[0].select(index);
             }else{
@@ -531,15 +550,23 @@
       },
 
       _allowTypes: function(all=false){
-        var ret = ["Allow","Block"];
-        if(all === true || (this.selectedTargetIndex === 1 && this._port_protocolIndex !== 2)){
-          ret.push("Reject");
+        var ret = ["allow","block"];
+        if(all === true || (this.selectedTargetIndex <= 1 && this._port_protocolIndex !== 2)){
+          ret.push("reject");
         }
         return ret;
       },
+      _allowTypesTranslation: function(type){
+        var trans = {
+          allow: "<%= i18n.allow %>",
+          block: "<%= i18n.block %>",
+          reject: "<%= i18n.reject %>",
+        }
+        return trans[type];
+      },
       _onProtocolChange: function(newValue,oldValue){
         if(oldValue === 2 || newValue === 2){
-          if(!this._allowTypes().includes("Reject")){
+          if(!(this._allowTypes().length === 3)){
             this._blockAllow = 1;
           }
         }

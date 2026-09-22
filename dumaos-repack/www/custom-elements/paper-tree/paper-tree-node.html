@@ -1,4 +1,4 @@
-<link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-icons/iron-icons.html"> <link rel="import" href="../iron-icon/iron-icon.html"> <link rel="import" href="../paper-menu-button/paper-menu-button.html"> <link rel="import" href="../paper-icon-button/paper-icon-button.html"> <link rel="import" href="../paper-menu/paper-menu.html"> <link rel="import" href="../paper-item/paper-item.html"> <!--
+<link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icon/iron-icon.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-menu-button/paper-menu-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-icon-button/paper-icon-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-menu/paper-menu.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 `<paper-tree-node>` display a tree node with expandable/collapsible capabilities and actions menu.
 
 A node is defined by a name, an icon and a list of actions.
@@ -17,7 +17,7 @@ Custom property | Description | Default
 `--paper-tree-selected--color`                | Text and icon color for selected node     | `rgb(0, 0, 0)`
 
 @demo
---> <link rel="import" href="../iron-icons/iron-icons.html"> <dom-module id="paper-tree-node"> <style> :host.selected > .node-container > .node-row {
+--> <link rel="import" href="../iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="paper-tree-node"> <style> :host.selected > .node-container > .node-row {
             background-color: var(--paper-tree-selected-background-color, rgba(200, 200, 200, 0.5));
             color: var(--paper-tree-selected-color, rgb(0, 0, 0));
         }
@@ -78,7 +78,7 @@ Custom property | Description | Default
 
         [hidden] {
             display: none;
-        } </style> <template> <div class="node-container"> <div class="node-row"> <span class$="{{_computeClass(data.*)}}" on-click="toggleChildren"></span> <iron-icon class="node-icon" icon$="{{_computeIcon(data.icon)}}" on-click="select"></iron-icon> <span class="node-name" on-click="select">{{data.name}}</span> <template is="dom-if" if="{{actions}}"> <paper-menu-button id="actions"> <paper-icon-button icon="more-vert" noink class="dropdown-trigger"></paper-icon-button> <paper-menu class="dropdown-content"> <template is="dom-repeat" items="{{actions}}"> <paper-item on-click="_actionClicked">{{item.label}}</paper-item> </template> </paper-menu> </paper-menu-button> </template> </div> <ul hidden$="{{!data.open}}"> <template is="dom-repeat" items="{{data.children}}"> <li> <paper-tree-node data="{{item}}" actions="{{actions}}"></paper-tree-node> </li> </template> </ul> </div> </template> </dom-module> <script> Polymer({
+        } </style> <template> <div class="node-container"> <div class="node-row"> <span class$="{{_computeClass(data.*)}}" on-click="toggleChildren"></span> <iron-icon class="node-icon" icon$="{{_computeIcon(data.icon)}}" on-click="select"></iron-icon> <span class="node-name" on-click="select" on-keydown="select" tabindex="0">{{data.name}}</span> <template is="dom-if" if="[[data.help]]"> <iron-icon class="node-icon" icon="help-outline" on-click="help"></iron-icon> </template> <template is="dom-if" if="{{actions}}"> <paper-menu-button id="actions"> <paper-icon-button icon="more-vert" noink class="dropdown-trigger"></paper-icon-button> <paper-menu class="dropdown-content"> <template is="dom-repeat" items="{{actions}}"> <paper-item on-click="_actionClicked">{{item.label}}</paper-item> </template> </paper-menu> </paper-menu-button> </template> </div> <ul hidden$="{{!data.open}}"> <template is="dom-repeat" items="{{data.children}}"> <li> <paper-tree-node data="{{item}}" actions="{{actions}}"></paper-tree-node> </li> </template> </ul> </div> </template> </dom-module> <script> Polymer({
 
         is: 'paper-tree-node',
 
@@ -152,8 +152,19 @@ Custom property | Description | Default
         /**
          * Highlights node as the selected node.
          */
-        select: function() {
+        select: function(e) {
+            if(e && (e.code || e.key)){
+                if(e.code !== "Enter" && e.code !== "Space") return;
+                e.preventDefault();
+            }
             this.fire("select", this);
+        },
+
+        /**
+         * Fires a help.
+         */
+        help: function() {
+            this.fire("help", this);
         },
 
         /**

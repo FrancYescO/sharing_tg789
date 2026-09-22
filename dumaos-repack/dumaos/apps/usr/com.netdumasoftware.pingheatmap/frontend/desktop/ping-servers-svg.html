@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/libs/d3.html"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/util.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="ping-servers-svg"> <template> <style is="custom-style" include="duma-theme"> :host {
+<link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/d3.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="ping-servers-svg"> <template> <style is="custom-style" include="duma-theme"> :host {
         display: block;
         position: absolute;
         height: 100%;
@@ -7,9 +7,9 @@
         top: 0;
         overflow: hidden;
       }
-      #servers g {
+      :host:not([desktop]) #servers g {
         cursor: pointer;
-      } </style> <div id="main" class="svg-container"> <svg> <g> <g id="servers"> </g> </g> </svg> </div> </template> <script> var packageId = "com.netdumasoftware.pingheatmap";
+      } </style> <div id="main" class="svg-container"> <svg id="svg"> <g id="zoomg"> <g id="servers"> </g> </g> </svg> </div> </template> <script> var packageId = "com.netdumasoftware.pingheatmap";
 
     Polymer({
       is: "ping-servers-svg",
@@ -33,20 +33,53 @@
           type: Boolean,
           value: false,
           observer: "_defaultChanged"
+        },
+        scaleFactor: {
+          type: Number,
+          value: 1
+        },
+        sqrScaleFactor: {
+          type: Number,
+          value: 1
         }
       },
 
-      attached: function(){
-        this.resize();
-      },
+      __map: null,
+      resize_interval: null,
       resize: function(){
-        var map = $(this).parent().find("duma-map");
+        if(!this.__map){
+          console.error("__map is undefined!",this.__map,this);
+          return
+        }
+        var map = $(this.__map);
         $(this).css({
           top: map.css("top"),
           left: map.css("left"),
           height: map.css("height"),
           width: map.css("width"),
         });
+        var zoominfo = this.__map.zoomInfo;
+        if(zoominfo){
+          d3.select(this.$.zoomg).transition()
+            .duration(zoominfo.duration)
+            .attr("transform",zoominfo.transform);
+          this.scaleFactor = zoominfo.factor;
+          this.sqrScaleFactor = Math.sqrt(this.scaleFactor);
+          if(zoominfo.duration > 0) this.setD3Data();
+        }
+      },
+      scale: function(number){
+        return number / this.sqrScaleFactor;
+      },
+      scaleFull: function(number){
+        return number / this.scaleFactor;
+      },
+      scaleTransform: function(x,y){
+        var scale = 1/this.sqrScaleFactor;
+        x = parseFloat(x);
+        y = parseFloat(y);
+        var ret = svg_translate(x,y) + svg_scale(scale) + svg_translate(-x,-y);
+        return ret
       },
 
       ready: function () {
@@ -63,6 +96,25 @@
         window.addEventListener('resize',function(e) {
           this.resize();
         }.bind(this));
+        $(this).closest(".grid-stack").on("dragstart resizestart",function(e) {
+          this.resize_interval = setInterval(function(){
+            this.resize();
+          }.bind(this),200);
+          setTimeout(function(){
+            if(this.resize_interval){
+              clearInterval(this.resize_interval);
+              this.resize_interval = null;
+            }
+          }.bind(this),20000)
+        }.bind(this));
+        $(this).closest(".grid-stack").on("dragstop resizestop",function(e) {
+          setTimeout(function(){ //A delay on this because this is called before the automatic adjustment to align with the grid
+            if(this.resize_interval){
+              clearInterval(this.resize_interval);
+              this.resize_interval = null;
+            }
+          }.bind(this),2000);
+        }.bind(this));
       },
       _defaultChanged: function(newValue){
         if(this.serversG){
@@ -75,6 +127,7 @@
       },
       //Projection for lat,long => x,y
       setProjection: function(map){
+        this.__map = map;
         
         var svg = d3.select(this.$$("#main > svg"))
 
@@ -85,6 +138,14 @@
           .attr("viewBox", [0, 0, map.width, map.height].join(" "))
           .attr("preserveAspectRatio", "xMidYMid");
         this.projection = map.__makeProjection();
+        $(map).on("zoom-info-changed",function(){
+          this.resize();
+          map.saveZoom(packageId);
+          if(this.__map.zoomInfo.duration > 0) setTimeout(this.resize.bind(this),this.__map.zoomInfo.duration);
+        }.bind(this));
+        map.loadZoom(packageId);
+        map._bindMouseZoom(this.$.svg);
+        map._bindMousePan(this.$.svg);
       },
       lat_long_to_map: function(lat,lng,projection){
         return projection( [lng,lat] );
@@ -293,34 +354,40 @@
       },
 
       clusterHeightExaggeration: 2.5, //Exaggeretion of the height
-      clusterMaxHeight: 30, //Height of the cluster. Actualt max height is height * exaggeration
+      clusterStepHeight: 12, //Height of the cluster. Actualt max height is height * exaggeration
       clusterHeightOffsetBottom: 12, //Height of the diagonal line, and the min height of the vertical lines
       clusterSideCount: 5, //The maximum amount of clusters on top and bottom of a cluster
 
+      sideCount: function(d){
+        return d.cluster ? Math.floor(d.cluster.servers.length / 2) + (d.cluster.servers.length % 2) : this.clusterSideCount;
+      },
+
       //Get the x coordinate from server data
-      getX: function(d,offset=0){
-        if(d.cluster && d.cluster.compact) return d.cluster.x;
+      getX: function(d,offset=0,forceNoCompact){
+        if(d.cluster && d.cluster.compact && !forceNoCompact) return d.cluster.x;
         var x = d.x;
+        var sideCount = this.sideCount(d);
         if(d.cluster){
-          var useIndex = d.selfIndex >= this.clusterSideCount ? d.selfIndex - this.clusterSideCount : d.selfIndex;
+          var useIndex = d.selfIndex >= sideCount ? d.selfIndex - sideCount : d.selfIndex;
           var dis = (useIndex + (useIndex % 2)) * 10;
           offset = dis * this.boolNeg(useIndex % 2) * d.cluster.xdif
           x = d.cluster.x;
         }
-        return x + (offset);
+        return x + this.scale(offset);
       },
       //Get the y coordinate from the server data
-      getY: function(d,offset=0){
-        if(d.cluster && d.cluster.compact) return d.cluster.y;
+      getY: function(d,offset=0,nonFullScaleOffset=0,forceNoCompact){
+        if(d.cluster && d.cluster.compact && !forceNoCompact) return d.cluster.y;
         var y = d.y;
+        var sideCount = this.sideCount(d);
         if(d.cluster){
-          var useIndex = d.selfIndex >= this.clusterSideCount ? d.selfIndex - this.clusterSideCount : d.selfIndex;
-          var sideCount = d.selfIndex >= this.clusterSideCount ? d.cluster.servers.length - this.clusterSideCount : Math.min(d.cluster.servers.length, this.clusterSideCount);
-          var clusterStep = (this.clusterMaxHeight / this.clusterSideCount) * this.clusterHeightExaggeration;
+          var useIndex = d.selfIndex >= sideCount ? d.selfIndex - sideCount : d.selfIndex;
+          // var sideCount = d.selfIndex >= sideCount ? d.cluster.servers.length - sideCount : Math.min(d.cluster.servers.length, sideCount);
+          var clusterStep = this.clusterStepHeight; //* this.clusterHeightExaggeration;
           offset = (offset - (this.clusterHeightOffsetBottom)) - ((sideCount - (useIndex + (useIndex % 2))) * clusterStep);
           y = d.cluster.y;
         }
-        return y + (offset * this.boolNeg(d.selfIndex >= this.clusterSideCount));
+        return y + this.scaleFull(offset * this.boolNeg(d.selfIndex >= sideCount)) + this.scale(nonFullScaleOffset * this.boolNeg(d.selfIndex >= sideCount));
       },
 
       //Dynamic attributes for server dots
@@ -328,12 +395,14 @@
         if(init){
           return{
           "cx": function(d){ return d.cluster ? d.cluster.x : thisElement.getX(d) },
-          "cy": function(d) { return d.cluster ? d.cluster.y : thisElement.getY(d,d.selfIndex >= thisElement.clusterSideCount ? -15 : -10) }
+          "cy": function(d) { return d.cluster ? d.cluster.y : thisElement.getY(d,d.selfIndex >= thisElement.sideCount(d) ? -15 : -10) },
+          "r": thisElement.scale(5)
           }
         }
         return{
         "cx": function(d) { return thisElement.getX(d) },
-        "cy": function(d) { return thisElement.getY(d,d.selfIndex >= thisElement.clusterSideCount ? -15 : -10) }
+        "cy": function(d) { return thisElement.getY(d,d.selfIndex >= thisElement.sideCount(d) ? -15 : -10) },
+        "r": thisElement.scale(5)
         }
       },
       //Dynamic attributes for display text
@@ -341,12 +410,14 @@
         if(init){
           return{
           "x": function(d) { return d.cluster ? d.cluster.x : thisElement.getX(d) },
-          "y": function(d) { return d.cluster ? d.cluster.y : thisElement.getY(d,d.selfIndex >= thisElement.clusterSideCount ? -40 : -17) }
+          "y": function(d) { return d.cluster ? d.cluster.y : thisElement.getY(d,0,d.selfIndex >= thisElement.sideCount(d) ? -40 : -17) },
+          "transform": function(d) { return thisElement.scaleTransform(this.attributes.x.value,this.attributes.y.value); },
           }
         }
         return{
-          "x": function(d) { return thisElement.getX(d) },
-          "y": function(d) { return thisElement.getY(d,d.selfIndex >= thisElement.clusterSideCount ? -40 : -17) }
+          "x": function(d) { return thisElement.getX(d,0,true) },
+          "y": function(d) { return thisElement.getY(d,0,d.selfIndex >= thisElement.sideCount(d) ? -40 : -17, true) },
+          "transform": function(d) { return thisElement.scaleTransform(this.attributes.x.value,this.attributes.y.value); },
         }
       },
       //Creates the lines to cluster x,y. firstLine=true is the vertical line, =false is the diagonal
@@ -356,22 +427,25 @@
             "x1": function(d) { return d.cluster.x },
             "y1": function(d) { return d.cluster.y },
             "x2": function(d) { return d.cluster.x },
-            "y2": function(d) { return d.cluster.y }
+            "y2": function(d) { return d.cluster.y },
+            "stroke-width": this.scale(2)
           }
         }
         if(firstLine){
           return {
             "x1": function(d) { return thisElement.getX(d) },
-            "y1": function(d) { return thisElement.getY(d,d.selfIndex >= thisElement.clusterSideCount ? -15 : -10) },
+            "y1": function(d) { return thisElement.getY(d,d.selfIndex >= thisElement.sideCount(d) ? -15 : -10) },
             "x2": function(d) { return thisElement.getX(d) },
-            "y2": function(d) { return d.cluster.y - (thisElement.clusterHeightOffsetBottom * thisElement.boolNeg(d.selfIndex >= thisElement.clusterSideCount)) }
+            "y2": function(d) { return d.cluster.y - thisElement.scaleFull(thisElement.clusterHeightOffsetBottom * thisElement.boolNeg(d.selfIndex >= thisElement.sideCount(d))) },
+            "stroke-width": this.scale(2)
           }
         }else{
           return {
             "x1": function(d) { return thisElement.getX(d) },
-            "y1": function(d) { return d.cluster.y - (thisElement.clusterHeightOffsetBottom * thisElement.boolNeg(d.selfIndex >= thisElement.clusterSideCount)) },
+            "y1": function(d) { return d.cluster.y - thisElement.scaleFull(thisElement.clusterHeightOffsetBottom * thisElement.boolNeg(d.selfIndex >= thisElement.sideCount(d))) },
             "x2": function(d) { return d.cluster.x },
-            "y2": function(d) { return d.cluster.y }
+            "y2": function(d) { return d.cluster.y },
+            "stroke-width": this.scale(2)
           }
         }
       },
@@ -414,12 +488,10 @@
       //Create lines for the cluster
       clusterLine: function(d3_element){
         return [
-        this.stylePingColour(d3_element.append('line').attr({
-            "stroke-width": 2
-          }).attr(this._clusterLineAttr(this,true,true))),
-        this.stylePingColour(d3_element.append('line').attr({
-            "stroke-width": 2
-          }).attr(this._clusterLineAttr(this,false,true)))
+        this.stylePingColour(d3_element.append('line')
+          .attr(this._clusterLineAttr(this,true,true))),
+        this.stylePingColour(d3_element.append('line')
+          .attr(this._clusterLineAttr(this,false,true)))
         ];
       },
 
@@ -478,9 +550,7 @@
           g.classed("server", true);
           //Add a circle for the servers
           this.stylePingColour(g.append("circle")
-            .attr({
-              "r": 5
-            }).attr(this._serverCircleAttr(this,true)));
+            .attr(this._serverCircleAttr(this,true)));
           //Add ping display text
           this.stylePingColour(g.append("text")
             .attr({
@@ -498,13 +568,13 @@
           }).each(this.lb(function(thisElement,d,i){
             d.lines = thisElement.clusterLine(d3.select(this)) //create lines, and set .lines to them
           }));
-          var duration = 750;
+          var duration = 500;
           //On update - new servers or history change
-          this.stylePingColour(data.select('circle').transition().attr(this._serverCircleAttr(this))).duration(duration);
-          this.stylePingColour(data.select('text').transition().attr(this._serverTextAttr(this)).text(function (d) { return d.ping.ping })).duration(duration);
+          this.stylePingColour(data.select('circle')).transition().attr(this._serverCircleAttr(this)).duration(duration);
+          this.stylePingColour(data.select('text')).transition().attr(this._serverTextAttr(this)).text(function (d) { return d.ping.ping }).duration(duration);
           //.ease(function(t) {return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;});//function(t){ return t >= 1 ? 1 : 1 - Math.sqrt(1 - t * t)});
           data.selectAll('line').each(this.lb(function(thisElement,d,i){
-            thisElement.stylePingColour(d3.select(this).transition().attr(thisElement._clusterLineAttr(thisElement,!!this.nextSibling)).duration(duration));
+            thisElement.stylePingColour(d3.select(this)).transition().attr(thisElement._clusterLineAttr(thisElement,!!this.nextSibling)).duration(duration);
           }));
           data.exit().remove();
 
@@ -551,32 +621,32 @@
       },
       //Get the y coordinate from the cluster data
       getCY: function(d,offset=0){
-        return (d.y - (this.getCSize(d)/2)) + offset;
+        return ((d.y - (this.getCSize(d)/2)) + offset);
       },
       //Get the size of the cluster diamond
       getCSize: function(d){
-        return d.compact ? this.clusterSizeCompact : this.clusterSize;
+        return this.scale(d.compact ? this.clusterSizeCompact : this.clusterSize);
       },
 
       //Dynamic attributes for cluster diamonds
       _clusterRectAttr: function(thisElement,init=false) {
         return{
-          "x": function(d) { return thisElement.getCX(d) },
-          "y": function(d) { return thisElement.getCY(d) },
-          "width": function(d) { return thisElement.getCSize(d) },
-          "height": function(d) { return thisElement.getCSize(d) }
+          "x": function(d) { return thisElement.getCX(d,0.75) },
+          "y": function(d) { return thisElement.getCY(d,0.75) },
+          "width": function(d) { return thisElement.scale(thisElement.getCSize(d)); },
+          "height": function(d) { return thisElement.scale(thisElement.getCSize(d)); }
         }
       },
       _clusterTextAttr: function(thisElement,init=false) {
         return{
-          "x": function(d) { return thisElement.getCX(d,thisElement.getCSize(d)/2) },
-          "y": function(d) { return thisElement.getCY(d,-10) }
+          "x": function(d) { return thisElement.getCX(d,thisElement.scale(thisElement.getCSize(d)/2)) },
+          "y": function(d) { return thisElement.getCY(d,thisElement.scale(-10)) }
         }
       },
       _clusterCountAttr: function(thisElement,init=false) {
         return{
-          "x": function(d) { return thisElement.getCX(d,thisElement.getCSize(d)/2) },
-          "y": function(d) { return thisElement.getCY(d,thisElement.getCSize(d)*0.95) }
+          "x": function(d) { return thisElement.getCX(d,thisElement.scale(thisElement.getCSize(d)/2)) },
+          "y": function(d) { return thisElement.getCY(d,thisElement.scale(thisElement.getCSize(d)*0.95)) }
         }
       },
 

@@ -1,6 +1,6 @@
 /*
  * (C) 2018 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function () {
@@ -16,7 +16,7 @@ browserSetup.onReady(function () {
     var panels = $("duma-panels")[0];
 
     panels.add(getFilePath("ping-map.html"), packageId, null, {
-      x: 0, y: 0, width: 12, height: 9
+      x: 0, y: 0, width: 12, height: 23
     });
   });
 });

@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <link rel="import" href="../iron-scroll-target-behavior/iron-scroll-target-behavior.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-scroll-target-behavior/iron-scroll-target-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 
 `iron-list` displays a virtual, 'infinite' list. The template inside
 the iron-list element represents the DOM to create for each list item.
@@ -232,22 +232,22 @@ will only render 20.
         }
       }
 
-      #items {
+      .iron-list-items {
         @apply --iron-list-items-container;
         position: relative;
       }
 
-      :host(:not([grid])) #items > ::slotted(*) {
+      :host(:not([grid])) .iron-list-items > ::slotted(*) {
         width: 100%;
       }
 
-      #items > ::slotted(*) {
+      .iron-list-items > ::slotted(*) {
         box-sizing: border-box;
         margin: 0;
         position: absolute;
         top: 0;
         will-change: transform;
-      } </style> <array-selector id="selector" items="{{items}}" selected="{{selectedItems}}" selected-item="{{selectedItem}}"></array-selector> <div id="items"> <slot></slot> </div> </template> </dom-module> <script> (function() {
+      } </style> <array-selector class="iron-list-selector" items="{{items}}" selected="{{selectedItems}}" selected-item="{{selectedItem}}"></array-selector> <div class="iron-list-items"> <slot></slot> </div> </template> </dom-module> <script> (function() {
   var IOS = navigator.userAgent.match(/iP(?:hone|ad;(?: U;)? CPU) OS (\d+)/);
   var IOS_TOUCH_SCROLLING = IOS && IOS[1] >= 8;
   var DEFAULT_PHYSICAL_COUNT = 3;
@@ -731,6 +731,14 @@ will only render 20.
       return this._scrollerPaddingTop + this.scrollOffset;
     },
 
+    get $selector(){
+      return this.__$selector || (this.__$selector = this.$$(".iron-list-selector"));
+    },
+
+    get $items(){
+      return this.__$items || (this.__$items = this.$$(".iron-list-items"));
+    },
+
     ready: function() {
       this.addEventListener('focus', this._didFocus.bind(this), true);
     },
@@ -771,7 +779,7 @@ will only render 20.
       this._scrollerPaddingTop = this.scrollTarget === this ? 0 :
           parseInt(styles['padding-top'], 10);
       this._isRTL = Boolean(styles.direction === 'rtl');
-      this._viewportWidth = this.$.items.offsetWidth;
+      this._viewportWidth = this.$items.offsetWidth;
       this._viewportHeight = this._scrollTargetHeight;
       this.grid && this._updateGridMetrics();
     },
@@ -1157,7 +1165,7 @@ will only render 20.
     },
 
     _removeItem: function(item) {
-      this.$.selector.deselect(item);
+      this.$selector.deselect(item);
       // remove the current focused item
       if (this._focusedItem && this.modelForElement(this._focusedItem)[this.as] === item) {
         this._removeFocusedItem();
@@ -1223,7 +1231,7 @@ will only render 20.
           var inst = this.modelForElement(el);
           inst.__key__ = this._collection ? this._collection.getKey(item) : null;
           this._forwardProperty(inst, this.as, item);
-          this._forwardProperty(inst, this.selectedAs, this.$.selector.isSelected(item));
+          this._forwardProperty(inst, this.selectedAs, this.$selector.isSelected(item));
           this._forwardProperty(inst, this.indexAs, vidx);
           this._forwardProperty(inst, 'tabIndex', this._focusedVirtualIndex === vidx ? 0 : -1);
           this._physicalIndexForKey[inst.__key__] = pidx;
@@ -1373,10 +1381,10 @@ will only render 20.
       }
       forceUpdate = forceUpdate || this._scrollHeight === 0;
       forceUpdate = forceUpdate || this._scrollPosition >= this._estScrollHeight - this._physicalSize;
-      forceUpdate = forceUpdate || this.grid && this.$.items.style.height < this._estScrollHeight;
+      forceUpdate = forceUpdate || this.grid && this.$items.style.height < this._estScrollHeight;
       // Amortize height adjustment, so it won't trigger large repaints too often.
       if (forceUpdate || Math.abs(this._estScrollHeight - this._scrollHeight) >= this._viewportHeight) {
-        this.$.items.style.height = this._estScrollHeight + 'px';
+        this.$items.style.height = this._estScrollHeight + 'px';
         this._scrollHeight = this._estScrollHeight;
       }
     },
@@ -1500,12 +1508,12 @@ will only render 20.
         }
         this.updateSizeForIndex(index);
       }
-      if (this.$.selector.selectIndex) {
+      if (this.$selector.selectIndex) {
         // v2
-        this.$.selector.selectIndex(index);
+        this.$selector.selectIndex(index);
       } else {
         // v1
-        this.$.selector.select(this.items[index]);
+        this.$selector.select(this.items[index]);
       }
     },
 
@@ -1534,12 +1542,12 @@ will only render 20.
         model[this.selectedAs] = false;
         this.updateSizeForIndex(index);
       }
-      if (this.$.selector.deselectIndex) {
+      if (this.$selector.deselectIndex) {
         // v2
-        this.$.selector.deselectIndex(index);
+        this.$selector.deselectIndex(index);
       } else {
         // v1
-        this.$.selector.deselect(this.items[index]);
+        this.$selector.deselect(this.items[index]);
       }
     },
 
@@ -1562,8 +1570,8 @@ will only render 20.
      * @param {number} index The index of the item in the items array.
      */
     toggleSelectionForIndex: function(index) {
-      var isSelected = this.$.selector.isIndexSelected
-          ? this.$.selector.isIndexSelected(index) : this.$.selector.isSelected(this.items[index]);
+      var isSelected = this.$selector.isIndexSelected
+          ? this.$selector.isIndexSelected(index) : this.$selector.isSelected(this.items[index]);
         isSelected ? this.deselectIndex(index) : this.selectIndex(index);
     },
 
@@ -1576,7 +1584,7 @@ will only render 20.
       this._iterateItems(function(pidx, vidx) {
         this.modelForElement(this._physicalItems[pidx])[this.selectedAs] = false;
       });
-      this.$.selector.clearSelection();
+      this.$selector.clearSelection();
     },
 
     /**
@@ -1622,7 +1630,7 @@ will only render 20.
 
     _multiSelectionChanged: function(multiSelection) {
       this.clearSelection();
-      this.$.selector.multi = multiSelection;
+      this.$selector.multi = multiSelection;
     },
 
     /**

@@ -95,7 +95,7 @@ p {
 }
 
 body {
-	background: url(bg.jpg) #000000;
+	background: url(bg.jpg?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>) #000000;
 	color: #ffffff;
     font-family: 'Roboto', 'Noto', sans-serif;
     font-size: 14px;

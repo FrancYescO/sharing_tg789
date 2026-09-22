@@ -1,12 +1,16 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
 
+var legendElem = $("duma-legend",context);
+var chartElem = $("#cpu-usage-graph",context);
+
 var cpuSamplers = {};
 var prevCpuUsages;
+var dataPointAmount = 20;
 
 function updateCpuUsage(cpuUsages) {
   if (!prevCpuUsages) {
@@ -37,7 +41,7 @@ function updateCpuUsage(cpuUsages) {
     idled = idle - prevIdle
 
     if (!cpuSamplers[cpuUsage.name]) {
-      cpuSamplers[cpuUsage.name] = sampler_create(5);
+      cpuSamplers[cpuUsage.name] = sampler_create(dataPointAmount);
     }
 
     sampler_add(
@@ -47,56 +51,89 @@ function updateCpuUsage(cpuUsages) {
   }
 
   var graphData = {
-    labels: ["", "", "", "", ""],
+    labels: new Array(dataPointAmount).fill(""),
     datasets: []
   };
+  var legend = [];
 
   var colourGenerator = getColourGenerator();
 
   for (var id in cpuSamplers) {
     if (cpuSamplers.hasOwnProperty(id)) {
       var data = sampler_get(cpuSamplers[id]);
-      if( data.length < 5 ){
-        while( data.unshift(0) < 5);
+      if( data.length < dataPointAmount ){
+        while( data.unshift(0) < dataPointAmount);
       }
 
+      var colour = colourGenerator();
       graphData.datasets.push({
         data: data,
         label: id,
-        borderColor: colourGenerator(),
+        borderColor: colour,
         pointBackgroundColor: "<%= theme.PRIMARY_BACKGROUND_COLOR %>",
         pointBorderWidth: "3",
         lineTension: 0.1,
+      });
+      legend.push({
+        label: id,
+        result: data[data.length-1],
+        colour: colour,
+        visible: true
       });
     }
   }
 
   prevCpuUsages = cpuUsages;
-  $("#cpu-usage-graph", context).prop("data", graphData);
+  chartElem.prop("data", graphData);
+  legendElem.prop("legendStats", legend);
 
   $("duma-panel", context).prop("loaded", true);
 }
 
-$("#cpu-usage-graph", context)[0].options = {  
-  "animation": {
-    "duration": 0
+chartElem[0].ariaValueFormatter = function(val){
+  return "<%= i18n.valueFormat %>".format(val);
+};
+chartElem.prop("options", {  
+  animation: {
+    duration: 0
   },
-  "scales": {
-    "yAxes": [{
-      "ticks": {
-        "beginAtZero": true,
-        "suggestedMax": 100
+  tooltips: {
+    callbacks: {
+      label: function(tx, ctx){
+        return "<%= i18n.valueFormat %>".format(ctx.datasets[tx.datasetIndex].data[tx.index]);
+      }
+    }
+  },
+  scales: {
+    yAxes: [{
+      ticks: {
+        beginAtZero: true,
+        suggestedMax: 100,
+        stepSize: 20
       },
       scaleLabel: {
         display: true,
-        labelString: "Usage (%)"
+        labelString: "<%= i18n.cpuUsage %>"
       }   
     }],
-    "xAxes": [{
-      "display": false
-    }]    
-  }
-};
+    xAxes: [{
+      display: false,
+      scaleLabel: {
+        display: false,
+        labelString: "<%= i18n.cpuCore %>"
+      }   
+    }]
+  },
+  elements: {
+    point: {
+      radius: 0,
+      hitRadius: 5,
+    }
+  },
+  legend: {
+    display: false
+  },
+});
 
 var wait = start_cycle(function () {
   return [
@@ -106,6 +143,7 @@ var wait = start_cycle(function () {
   updateCpuUsage(cpu[0]);
 }, 1000 * 2);
 
+legendElem[0].bindToChart(chartElem[0]);
 })(this);
 
 //@ sourceURL=cpu-usage.js

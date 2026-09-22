@@ -1,13 +1,20 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
 
+var legendElem = $("duma-legend",context);
+
 var nm;
 var packageId = "com.netdumasoftware.networkmonitor";
 var snapshotPanel = $("#snapshot-graph-panel", context)[0];
+var snapshotGraphElem = $("#snapshot-graph", context);
+snapshotGraphElem[0].ariaValueFormatter = function(val){
+  return format_bps(val * 1000 * 1000,1,1000);
+}
+var deviceEdit = $("#device-edit", context)[0];
 
 function snapshotGraph() {
   var maximumVisibleConnections = nm.getMaximumVisibleConnections();
@@ -91,6 +98,21 @@ function snapshotGraph() {
         }
       ]
     };
+    var legend = [
+      {
+        label: "<%= i18n.download %>",
+        result: 0,
+        colour: "<%= theme.PRIMARY_COLOR %>",
+        bgColour: "<%= theme.PRIMARY_COLOR %>",
+        visible: true
+      },{
+        label: "<%= i18n.upload %>",
+        result: 0,
+        colour: "<%= theme.ACCENT_COLOR %>",
+        bgColour: "<%= theme.ACCENT_COLOR %>",
+        visible: true
+      }
+    ];
 
     devices = Object.values(devices);
     devices.sort(function (a, b) {
@@ -112,38 +134,41 @@ function snapshotGraph() {
 
     for (var i = 0; i < devices.length; i++) {
 
-      var id = devices[i].device.id;
+      var id = devices[i % devices.length].device.id;
 
-      if (sampler_get(devices[i].received).length > 0) {
+      if (sampler_get(devices[i % devices.length].received).length > 0) {
 
-        if (i < 5) {
+        // if (i < 5) {
 
           graph.meta.map.push(id);
-          var p = graph.labels.push(devices[i].device.name) - 1;
+          var label = devices[i % devices.length].device.name;
+          var maxNameLength = 20;
+          var p = graph.labels.push(label.length > maxNameLength ? label.substr(0,maxNameLength - 3) + "..." : label) - 1;
           graph.datasets[0].data.push(0);
           graph.datasets[1].data.push(0);
     
           graph.datasets[0].data[p] += nm.convertToCorrectUnit(
-            sampler_moving_average(devices[i].received)
+            sampler_moving_average(devices[i % devices.length].received)
           );
 
           graph.datasets[1].data[p] += nm.convertToCorrectUnit(
-            sampler_moving_average(devices[i].transmitted)
+            sampler_moving_average(devices[i % devices.length].transmitted)
           );
-        }
+        // }
 
         graph.datasets[0].data[0] += nm.convertToCorrectUnit(
-          sampler_moving_average(devices[i].received)
+          sampler_moving_average(devices[i % devices.length].received)
         );
 
         graph.datasets[1].data[0] += nm.convertToCorrectUnit(
-          sampler_moving_average(devices[i].transmitted)
+          sampler_moving_average(devices[i % devices.length].transmitted)
         );
 
       }
     }
 
-    $("#snapshot-graph").prop("data", nm.roundGraph(graph, 1));
+    snapshotGraphElem.prop("data", nm.roundGraph(graph, 1));
+    legendElem.prop("legendStats", legend);
     snapshotPanel.loaded = true;
   }
   
@@ -158,23 +183,50 @@ if (typeof nm != "function") {
   nm = networkMonitor();
 }
 
-$("#snapshot-graph", context).prop("options", {
+snapshotGraphElem.prop("options", {
   scales: {
     xAxes: [{
       ticks: {
-        beginAtZero: true
+        beginAtZero: true,
+        suggestedMax: 0.5,
       },
       scaleLabel: {
         display: true,
-        labelString: "<%= i18n.xAxisLabel %>"
+        labelString: "<%= i18n.bandwidthPerSecond %>"
+      }
+    }],
+    yAxes: [{
+      display: true,
+      scaleLabel: {
+        display: false,
+        // remains here for accessibility mode
+        labelString: "<%= i18n.deviceName %>"
       }
     }]
+  },
+  legend: {
+    display: false
+  },
+  tooltips: {
+    callbacks: {
+      label: function(tx, ctx){
+        return ctx.datasets[tx.datasetIndex].label + ": " + format_bps(ctx.datasets[tx.datasetIndex].data[tx.index] * 1000 * 1000,1,1000);
+      }
+    }
+  },
+});
+
+snapshotGraphElem.on("labelClick", function (e) {
+  if(e.detail.index > 0){
+    var deviceId = snapshotGraphElem.prop("data").meta.map[e.detail.index];
+    deviceEdit.open(deviceId);
   }
 });
 
 var firstLevelBreakdownPanel = null;
 
-$("#snapshot-graph", context).on("chartClick", function (e) {
+snapshotGraphElem.on("chartClick", function (e) {
+  if( firstLevelBreakdownPanel === null ) firstLevelBreakdownPanel = $("#first-level-breakdown-panel")[0];
   if (
     firstLevelBreakdownPanel === true ||
     snapshotPanel.desktop === true
@@ -194,7 +246,7 @@ $("#snapshot-graph", context).on("chartClick", function (e) {
 
   panels.add(
     getFilePath("first-level-breakdown-graph.html"), packageId, {
-      deviceId: $("#snapshot-graph").prop("data").meta.map[e.detail.index],
+      deviceId: snapshotGraphElem.prop("data").meta.map[e.detail.index],
       download: e.detail.datasetIndex === 0
     }, {
       width: 4, height: 6, x: 8, y: 0,
@@ -212,6 +264,7 @@ $("#snapshot-graph", context).on("chartClick", function (e) {
 
 snapshotGraph();
 
+legendElem[0].bindToChart(snapshotGraphElem[0]);
 })(this);
 
 //# sourceURL=snapshot-graph.js

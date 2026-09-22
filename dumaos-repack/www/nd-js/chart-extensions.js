@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Luke Meppem <luke.meppem@netduma.com>
+ * Luke Meppem
 */
 
 
@@ -33,48 +33,60 @@ helpers.extend(Chart.defaults.doughnut, {
 Chart.controllers.doughnut = Chart.controllers.doughnut.extend({
   update: function (reset) {
     var me = this;
-    var chart = me.chart;
-    var chartArea = chart.chartArea;
-    var opts = chart.options;
-    var arcOpts = opts.elements.arc;
-    var availableWidth = chartArea.right - chartArea.left - arcOpts.borderWidth;
-    var availableHeight = chartArea.bottom - chartArea.top - arcOpts.borderWidth;
-    var minSize = Math.min(availableWidth, availableHeight);
-    var offset = { x: 0, y: 0 };
-    var meta = me.getMeta();
-    var cutoutPercentage = opts.cutoutPercentage;
-    var circumference = opts.circumference;
+		var chart = me.chart;
+		var chartArea = chart.chartArea;
+		var opts = chart.options;
+		var ratioX = 1;
+		var ratioY = 1;
+		var offsetX = 0;
+		var offsetY = 0;
+		var meta = me.getMeta();
+		var arcs = meta.data;
+		var cutout = opts.cutoutPercentage / 100 || 0;
+		var circumference = opts.circumference;
+		var chartWeight = me._getRingWeight(me.index);
+		var maxWidth, maxHeight, i, ilen;
 
-    // If the chart's circumference isn't a full circle, calculate minSize as a ratio of the width/height of the arc
-    if (circumference < Math.PI * 2.0) {
-      var startAngle = opts.rotation % (Math.PI * 2.0);
-      startAngle += Math.PI * 2.0 * (startAngle >= Math.PI ? -1 : startAngle < -Math.PI ? 1 : 0);
-      var endAngle = startAngle + circumference;
-      var start = { x: Math.cos(startAngle), y: Math.sin(startAngle) };
-      var end = { x: Math.cos(endAngle), y: Math.sin(endAngle) };
-      var contains0 = (startAngle <= 0 && endAngle >= 0) || (startAngle <= Math.PI * 2.0 && Math.PI * 2.0 <= endAngle);
-      var contains90 = (startAngle <= Math.PI * 0.5 && Math.PI * 0.5 <= endAngle) || (startAngle <= Math.PI * 2.5 && Math.PI * 2.5 <= endAngle);
-      var contains180 = (startAngle <= -Math.PI && -Math.PI <= endAngle) || (startAngle <= Math.PI && Math.PI <= endAngle);
-      var contains270 = (startAngle <= -Math.PI * 0.5 && -Math.PI * 0.5 <= endAngle) || (startAngle <= Math.PI * 1.5 && Math.PI * 1.5 <= endAngle);
-      var cutout = cutoutPercentage / 100.0;
-      var min = { x: contains180 ? -1 : Math.min(start.x * (start.x < 0 ? 1 : cutout), end.x * (end.x < 0 ? 1 : cutout)), y: contains270 ? -1 : Math.min(start.y * (start.y < 0 ? 1 : cutout), end.y * (end.y < 0 ? 1 : cutout)) };
-      var max = { x: contains0 ? 1 : Math.max(start.x * (start.x > 0 ? 1 : cutout), end.x * (end.x > 0 ? 1 : cutout)), y: contains90 ? 1 : Math.max(start.y * (start.y > 0 ? 1 : cutout), end.y * (end.y > 0 ? 1 : cutout)) };
-      var size = { width: (max.x - min.x) * 0.5, height: (max.y - min.y) * 0.5 };
-      minSize = Math.min(availableWidth / size.width, availableHeight / size.height);
-      offset = { x: (max.x + min.x) * -0.5, y: (max.y + min.y) * -0.5 };
-    }
+		// If the chart's circumference isn't a full circle, calculate size as a ratio of the width/height of the arc
+		if (circumference < DOUBLE_PI) {
+			var startAngle = opts.rotation % DOUBLE_PI;
+			startAngle += startAngle >= PI ? -DOUBLE_PI : startAngle < -PI ? DOUBLE_PI : 0;
+			var endAngle = startAngle + circumference;
+			var startX = Math.cos(startAngle);
+			var startY = Math.sin(startAngle);
+			var endX = Math.cos(endAngle);
+			var endY = Math.sin(endAngle);
+			var contains0 = (startAngle <= 0 && endAngle >= 0) || endAngle >= DOUBLE_PI;
+			var contains90 = (startAngle <= HALF_PI && endAngle >= HALF_PI) || endAngle >= DOUBLE_PI + HALF_PI;
+			var contains180 = startAngle === -PI || endAngle >= PI;
+			var contains270 = (startAngle <= -HALF_PI && endAngle >= -HALF_PI) || endAngle >= PI + HALF_PI;
+			var minX = contains180 ? -1 : Math.min(startX, startX * cutout, endX, endX * cutout);
+			var minY = contains270 ? -1 : Math.min(startY, startY * cutout, endY, endY * cutout);
+			var maxX = contains0 ? 1 : Math.max(startX, startX * cutout, endX, endX * cutout);
+			var maxY = contains90 ? 1 : Math.max(startY, startY * cutout, endY, endY * cutout);
+			ratioX = (maxX - minX) / 2;
+			ratioY = (maxY - minY) / 2;
+			offsetX = -(maxX + minX) / 2;
+			offsetY = -(maxY + minY) / 2;
+		}
 
-    chart.borderWidth = me.getMaxBorderWidth(meta.data);
-    chart.outerRadius = Math.max((minSize - chart.borderWidth) / 2, 0);
-    chart.innerRadius = Math.max(cutoutPercentage ? (chart.outerRadius / 100) * (cutoutPercentage) : 0, 0);
-    chart.radiusLength = (chart.outerRadius - chart.innerRadius) / chart.getVisibleDatasetCount();
-    chart.offsetX = offset.x * chart.outerRadius;
-    chart.offsetY = offset.y * chart.outerRadius;
+		for (i = 0, ilen = arcs.length; i < ilen; ++i) {
+			arcs[i]._options = me._resolveDataElementOptions(arcs[i], i);
+		}
 
-    meta.total = me.calculateTotal();
+		chart.borderWidth = me.getMaxBorderWidth();
+		maxWidth = (chartArea.right - chartArea.left - chart.borderWidth) / ratioX;
+		maxHeight = (chartArea.bottom - chartArea.top - chart.borderWidth) / ratioY;
+		chart.outerRadius = Math.max(Math.min(maxWidth, maxHeight) / 2, 0);
+		chart.innerRadius = Math.max(chart.outerRadius * cutout, 0);
+		chart.radiusLength = (chart.outerRadius - chart.innerRadius) / (me._getVisibleDatasetWeightTotal() || 1);
+		chart.offsetX = offsetX * chart.outerRadius;
+		chart.offsetY = offsetY * chart.outerRadius;
 
-    me.outerRadius = chart.outerRadius - (chart.radiusLength * me.getRingIndex(me.index));
-    me.innerRadius = Math.max(me.outerRadius - chart.radiusLength, 0);
+		meta.total = me.calculateTotal();
+
+		me.outerRadius = chart.outerRadius - chart.radiusLength * me._getRingWeightOffset(me.index);
+		me.innerRadius = Math.max(me.outerRadius - chart.radiusLength * chartWeight, 0);
 
     /// ADDED THIS SECTION
     if (me.index > 0) {
@@ -83,9 +95,9 @@ Chart.controllers.doughnut = Chart.controllers.doughnut.extend({
     }
     /// END SECTION
 
-    helpers.each(meta.data, function (arc, index) {
-      me.updateElement(arc, index, reset);
-    });
+		for (i = 0, ilen = arcs.length; i < ilen; ++i) {
+			me.updateElement(arcs[i], i, reset);
+		}
   }
 });
 
@@ -104,7 +116,7 @@ Chart.controllers.doughnut = Chart.controllers.doughnut.extend({
  *  }
  * }
  */
-
+/*
 helpers.extend(Chart.defaults.global.elements.rectangle, {
   triangles: false
 })
@@ -243,6 +255,7 @@ Chart.controllers.bar = Chart.controllers.bar.extend({
     rectangle.pivot();
   },
 })
+*/
 //#endregion
 
 
@@ -253,7 +266,8 @@ Chart.controllers.bar = Chart.controllers.bar.extend({
 /**
  * datasets = {
  *  data: [a,b,c,d],
- *  forceTooltips: true | [true,true,false,true]
+ *  forceTooltips: true | [true,true,false,true] | 'first' | 'last' | function()
+ *  forceTooltipsOptions: {} // Any options here will override the options. Same as tooltip options.
  * }
  */
  
@@ -265,12 +279,22 @@ Chart.plugins.register({
     chart.config.data.datasets.forEach(function (dataset, i) {
       if(dataset.forceTooltips){
         chart.getDatasetMeta(i).data.forEach(function (sector, j) {
-          if(dataset.forceTooltips === true || dataset.forceTooltips[j] === true){
+          if(dataset.forceTooltips === true //if it's true, do for all
+            || (Array.isArray(dataset.forceTooltips) && dataset.forceTooltips[j] === true) //if it's an array and true at the index
+            || (typeof dataset.forceTooltips === "string" && (
+              (dataset.forceTooltips.toLowerCase() === "first" && j === 0) //if it's "last", and the index is the first
+              || (dataset.forceTooltips.toLowerCase() === "last" && j === dataset.data.length) //if it's "last", and the index is the last
+              || (dataset.forceTooltips.toLowerCase() === "minmax" && dataset.data[j].minMax)
+            ))
+            || (typeof dataset.forceTooltips === "function" && dataset.forceTooltips.call(this,sector,{datasetIndex: i, index: j},chart.config.data.datasets)) //if it's a function, and the functions returns truthy
+            ){
+              var options = Object.assign({},chart.options.tooltips);
+              if(dataset.forceTooltipsOptions) Object.assign(options,dataset.forceTooltipsOptions);
             chart.pluginTooltips.push(new Chart.Tooltip({
                 _chart: chart.chart,
                 _chartInstance: chart,
                 _data: chart.data,
-                _options: chart.options.tooltips,
+                _options: options,
                 _active: [sector]
             }, chart));
           }
@@ -278,7 +302,7 @@ Chart.plugins.register({
       }
     });
   },
-  afterDraw: function (chart, easing) {
+  afterDatasetsDraw: function (chart, easing) {
     if (chart.pluginTooltips) {
       Chart.helpers.each(chart.pluginTooltips, function (tooltip) {
         tooltip.initialize();
@@ -288,6 +312,103 @@ Chart.plugins.register({
         tooltip.transition(easing).draw();
       });
     }
+  }
+});
+//#endregion
+
+
+
+//#region Highest and Lowest points
+
+/// The radius of the highest and lowest points will be the only ones visible ///
+/**
+ * Can go in datasets or in options.elements.point
+ * {
+ *  minMax: {
+ *    radius: 4 //any options specified in the options.elements.point, use the same name to override. Name must be options version, not dataset version for both (radius not pointRadius)
+ *  }
+ * }
+ */
+
+Chart.plugins.register({
+  beforeUpdate: function(chart){
+    var initPrefix = "init_";
+    var globalPointToDatasetTranslation = {
+      radius: "pointRadius",
+      pointStyle: "pointStyle",
+      rotation: "pointRotation",
+      backgroundColor: "pointBackgroundColor",
+      borderWidth: "pointBorderWidth",
+      borderColor: "pointBorderColor",
+      hitRadius: "pointHitRadius",
+      hoverRadius: "pointHoverRadius",
+      hoverBorderWidth: "pointHoverBorderWidth"
+    }
+    var globalPoint = chart.config.options.elements.point;
+    var globalMinMax = globalPoint.minMax || {};
+    chart.config.data.datasets.forEach(function (dataset, i) {
+      var pointKeys = Object.keys(globalPoint);
+      var datasetMinMax = dataset.minMax || {};
+      var hasValSet = !!((Object.keys(datasetMinMax).length || Object.keys(globalMinMax).length)); 
+      if(hasValSet){
+        var newMeta = {};
+        var setInit = function(key){
+          var valInit = dataset.__metaDoMinMaxPoints ? dataset.__metaDoMinMaxPoints[initPrefix + key] : null;
+          if(valInit === null){
+            var datasetKey = globalPointToDatasetTranslation[key];
+            valInit = (typeof dataset[datasetKey] !== "undefined") ? dataset[datasetKey] : globalPoint[key];
+          }
+          newMeta[initPrefix + key] = valInit;
+        }
+        for(var k = 0; k < pointKeys.length; k ++){
+          setInit(pointKeys[k]);
+        }
+        dataset.__metaDoMinMaxPoints = newMeta;
+      }
+      
+      if(dataset.__metaDoMinMaxPoints){
+        if(!hasValSet){
+          // delete dataset.__metaDoMinMaxPoints;
+          return;
+        }
+
+
+        var data = dataset.data;
+        var min = null;
+        var max = null;
+        for(var i = 0; i < data.length; i ++){
+          var d = data[i];
+          if(d.minMax) delete d.minMax;
+          if(min === null || d.y < data[min].y) min = i;
+          if(max === null || d.y >= data[max].y) max = i;
+        }
+        if(min !== null)
+          data[min].minMax = "min";
+        if(max !== null)
+          data[max].minMax = "max";
+
+        var doMinMaxArray = function(key){
+          var customVal = typeof datasetMinMax[key] !== "undefined" ? datasetMinMax[key] : globalMinMax[key];
+          if(typeof customVal !== "undefined" && customVal !== null){
+            var arrName = globalPointToDatasetTranslation[key];
+            var arr = Array.isArray(dataset[arrName]) ? dataset[arrName] : [];
+            arr.length = data.length + 1;
+            var init = dataset.__metaDoMinMaxPoints[initPrefix + key];
+            if(Array.isArray(init)){
+              arr.map(function(v,index){return init[index];})
+            }else{
+              arr.fill(init);
+            }
+            if(min !== null) arr[min] = customVal;
+            if(max !== null) arr[max] = customVal;
+            dataset[arrName] = arr;
+          }
+        }
+        for(var k = 0; k < pointKeys.length; k ++){
+          doMinMaxArray(pointKeys[k])
+        }
+      }
+    });
   }
 });
 //#endregion

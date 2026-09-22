@@ -1,4 +1,4 @@
-<link rel="import" href="../polymer/polymer.html"> <link rel="import" href="paper-tree-node.html"> <!--
+<link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-tree-node.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 `<paper-tree>` display a browsable tree of nodes (`<paper-tree-node>`) with expandable/collapsible capabilities and actions menu for each node.
 
 Example:
@@ -6,7 +6,7 @@ Example:
     <paper-tree></paper-tree>
 
 @demo
---> <link rel="import" href="paper-tree-node.html"> <dom-module id="paper-tree"> <template> <div> <paper-tree-node id="root" data="[[data]]" actions="[[actions]]"></paper-tree-node> </div> </template> </dom-module> <script> Polymer({
+--> <link rel="import" href="paper-tree-node.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="paper-tree"> <template> <div> <paper-tree-node class="tree-trunk" data="[[data]]" actions="[[actions]]"></paper-tree-node> </div> </template> </dom-module> <script> Polymer({
 
         is: 'paper-tree',
 
@@ -59,18 +59,22 @@ Example:
             "select": "_selectNode"
         },
 
+        get $root(){
+            return this.__$root || (this.__$root = this.$$(".tree-trunk"));
+        },
+
         /**
          * Called whenever the data is changed to notify the lower nodes.
          */
         _dataChanged: function()  {
-            this.$.root.data = this.data;
+            this.$root.data = this.data;
         },
 
         /**
          * Called whenever the actions list is changed to notify the lower nodes.
          */
         _actionsChanged: function()  {
-            this.$.root.actions = this.actions;
+            this.$root.actions = this.actions;
         },
 
         /**

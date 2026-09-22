@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 <%
@@ -206,7 +206,7 @@ function disable_device_panel() {
   devicePanel.header = "";
 
   $("#error",context).show();
-  $("#error-message",context).html(data.domain === "devices" ? "<%= i18n.deviceError %>": "<%= i18n.applicationError %>");
+  $("#error-message",context).html(data.parentNodeDomain === "devices" ? "<%= i18n.deviceError %>": "<%= i18n.applicationError %>");
 
   $("#device-bandwidth-input",context).hide();
   $("#bandwidth-selector-div",context).hide();
@@ -289,7 +289,22 @@ Q.spread([
     disable_device_panel();
   }
 
+  // no context as other panel
+  var tree = $("#device-tree");
+  if(tree[0]){
+    $("#back-to-categories",context).on('tap',function(){
+      var treeItem = tree.find("paper-tree-node.selected .node-row .node-name")[0];
+      if(treeItem){
+        treeItem.focus();
+        devicePanel.close();
+      }
+    }).find("span").text(data.parentNodeDomain === "appcat" ? "<%= i18n.returnToList_application %>" : "<%= i18n.returnToList_devices %>");
+  }else{
+    $("#back-to-categories",context).remove();
+  }
+
   devicePanel.loaded = true;
+  $("#device-bandwidth-input input", context).focus();
 }).done();
 
 })(this);

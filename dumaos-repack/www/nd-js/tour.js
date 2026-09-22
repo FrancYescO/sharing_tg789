@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 var duma = duma || {};
@@ -34,22 +34,46 @@ duma.tour = (function () {
   }
 
   return {
+    reloadTourButton: function(){
+      if(top !== window){
+        fireTop("reload-tours");
+      }else if(typeof appHelpVisibleRefresh === "function"){
+        appHelpVisibleRefresh();
+      }
+    },
+
+    fireTourFoundHere: function(){
+      fireTop("show-tour-found-here");
+    },
+
     setTour: function (appId, tour, desktop) {
       if (desktop === true) {
         desktopTour = function (start) {
           start = typeof start === "undefined" ? 0 : start;
-          return processTour(tour(start), appId);
+          var ret = processTour(tour(start), appId);
+          return ret;
         }
       } else {
         savedTour = function (start) {
           start = typeof start === "undefined" ? 0 : start;
-          return processTour(tour(start), appId);
+          var ret = processTour(tour(start), appId);
+          return ret;
         };
       }
+      duma.tour.reloadTourButton();
     },
 
     getTour: function (desktop) {
       return desktop === true ? desktopTour : savedTour;
-    }
+    },
+
+    addOnEndShowTooltip: function(){
+      hopscotch.listen("end",duma.tour.fireTourFoundHere);
+      hopscotch.listen("close",duma.tour.fireTourFoundHere);
+    },
+    removeOnEndShowTooltip: function(){
+      hopscotch.unlisten("end",duma.tour.fireTourFoundHere);
+      hopscotch.unlisten("close",duma.tour.fireTourFoundHere);
+    },
   };
 })();

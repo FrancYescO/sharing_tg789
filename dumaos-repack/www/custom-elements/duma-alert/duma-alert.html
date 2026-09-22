@@ -1,13 +1,17 @@
 <!--
   (C) 2016 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../paper-dialog/paper-dialog.html"> <link rel="import" href="../paper-button/paper-button.html"> <link rel="import" href="../paper-checkbox/paper-checkbox.html"> <link rel="import" href="/libs/storage.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="duma-alert"> <template> <style include="duma-theme"></style> <paper-dialog id="dialog" modal> <paper-dialog-scrollable> <div class="inner"> <p>[[_message]]</p> <content></content> </div> </paper-dialog-scrollable> <template is="dom-if" if="[[_dontShowAgain.enabled]]"> <div class="inner"> <paper-checkbox checked="{{_dontShowChecked}}"><%= i18n.dontShowAgain %></paper-checkbox> </div> </template> <div class="buttons"> <template is="dom-repeat" items="[[_buttons]]" as="button"> <paper-button on-tap="_onButtonClick" button="[[button]]" autofocus$="[[button.default]]" dialog-dismiss$="[[_shouldAddDismiss(button.action)]]" dialog-confirm$="[[_shouldAddConfirm(button.action)]]" background$="[[button.default]]">[[button.text]]</paper-button> </template> </div> </paper-dialog> </template> <script> Polymer({
+  Kian Cross
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-checkbox/paper-checkbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/storage.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-alert"> <template> <style include="duma-theme"></style> <paper-dialog class="duma-alert-dialog" modal> <paper-dialog-scrollable> <div class="inner" role="alert"> <p>[[_message]]</p> <content></content> </div> </paper-dialog-scrollable> <template is="dom-if" if="[[_dontShowAgain.enabled]]"> <div class="inner"> <paper-checkbox checked="{{_dontShowChecked}}"><%= i18n.dontShowAgain %></paper-checkbox> </div> </template> <div class="buttons"> <template is="dom-repeat" items="[[_buttons]]" as="button"> <paper-button on-tap="_onButtonClick" button="[[button]]" autofocus$="[[button.default]]" dialog-dismiss$="[[_shouldAddDismiss(button.action)]]" dialog-confirm$="[[_shouldAddConfirm(button.action)]]" background$="[[button.default]]">[[button.text]]</paper-button> </template> </div> </paper-dialog> </template> <script> Polymer({
       is: "duma-alert",
       properties: {
         _message: String,
         _buttons: Array,
         _dontShowAgain: Object,
         _dontShowChecked: Boolean
+      },
+
+      get $dialog(){
+        return this.__$dialog || (this.__$dialog = this.$$(".duma-alert-dialog"))
       },
 
       _getDontShowKey: function (id) {
@@ -97,12 +101,12 @@
 
       open: function (message, buttons, dontShowAgain) {
         this._setValues(message, buttons, dontShowAgain);
-        this.$$("#dialog").open();
+        this.$dialog.open();
         this._hideIfNoShow(this._dontShowAgain);
       },
 
       close: function () {
-        this.$$("#dialog").close();
+        this.$dialog.close();
       },
 
       show: function (message, buttons, dontShowAgain) {
@@ -115,7 +119,7 @@
 
       toggle: function (message, buttons, dontShowAgain) {
         this._setValues(message, buttons, dontShowAgain);
-        this.$$("#dialog").toggle();
+        this.$dialog.toggle();
         this._hideIfNoShow(this._dontShowAgain);
       }
     }); </script> </dom-module> 

@@ -9,7 +9,7 @@ signal_nolock_file=/tmp/netwall-restart-dumaos
 
 restartaa(){
   echo "autoadmin restart required because $1" | tee -a $outfile
-  ubus call com.netdumasoftware.autoadmin fw_restart "{}" >> $outfile 2>&1
+  ubus  call com.netdumasoftware.autoadmin fw_restart "{}" >> $outfile 2>&1
 #  iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT
   echo "autoadmin restart complete" | tee -a $outfile
   exit 0
@@ -19,12 +19,12 @@ restartaa(){
 start(){
   echo "net-wall start called" | tee -a $outfile
 
-  ubus call com.netdumasoftware.networkstate dirty "{}" | grep "true"
+  ubus  call com.netdumasoftware.networkstate dirty "{}" 2>&1 | grep "true"
   if [ $? -eq 0 ]; then
     echo "networkstate dirty. Restarting DumaOS" | tee -a $outfile
 
     # if net-wall reset everything reload so cleanup code gets no suprises
-    iptables -t mangle -L prerouting_mangle || ubus call com.netdumasoftware.autoadmin fw_restart "{}" >> $outfile 2>&1
+    iptables -t mangle -L nd_prerouting_mangle 2>&1 || ubus  call com.netdumasoftware.autoadmin fw_restart "{}" >> $outfile 2>&1
 
     # Part of stopping DumaOS is the cleanup process which will perform a variety
     # of calls to AA. These calls are typically guarded by locks to stop interference
@@ -32,12 +32,9 @@ start(){
     # need to signal to DumaOS that it does not need to worry about locking.
     echo "1" > $signal_nolock_file
     
-    # stop DumaOS and wait for it to shutdown
-    /etc/init.d/dumaos stop
-
-    # restart it (no need to sleep as stop waits till its closed)
-    /etc/init.d/dumaos start
-
+    # Autoadmin fw_restart is enough to check when net-wall is restarting and no need
+    # to restart the whole DumaOS which can cause problems when initiated by
+    # third party firewall like net-wall
     # continue using guards when accessing AA
     rm $signal_nolock_file
 
@@ -48,16 +45,16 @@ start(){
   fi
 
 
-  iptables -t mangle -L prerouting_mangle || restartaa "prerouting_mangle"
-  iptables -t mangle -L forward_mangle || restartaa "forward_mangle"
-  iptables -t mangle -L postrouting_mangle || restartaa "postrouting_mangle"
-  iptables -t mangle -L input_mangle || restartaa "input_mangle"
-  iptables -t mangle -L output_mangle || restartaa "output_mangle"
-  iptables -t nat -L prerouting_rule || restartaa "prerouting_rule"
-  iptables -t nat -L postrouting_rule || restartaa "postrouting_rule"
-  iptables -t filter -L input_rule || restartaa "input_rule"
-  iptables -t filter -L forwarding_rule || restartaa "forwarding_rule"
-  iptables -t filter -L output_rule || restartaa "output_rule"
+  iptables -t mangle -L nd_prerouting_mangle || restartaa "nd_prerouting_mangle"
+  iptables -t mangle -L nd_forward_mangle || restartaa "nd_forward_mangle"
+  iptables -t mangle -L nd_postrouting_mangle || restartaa "nd_postrouting_mangle"
+  iptables -t mangle -L nd_input_mangle || restartaa "nd_input_mangle"
+  iptables -t mangle -L nd_output_mangle || restartaa "nd_output_mangle"
+  iptables -t nat -L nd_prerouting_rule || restartaa "nd_prerouting_rule"
+  iptables -t nat -L nd_postrouting_rule || restartaa "nd_postrouting_rule"
+  iptables -t filter -L nd_input_rule || restartaa "nd_input_rule"
+  iptables -t filter -L nd_forwarding_rule || restartaa "nd_forwarding_rule"
+  iptables -t filter -L nd_output_rule || restartaa "nd_output_rule"
 }
 
 case $1 in

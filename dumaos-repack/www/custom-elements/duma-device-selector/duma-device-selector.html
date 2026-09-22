@@ -1,7 +1,7 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../paper-dialog/paper-dialog.html"> <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html"> <link rel="import" href="../paper-listbox/paper-listbox.html"> <link rel="import" href="../paper-button/paper-button.html"> <link rel="import" href="../paper-item/paper-item.html"> <link rel="import" href="../paper-input/paper-input.html"> <link rel="import" href="../paper-icon-button/paper-icon-button.html"> <link rel="import" href="../iron-icon/iron-icon.html"> <link rel="import" href="../iron-icons/iron-icons.html"> <link rel="import" href="../paper-checkbox/paper-checkbox.html"> <link rel="import" href="../paper-radio-group/paper-radio-group.html"> <link rel="import" href="../paper-radio-button/paper-radio-button.html"> <link rel="import" href="../paper-input/paper-input.html"> <link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html"> <link rel="import" href="../paper-listbox/paper-listbox.html"> <link rel="import" href="../paper-item/paper-item.html"> <link rel="import" href="../iron-pages/iron-pages.html"> <link rel="import" href="../duma-alert/duma-alert.html"> <link rel="import" href="/libs/devices.html"> <link rel="import" href="/libs/jquery.html"> <link rel="import" href="/libs/q.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="duma-device-selector"> <style is="custom-style" include="duma-theme"></style> <template> <paper-dialog modal> <h2>[[ header ]]</h2> <div class="inner"> <template is="dom-if" if="[[_showServices]]"> <paper-radio-group selected="{{_selectedServicePage}}" on-iron-select="_notifyResize"> <paper-radio-button name="basic"><%= i18n.basic %></paper-radio-button> <paper-radio-button name="advanced"><%= i18n.advanced %></paper-radio-button> </paper-radio-group> </template> </div> <paper-dialog-scrollable> <template is="dom-if" if="[[!_showServices]]"> <paper-listbox selected="{{_selectedDevice}}" selected-item="{{_selectedDeviceItem}}" on-iron-items-changed="_notifyResize"> <template is="dom-repeat" items="[[_devices]]" as="device" sort="_sortDevices"> <template is="dom-if" if="[[_shouldDisplayDevice(_deviceTypes, device)]]"> <paper-item device-data="{{device}}">[[device.name]]</paper-item> </template> </template> </paper-listbox> </template> <template is="dom-if" if="[[_showServices]]"> <iron-pages selected="{{_getServicePage(_selectedServicePage)}}"> <div> <paper-listbox selected="{{_selectedServiceIndex}}" selected-item="{{_selectedServiceItem}}" on-iron-items-changed="_notifyResize"> <template is="dom-repeat" items="[[_services]]" as="service" sort="_sortServices"> <template is="dom-if" if="[[_shouldShowService(service, _tags)]]"> <paper-item class="service" service-data="[[service]]">[[service.application]]</paper-item> </template> </template> </paper-listbox> </div> <div class="inner"> <h3><%= i18n.sourcePort %></h3> <paper-input required type="number" min="1" max="65535" label="<%= i18n.startLabel %>" on-change="_onSourcePortMinChange" error-message="<%= i18n.invalidPortNumberError %>" value="{{_sourcePortMinValue}}" invalid="{{_sourcePortMinInvalid}}" auto-validate></paper-input> <paper-input type="number" required min="[[_sourcePortMinValue]]" max="65535" label="<%= i18n.endLabel %>" error-message="<%= i18n.invalidPortNumberError %>" invalid="{{_sourcePortMaxInvalid}}" value="{{_sourcePortMaxValue}}" auto-validate></paper-input> <h3><%= i18n.destinationPort %></h3> <paper-input required type="number" min="1" max="65535" label="<%= i18n.startLabel %>" value="{{_destinationPortMinValue}}" error-message="<%= i18n.invalidPortNumberError %>" on-change="_onDestinationPortMinChange" invalid="{{_destinationPortMinInvalid}}" value="{{_destinationPortMinValue}}" auto-validate></paper-input> <paper-input required type="number" min="[[_destinationPortMinValue]]" max="65535" label="<%= i18n.endLabel %>" error-message="<%= i18n.invalidPortNumberError %>" invalid="{{_destinationPortMaxInvalid}}" value="{{_destinationPortMaxValue}}" auto-validate></paper-input> <paper-dropdown-menu label="<%= i18n.protocol %>" required error-message="<%= i18n.protocolError %>" invalid="{{_protocolInvalid}}"> <paper-listbox class="dropdown-content" selected="{{_protocolValue}}" selected-item="{{_protocolItem}}"> <paper-item name="tcp">TCP</paper-item> <paper-item name="udp">UDP</paper-item> <paper-item name="tcpudp">TCP &amp; UDP</paper-item> </paper-listbox> </paper-dropdown-menu> </div> </iron-pages> </template> </paper-dialog-scrollable> <div class="buttons"> <paper-button id="cancel" dialog-dismiss><%= i18n.cancel %></paper-button> <template is="dom-if" if="[[_showAdvanced]]"> <paper-button on-tap="_onAdvancedClick" id="advanced">[[_getAdvancedButtonText(_showServices)]]</paper-button> </template> <paper-button id="ok" autofocus disabled="[[_nextButtonDisabled]]"> [[_getNextButtonText( _selectedService, _showServices, _selectedServicePage, _protocolValue)]]</paper-button> </div> </paper-dialog> <duma-alert id="duma-device-selector-alert"></duma-alert> </template> <script> Polymer({
+  Kian Cross
+--> <!-- This is used in qos and networkmonitor, but is never displayed in network monitor. It's there for a few utility functions, and as such, they will be replaced in the future --> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-listbox/paper-listbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-icon-button/paper-icon-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icon/iron-icon.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-checkbox/paper-checkbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-radio-group/paper-radio-group.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-radio-button/paper-radio-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-listbox/paper-listbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-pages/iron-pages.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../duma-alert/duma-alert.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/devices.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/jquery.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/q.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-device-selector"> <style is="custom-style" include="duma-theme"></style> <template> <paper-dialog modal> <h2 dialog-label>[[ header ]]</h2> <div class="inner"> <template is="dom-if" if="[[_showServices]]"> <paper-radio-group selected="{{_selectedServicePage}}" on-iron-select="_notifyResize"> <paper-radio-button name="basic"><%= i18n.application %></paper-radio-button> <paper-radio-button name="advanced"><%= i18n.ports %></paper-radio-button> </paper-radio-group> </template> </div> <paper-dialog-scrollable> <template is="dom-if" if="[[!_showServices]]"> <paper-listbox selected="{{_selectedDevice}}" selected-item="{{_selectedDeviceItem}}" on-iron-items-changed="_notifyResize"> <template is="dom-repeat" items="[[_devices]]" as="device" sort="_sortDevices"> <template is="dom-if" if="[[_shouldDisplayDevice(_deviceTypes, device)]]"> <paper-item device-data="{{device}}">[[device.name]]</paper-item> </template> </template> </paper-listbox> </template> <template is="dom-if" if="[[_showServices]]"> <iron-pages selected="{{_getServicePage(_selectedServicePage)}}"> <div> <paper-listbox selected="{{_selectedServiceIndex}}" selected-item="{{_selectedServiceItem}}" on-iron-items-changed="_notifyResize"> <template is="dom-repeat" items="[[_services]]" as="service" sort="_sortServices"> <template is="dom-if" if="[[_shouldShowService(service, _tags)]]"> <paper-item class="service" service-data="[[service]]">[[service.application]]</paper-item> </template> </template> </paper-listbox> </div> <div class="inner"> <h3><%= i18n.sourcePort %></h3> <paper-input required type="number" min="1" max="65535" label="<%= i18n.startLabel %>" on-change="_onSourcePortMinChange" error-message="<%= i18n.invalidPortNumberError %>" value="{{_sourcePortMinValue}}" invalid="{{_sourcePortMinInvalid}}" auto-validate></paper-input> <paper-input type="number" required min="[[_sourcePortMinValue]]" max="65535" label="<%= i18n.endLabel %>" error-message="<%= i18n.invalidPortNumberError %>" invalid="{{_sourcePortMaxInvalid}}" value="{{_sourcePortMaxValue}}" auto-validate></paper-input> <h3><%= i18n.destinationPort %></h3> <paper-input required type="number" min="1" max="65535" label="<%= i18n.startLabel %>" value="{{_destinationPortMinValue}}" error-message="<%= i18n.invalidPortNumberError %>" on-change="_onDestinationPortMinChange" invalid="{{_destinationPortMinInvalid}}" value="{{_destinationPortMinValue}}" auto-validate></paper-input> <paper-input required type="number" min="[[_destinationPortMinValue]]" max="65535" label="<%= i18n.endLabel %>" error-message="<%= i18n.invalidPortNumberError %>" invalid="{{_destinationPortMaxInvalid}}" value="{{_destinationPortMaxValue}}" auto-validate></paper-input> <paper-dropdown-menu label="<%= i18n.protocol %>" required error-message="<%= i18n.protocolError %>" invalid="{{_protocolInvalid}}"> <paper-listbox class="dropdown-content" selected="{{_protocolValue}}" selected-item="{{_protocolItem}}"> <paper-item name="tcp">TCP</paper-item> <paper-item name="udp">UDP</paper-item> <paper-item name="tcpudp">TCP &amp; UDP</paper-item> </paper-listbox> </paper-dropdown-menu> </div> </iron-pages> </template> </paper-dialog-scrollable> <div class="buttons"> <paper-button id="cancel" dialog-dismiss><%= i18n.cancel %></paper-button> <template is="dom-if" if="[[_shouldShowAdvanced(_showAdvanced,_showServices,_advancedCallback)]]"> <paper-button on-tap="_onAdvancedClick" disabled="[[_advButtonDisabled]]" id="advanced">[[_getAdvancedButtonText(_showServices)]]</paper-button> </template> <paper-button id="ok" autofocus disabled="[[_nextButtonDisabled]]"> [[_getNextButtonText( _selectedService, _showServices, _selectedServicePage, _protocolValue)]]</paper-button> </div> </paper-dialog> <duma-alert id="duma-device-selector-alert"></duma-alert> </template> <script> Polymer({
       is: "duma-device-selector",
       
       properties: {
@@ -17,10 +17,18 @@
         _nextButtonDisabled: {
           computed: "_isNextButtonDisabled(_showServices, _selectedDevice, _selectedService, _selectedServicePage, _sourcePortMinInvalid, _sourcePortMaxInvalid, _destinationPortMinInvalid, _destinationPortMaxInvalid, _protocolInvalid, _sourcePortMinValue, _sourcePortMaxValue, _destinationPortMinValue, _destinationPortMaxValue, _protocolValue)"
         },
+        _advButtonDisabled: {
+          computed: "_isAdvButtonDisabled(_showServices, _selectedDevice, _selectedService, _selectedServicePage, _sourcePortMinInvalid, _sourcePortMaxInvalid, _destinationPortMinInvalid, _destinationPortMaxInvalid, _protocolInvalid, _sourcePortMinValue, _sourcePortMaxValue, _destinationPortMinValue, _destinationPortMaxValue, _protocolValue, _advancedCallback)"
+        },
 
         header: {
           type: String,
           value: "<%= i18n.header %>"
+        },
+
+        forceNext: {
+          type: Boolean,
+          value: false
         }
       },
 
@@ -84,7 +92,7 @@
       },
 
       _getAdvancedButtonText: function (showServices) {
-        if (showServices) {
+        if (showServices && !this._advancedCallback) {
           return "<%= i18n.devices %>";
         } else {
           return "<%= i18n.advanced %>";
@@ -103,7 +111,7 @@
         selectedService, showServices,
         selectedServicePage, protocolValue
       ) {
-        if (
+        if (!this.forceNext &&
           (selectedService || showServices)
           && !(selectedServicePage == "advanced" 
                && protocolValue == -1 && !showServices)
@@ -114,6 +122,19 @@
         }
       },
 
+      _isAdvButtonDisabled: function (
+        showServices, selectedDevice, selectedService, selectedServicePage,
+        sourcePortMinInvalid, sourcePortMaxInvalid, destinationPortMinInvalid,
+        destinationPortMaxInvalid, protocolInvalid, sourcePortMinValue,
+        sourcePortMaxValue, destinationPortMinValue, destinationPortMaxValue,
+        protocolValue, advanced_callback
+      ) {
+        return advanced_callback && this._isNextButtonDisabled(showServices, selectedDevice, selectedService, selectedServicePage,
+        sourcePortMinInvalid, sourcePortMaxInvalid, destinationPortMinInvalid,
+        destinationPortMaxInvalid, protocolInvalid, sourcePortMinValue,
+        sourcePortMaxValue, destinationPortMinValue, destinationPortMaxValue,
+        protocolValue);
+      },
       _isNextButtonDisabled: function (
         showServices, selectedDevice, selectedService, selectedServicePage,
         sourcePortMinInvalid, sourcePortMaxInvalid, destinationPortMinInvalid,
@@ -185,13 +206,20 @@
       },
 
       _removeEventListeners: function () {
+        $(this.$$("paper-button#advanced")).off("click");
         $(this.$$("paper-button#ok")).off("click");
         $(this.$$("paper-button#cancel")).off("click");
       },
 
+      _shouldShowAdvanced: function (show_adv, show_services, advCallback){
+        return (advCallback && show_services) || show_adv;
+      },
+
       _onAdvancedClick: function () {
-        this._showServices = !this._showServices;
-        this._notifyResize();
+        if(this._advancedCallback == null){
+          this._showServices = !this._showServices;
+          this._notifyResize();
+        }
       },
 
       _getProtocolNumber: function (protocol) {
@@ -293,6 +321,7 @@
         this._selectedServiceIndex = -1;
         this._resetAdvancedSevice();
         this._tags = tags;
+        this._advancedCallback = null;
       
         if (defaultService)  {
           this._showAdvanced = true;
@@ -304,7 +333,7 @@
         this._updateServices();
       },
 
-      open: function (deviceTypes, defaultService, tags, callback, devices) {
+      open: function (deviceTypes, defaultService, tags, callback, devices, advanced_callback) {
         
         // Remap optional parameters.
         switch (typeof(tags)) {
@@ -329,15 +358,21 @@
         this._reset(deviceTypes, defaultService, tags);
         this.$$("paper-dialog").open();
 
+        if(!this._showAdvanced && advanced_callback){
+          this._advancedCallback = advanced_callback;
+        }
+
         $(this.$$("paper-button#cancel")).click(function () {
           this._removeEventListeners();
         }.bind(this));
 
+        var advanced_added = false;
+
         $(this.$$("paper-button#ok")).click(function () {
-          if (this._getService()) {
-            if (typeof(callback) == "function") {
+          var post = (function post(final_callback){
+            if (typeof(final_callback) == "function") {
               var service = this._getService();
-              callback(
+              final_callback(
                 this._selectedDeviceItem.deviceData,
                 service.services,
                 service.application,
@@ -346,8 +381,22 @@
             }
             this._removeEventListeners();
             this.$$("paper-dialog").close();
+
+          }).bind(this);
+
+          if (this._getService()) {
+            post(callback);
           } else {
             this._showServices = true;
+
+            // advanced button doesn't exist until here... and we need to use same code as above, so code goes here
+            if(advanced_callback && !advanced_added){
+              advanced_added = true;
+              Polymer.dom.flush();
+              $(this.$$("paper-button#advanced")).click(function () {
+                post(advanced_callback);
+              }.bind(this));
+            }
           }
 
           this._notifyResize();

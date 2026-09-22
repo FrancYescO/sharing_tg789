@@ -4,9 +4,10 @@ Repack of the DumaOS UI/QoS stack (extracted from a DJA0231 Telstra dump)
 as an IPK that can be installed on other Technicolor ARM (arm_cortex-a9)
 closed firmware, e.g. AGTEF (TG789vac v2, VBNTJ, kernel 4.1.52).
 
-The IPK contains the DumaOS R-Apps (`/dumaos`), the web UI (`/www`), a
-standalone `uhttpd` with the lua handler and the DumaOS helpers
-(`dpiclass`, `geoip`, `trie`, `sqlite3`, lua modules for posix/ssl...).
+The IPK contains the DumaOS R-Apps (`/dumaos`), the web UI (`/www`), the
+standalone `ndhttpd` web server with its lua handler (`ndhttpd_lua.so`)
+and the DumaOS helpers (`dpiclass`, `geoip`, `trie`, `sqlite3`, lua
+modules for posix/ssl...).
 
 ## Requirements
 
@@ -16,7 +17,7 @@ The firmware must provide (AGTEF does):
 - `ubus`/`uci`/`procd`, `ipset`, `tc`, `iptables`
 - `libssl/libcrypto` 1.0.0, `libpcap`, `libmnl`, `libnfnetlink`,
   `libnetfilter_queue/conntrack`
-- `libjson-c` (see compat note below)
+- `libjson-c.so.4` (stock json-c 0.13, used directly by `dpiclass`/`geoip`)
 
 Provided by the [GUI_ipk](https://github.com/FrancYescO/GUI_ipk) feed:
 
@@ -35,45 +36,49 @@ AGTEF modules), checks its SHA-256, installs it into
 ## Install
 
 ```
-opkg install dumaos-repack_1.1-0_all.ipk --force-overwrite
+opkg install dumaos-repack_2.0-0_all.ipk --force-overwrite
 sh setup.sh
 ```
 
 `setup.sh` installs the feed dependencies, loads the QoS modules, opens
-the firewall for the UI and enables the `uhttpd` + `dumaos` services.
+the firewall for the UI and enables the `ndhttpd` + `dumaos` services.
 
-DumaOS UI: `http://<router-ip>:81/` (https moved to `8443` so the stock
-nginx UI keeps `443`).
+DumaOS UI: `http://<router-ip>:81/` (the stock nginx UI keeps `80`/`443`:
+3.3.90 `ndhttpd` is patched to bind `0.0.0.0:81` instead of the
+loopback-only DJA0231 bind, and it does not listen on `443` at all).
 
 ## Source firmware / versions
 
-The repacked DumaOS is **3.0.56** ("A7Legit", May 2020, from the DJA0231
-Telstra dumps `vcnt-a_ACR-13-*`/`vbnt-v_ACR-14-*`). Newer DumaOS exists in
-`tch_firmware_extracted` (all ARM/BCM63136, same platform):
+The repacked DumaOS is **3.3.90** (Oct 2022, from the DJA0231 Telstra
+dump `vcnt-a_20.3.c.0501-MR22.1-RA`, board `vcnt-a`/BCM63136 - same SoC
+class as AGTEF). Previous repacks were based on 3.0.56
+(`vcnt-a_ACR-13-*`/`vbnt-v_ACR-14-*`):
 
 | branch | DumaOS | date |
 |---|---|---|
-| `vcnt-a_20.3.c.0501-MR22.1-RA` | **3.3.90** | Oct 2022 |
+| `vcnt-a_20.3.c.0501-MR22.1-RA` | **3.3.90** (current) | Oct 2022 |
 | `vcnt-a_20.3.c.0432-MR21.1-RA` | 3.2.126+2 | Feb 2022 |
 | `vbnt-v_20.3.c.0389-MR20-RA` | 3.0.370 | Sep 2021 |
 
-Upgrading to MR22 (3.3.90) is the natural next step: it is built for the
-new TCH stack, so `dpiclass` there links `libjson-c.so.4` (stock on AGTEF,
-the `.so.2` symlink below becomes unnecessary), it ships the missing
-`dumaos/setup_done.sh` plus a `dumaos/custom-platforms.sh` platform
-abstraction, and `dumaos_status.sh`/`rapp_status.sh` helpers. Caveats: its
-lua `ssl.so` needs `libssl/libcrypto 1.1` (bundle from the same firmware,
-AGTEF has 1.0.0) and `dpiclass` adds a `libadpi.so` DPI dependency.
+3.3.90 is built for the new TCH stack: `dpiclass` links `libjson-c.so.4`
+(stock on AGTEF, no more `.so.2` symlink), `ndhttpd` replaces `uhttpd`,
+and it ships `setup_done.sh` + `custom-platforms.sh` (platform
+abstraction) + `dumaos_status.sh`/`rapp_status.sh`. Bundled because AGTEF
+does not ship them: `ndhttpd`/`ndhttpd_lua.so`, `libssl.so.1.1` /
+`libcrypto.so.1.1` (the 3.3.90 lua `ssl`/`crypto` modules need 1.1),
+`libadpi.so` (DPI), `libahc.so`, `libmisc.so`, `libtrie.so`, `luac5.1`.
 
 Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
 (MIPS) with no known OSCK key: it is not a usable DumaOS source for AGTEF.
 
 ## Notes / TODO
 
-- `usr/lib/libjson-c.so.2` is a symlink to the stock `libjson-c.so.4`:
-  `dpiclass`/`geoip` were linked against json-c 0.11. It works via symbol
-  compatibility, but a real `libjson-c.so.2` build in the GUI_ipk feed
-  would be safer.
+- 3.3.90 patches for AGTEF: `ndhttpd` init binds `0.0.0.0:81` (the
+  DJA0231 original binds loopback only and fronted it with nginx); the
+  TELSTRA init branches got guards for missing platform bits
+  (`/usr/bin/fcctl`, `/proc/sys/net/nss/super`); `ts_odm_services` only
+  touches `/etc/config/web`+nginx if a `/frontend/` entry exists (no-op
+  on stock AGTEF/tch-nginx-gui).
 - Start path: on firmwares with `procd` the `dumaos` init script uses the
   procd path; the legacy non-procd path still references DJA0231/Netgear
   scripts (`intercept.sh`, `ngcompat`, `net-wall`) that are not needed here.
@@ -86,9 +91,9 @@ Note: the pending `MST TG789vac 16.2.7064.2201002.rbi` is board VANT-D
   (`rpc.dumaos.status` / `rpc.dumaos.enabled`) and translated in
   `www/lang/it-it/webui-dumaos.po`.
 - The `/dumaossystem` profile is still DJA0231/TELSTRA (BCM63136, the
-  closest ARM Technicolor platform and the only working code path in the
-  init scripts). The `custom-platforms.sh` abstraction shipped by DumaOS
-  3.3.90 (see above) is the proper way to add an AGTEF profile.
+  closest ARM Technicolor platform and the only fully working code path
+  in the init scripts); 3.3.90 `custom-platforms.sh` makes it easier to
+  add a real AGTEF profile later.
 
 ## CI
 

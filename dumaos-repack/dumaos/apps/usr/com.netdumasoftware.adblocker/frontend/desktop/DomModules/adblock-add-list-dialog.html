@@ -1,13 +1,7 @@
-<link rel="import" href="/custom-elements/iron-icons/iron-icons.html"> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/paper-button/paper-button.html"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html"> <link rel="import" href="/custom-elements/paper-tabs/paper-tabs.html"> <link rel="import" href="/custom-elements/paper-tabs/paper-tab.html"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html"> <link rel="import" href="/custom-elements/paper-input/paper-input.html"> <link rel="import" href="/custom-elements/paper-input/paper-textarea.html"> <link rel="import" href="/custom-elements/file-upload/file-upload.html"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="adblock-add-list-dialog"> <template> <style include="duma-theme iron-flex"> file-upload#formFile {
+<link rel="import" href="/custom-elements/iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-tabs/paper-tabs.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-tabs/paper-tab.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-textarea.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/file-upload/file-upload.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="adblock-add-list-dialog"> <template> <style include="duma-theme iron-flex"> file-upload#formFile {
         --error-color: var(--primary-color);
         --file-upload-button: {
-          display: block;
-          @apply(--paper-font-button);
-          font-size: 16px;
-          background: var(--primary-color);
-          margin: 16px 0 8px;
-          width: 100%;
-          text-align: center;
+          margin-top: 12px;
         };
 
         --file-upload-commands: {
@@ -29,7 +23,7 @@
         --paper-dropdown-menu: {
           display: block;
         };
-      } </style> <paper-dialog id="dialog" modal> <h2>[[addEdit]] List</h2> <paper-dialog-scrollable> <iron-pages selected="{{loading}}"> <div class="inner"> <div class="layout horizontal"> <paper-input class="flex-left" id="formName" minlength="1" maxlength="30" label="Name" error-message="Required" required></paper-input> <paper-dropdown-menu class="flex-right" label="Type"> <paper-listbox class="dropdown-content" selected="{{selected}}"> <paper-item>Online List</paper-item> <paper-item>File</paper-item> <paper-item>Domains</paper-item> </paper-listbox> </paper-dropdown-menu> </div> <iron-pages selected="{{selected}}"> <!-- URL --> <div> <paper-input id="formURL" pattern="^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$" error-message="Must contain a valid URL" label="Domain URL" required></paper-input> </div> <!-- File --> <div> <file-upload id="formFile" droppable="true" raised="true" drop-text="Drop List Here" error-text="Upload Error" file-data-name="uploadfile" target="/cgi-bin/domain_list.has" method="POST" manual-upload>Upload List</file-upload> </div> <!-- Domains --> <div> <paper-textarea id="formDomains" pattern="^(?:http(s)?:\/\/)?[A-Za-z_.-]+(?:\.[\w\.-]+)+/?[^/#\n:]+$" error-message="Must only contain valid domains" maxlength="1000" rows="10" max-rows="10" label="Domains" required></paper-textarea> </div> </iron-pages> <div class="layout vertical"> <paper-checkbox id="formTracking" checked="checked">Enable Tracking</paper-checkbox> <paper-checkbox id="formEditing" checked="checked">Enable Editing</paper-checkbox> </div> </div> <!-- Cloud List --> <div class="inner"> <div class="layout vertical"> <paper-input class="flex-left" id="cloudFormName" minlength="1" maxlength="30" label="Name" error-message="Required" required></paper-input> <paper-checkbox id="cloudFormTracking" checked="checked">Enable Tracking</paper-checkbox> </div> </div> <div> <paper-spinner-lite active></paper-spinner-lite> </div> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <iron-pages selected="[[savingList]]"> <div></div> <div> <paper-spinner-lite active></paper-spinner-lite> </div> </iron-pages> <paper-button dialog-dismiss disabled="[[savingList]]" on-tap="Hide">Cancel</paper-button> <paper-button autofocus id="addButton" disabled="[[savingList]]" on-tap="Submit">[[submitButtonText]]</paper-button> </div> </paper-dialog> </template> <script> Polymer(
+      } </style> <paper-dialog id="dialog" modal> <h2 dialog-label>[[addEdit]] <%= i18n.list %></h2> <paper-dialog-scrollable> <iron-pages selected="{{loading}}"> <div class="inner"> <div class="layout horizontal"> <paper-input class="flex-left" id="formName" minlength="1" maxlength="30" label="Name" error-message="<%= i18n.errorRequired %>" required></paper-input> <paper-dropdown-menu class="flex-right" label="Type"> <paper-listbox class="dropdown-content" selected="{{selected}}"> <paper-item><%= i18n.onlineList %></paper-item> <paper-item><%= i18n.file %></paper-item> <paper-item><%= i18n.domains %></paper-item> </paper-listbox> </paper-dropdown-menu> </div> <iron-pages selected="{{selected}}"> <!-- URL --> <div> <paper-input id="formURL" pattern="^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$" error-message="<%= i18n.errorValidURL %>" label="<%= i18n.domainURL %>" required></paper-input> </div> <!-- File --> <div> <file-upload id="formFile" droppable="true" raised="true" drop-text="<%= i18n.dropListHere %>" error-text="<%= i18n.uploadError %>" file-data-name="uploadfile" target="/cgi-bin/domain_list.has" method="POST" manual-upload><%= i18n.uploadList %></file-upload> </div> <!-- Domains --> <div> <paper-textarea id="formDomains" pattern="^(?:http(s)?:\/\/)?[A-Za-z_.-]+(?:\.[\w\.-]+)+/?[^/#\n:]+$" error-message="<%= i18n.errorValidDomains %>" maxlength="1000" rows="10" max-rows="10" label="<%= i18n.domains %>" required></paper-textarea> </div> </iron-pages> <div class="layout vertical"> <paper-checkbox id="formTracking" checked="checked"><%= i18n.enableTracking %></paper-checkbox> <paper-checkbox id="formEditing" checked="checked"><%= i18n.enableEditing %></paper-checkbox> </div> </div> <!-- Cloud List --> <div class="inner"> <div class="layout vertical"> <paper-input class="flex-left" id="cloudFormName" minlength="1" maxlength="30" label="Name" error-message="<%= i18n.errorRequired %>" required></paper-input> <paper-checkbox id="cloudFormTracking" checked="checked"><%= i18n.enableTracking %></paper-checkbox> </div> </div> <div> <paper-spinner-lite active></paper-spinner-lite> </div> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <iron-pages selected="[[savingList]]"> <div></div> <div> <paper-spinner-lite active></paper-spinner-lite> </div> </iron-pages> <paper-button dialog-dismiss disabled="[[savingList]]" on-tap="Hide"><%= i18n.cancel %></paper-button> <paper-button autofocus id="addButton" disabled="[[savingList]]" on-tap="Submit">[[submitButtonText]]</paper-button> </div> </paper-dialog> </template> <script> Polymer(
     {
       is: 'adblock-add-list-dialog',
       properties:
@@ -37,7 +31,7 @@
         addEdit:
         {
           type: String,
-          value: "Add",
+          value: "<%= i18n.add %>",
         },
         isWhitelist:
         {
@@ -83,7 +77,7 @@
       },
       GetSubmitButtonText: function(editing)
       {
-        return (editing) ? "Update" : "Add";
+        return (editing) ? "<%= i18n.update %>" : "<%= i18n.add %>";
       },
       Show: function()
       {
@@ -214,7 +208,7 @@
         this.selected = 0;
         this.loading = 0;
         this.listPage = 0;
-        this.addEdit = "Add";
+        this.addEdit = "<%= i18n.add %>";
         this.$.cloudFormName.value = this.$.formName.value = "";
         this.$.formDomains.value = "";
         this.$.formURL.value = "";
@@ -229,7 +223,7 @@
           this.editingListID = list.id;
           this.$.cloudFormName.value = this.$.formName.value = list.name;
           this.listPage = 0;
-          this.addEdit = "Edit";
+          this.addEdit = "<%= i18n.edit %>";
           if (list.type == "cloud") // Cloud list
             this.listPage = 1;
 

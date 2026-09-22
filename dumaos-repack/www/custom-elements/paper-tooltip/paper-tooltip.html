@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../neon-animation/neon-animation-runner-behavior.html"> <link rel="import" href="../neon-animation/animations/fade-in-animation.html"> <link rel="import" href="../neon-animation/animations/fade-out-animation.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/neon-animation-runner-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/animations/fade-in-animation.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/animations/fade-out-animation.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Tooltips](https://www.google.com/design/spec/components/tooltips.html)
 
 `<paper-tooltip>` is a label that appears on hover and focus when the user
@@ -58,7 +58,7 @@ Custom property | Description | Default
         cursor: default;
       }
 
-      #tooltip {
+      .tooltip-root {
         display: block;
         outline: none;
         @apply(--paper-font-common-base);
@@ -78,7 +78,7 @@ Custom property | Description | Default
       /* Thanks IE 10. */
       .hidden {
         display: none !important;
-      } </style> <div id="tooltip" class="hidden"> <content></content> </div> </template> <script> Polymer({
+      } </style> <div class="tooltip-root hidden"> <content></content> </div> </template> <script> Polymer({
       is: 'paper-tooltip',
 
       hostAttributes: {
@@ -208,6 +208,10 @@ Custom property | Description | Default
         return target;
       },
 
+      get $tooltip() {
+        return this.__$tooltip || (this.__$tooltip = this.$$(".tooltip-root"));
+      },
+
       attached: function() {
         this._findTarget();
       },
@@ -228,7 +232,7 @@ Custom property | Description | Default
 
         this.cancelAnimation();
         this._showing = true;
-        this.toggleClass('hidden', false, this.$.tooltip);
+        this.toggleClass('hidden', false, this.$tooltip);
         this.updatePosition();
 
         this.animationConfig.entry[0].timing = this.animationConfig.entry[0].timing || {};
@@ -354,7 +358,7 @@ Custom property | Description | Default
       _onAnimationFinish: function() {
         this._animationPlaying = false;
         if (!this._showing) {
-          this.toggleClass('hidden', true, this.$.tooltip);
+          this.toggleClass('hidden', true, this.$tooltip);
         }
       },
 

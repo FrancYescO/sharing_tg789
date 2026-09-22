@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
@@ -43,16 +43,16 @@ function loadApp(app) {
       var stopIcon = "av:pause-circle-outline";
       var playIcon = "av:play-circle-outline";
 
-      $("#installed-apps-table", context).append($("<tr></tr>")
+      $("#installed-apps-table", context).append($("<tr tabindex='0'></tr>")
+        .append($("<th></th>").attr("scope","row")
+          .append($("<div class='installed-rapp'></div>")
+            .append($("<duma-image></duma-image>").attr("src", app.icon))
+              .append(app.name)))
         .append($("<td></td>")
-          .append($("<duma-image></duma-image>")
-            .attr("src", app.icon)))
-        .append($("<td></td>")
-          .text(app.name))
-        .append($("<td></td>")
-          .text(binary_format(usage)))
+          .text(format_bytes(usage)))
         .append($("<td></td>")
           .append($("<paper-icon-button></paper-icon-button>")
+            .attr("aria-label",app.running ? "<%= i18n.pauseRapp %>" : "<%= i18n.playRapp %>")
             .prop("icon", (function () {
               if (app.running) {
                 return stopIcon;
@@ -109,7 +109,8 @@ function updateInstalledRapps(installedRapps) {
   var promises = [];
 
   for (var i = 0; i < installedRapps.length; i++) {
-    promises.push(loadApp(installedRapps[i]));
+    var rapp = installedRapps[i];
+    if(rapp.foreground) promises.push(loadApp(rapp));
   }
 
   Q.spread(promises, function () {

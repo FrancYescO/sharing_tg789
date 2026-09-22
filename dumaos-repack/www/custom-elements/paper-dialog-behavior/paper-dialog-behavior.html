@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html"> <script> /**
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> /**
 Use `Polymer.PaperDialogBehavior` and `paper-dialog-shared-styles.html` to implement a Material Design
 dialog.
 
@@ -46,7 +46,8 @@ It will also ensure that focus remains in the dialog.
 
     hostAttributes: {
       'role': 'dialog',
-      'tabindex': '-1'
+      // turns out this is needed to be 0, otherwise you can shift+tab off the dialog itself, back to the background
+      'tabindex': '0'
     },
 
     properties: {
@@ -57,6 +58,11 @@ It will also ensure that focus remains in the dialog.
       modal: {
         type: Boolean,
         value: false
+      },
+
+      ariaId: {
+        type: Number,
+        value: (nextDialogId=0,() => nextDialogId++)
       }
 
     },
@@ -66,7 +72,8 @@ It will also ensure that focus remains in the dialog.
     ],
 
     listeners: {
-      'tap': '_onDialogClick'
+      'tap': '_onDialogClick',
+      'keyup': '_onDialogKeyUp'
     },
 
     ready: function () {
@@ -74,6 +81,31 @@ It will also ensure that focus remains in the dialog.
       this.__prevNoCancelOnOutsideClick = this.noCancelOnOutsideClick;
       this.__prevNoCancelOnEscKey = this.noCancelOnEscKey;
       this.__prevWithBackdrop = this.withBackdrop;
+
+      //Pasting or holding down the key for text in resizing inputs (such as textarea) can cause the dialog to expand offscreen, without resizing or repositioning itself
+      this.addEventListener('input',this.notifyResize.bind(this));
+      //iron-overlay caches what nodes are focusable. When enabling/disabling inputs, we need to refresh this list
+      this.addEventListener('tabindex-changed',this.invalidateTabbables.bind(this));
+    },
+
+    created: function(){
+      // for each node child
+      this._observer = Polymer.dom(this).observeNodes(function(info) {
+        // test if node has dialog-label or dialog-desc
+        var isDialogAriaGen = function(node) {
+          return (node.nodeType === Node.ELEMENT_NODE && (node.hasAttribute("dialog-label") || node.hasAttribute("dialog-desc")));
+        };
+
+        // Only worry about new added nodes
+        if (info.addedNodes.filter(isDialogAriaGen).length > 0) {
+          // sync dialog-label's id to this aria-labelledby
+          var label = this.querySelector('[dialog-label]');
+          if(label) this.setAttribute("aria-labelledby",label.id = label.id || "dialog-label-" + this.ariaId);
+          // sync dialog-desc's id to this aria-describedby
+          var desc = this.querySelector('[dialog-desc]');
+          if(desc) this.setAttribute("aria-describedby",desc.id = desc.id || "dialog-desc-" + this.ariaId);
+        }
+      }.bind(this));
     },
 
     _modalChanged: function(modal, readied) {
@@ -121,6 +153,15 @@ It will also ensure that focus remains in the dialog.
           this.close();
           event.stopPropagation();
           break;
+        }
+      }
+    },
+
+    // compatibility for on-keyup events for keyboard for dialog-dismiss and dialog-confirm
+    _onDialogKeyDown: function(event) {
+      if(event.code){
+        if(event.code === "Space" || event.code === "Enter"){
+          this._onDialogClick(event);
         }
       }
     }

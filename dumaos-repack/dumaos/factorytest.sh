@@ -86,7 +86,7 @@ test -x /dumaos/api/cli.lua
 #-- @test test -d /dumaos/api/libs
 test -d /dumaos/api/libs/
 
-#-- @depends test; procmanager
+#-- @depends test
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.procmanager
 test -d /dumaos/apps/system/com.netdumasoftware.procmanager/
 
@@ -98,7 +98,7 @@ test -d /dumaos/apps/system/com.netdumasoftware.autoadmin/
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.devicemanager
 test -d /dumaos/apps/system/com.netdumasoftware.devicemanager/
 
-#-- @depends test; networkmonitor
+#-- @depends test
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.networkmonitor
 test -d /dumaos/apps/system/com.netdumasoftware.networkmonitor/
 
@@ -106,11 +106,11 @@ test -d /dumaos/apps/system/com.netdumasoftware.networkmonitor/
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.neighwatch
 test -d /dumaos/apps/system/com.netdumasoftware.neighwatch/
 
-#-- @depends test; desktop
+#-- @depends test
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.desktop
 test -d /dumaos/apps/system/com.netdumasoftware.desktop/
 
-#-- @depends test; systeminfo
+#-- @depends test
 #-- @test test -d /dumaos/apps/system/com.netdumasoftware.systeminfo
 test -d /dumaos/apps/system/com.netdumasoftware.systeminfo/
 

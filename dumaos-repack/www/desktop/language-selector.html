@@ -1,7 +1,7 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/paper-menu-button/paper-menu-button.html"> <link rel="import" href="/custom-elements/paper-icon-button/paper-icon-button.html"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html"> <link rel="import" href="/custom-elements/paper-item/paper-item.html"> <link rel="import" href="/custom-elements/paper-input/paper-input.html"> <link rel="import" href="/nd-css/duma-styles.html"> <dom-module id="language-selector"> <template> <style is="custom-style" include="duma-theme"> :host {
+  Kian Cross
+--> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-menu-button/paper-menu-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-icon-button/paper-icon-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-listbox/paper-listbox.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-item/paper-item.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/nd-css/duma-styles.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="language-selector"> <template> <style is="custom-style" include="duma-theme"> :host {
         display: inline-block;
       }
       paper-menu-button {
@@ -19,10 +19,10 @@
         z-index: 1;
         position: relative;
       }
-      ::content iron-dropdown
+      ::content iron-dropdown {
         padding-bottom: 16px;
         z-index: 999;
-      } </style> <paper-menu-button> <paper-icon-button icon="icons:language" class="dropdown-trigger"></paper-icon-button> <div class="dropdown-content"> <paper-listbox attr-for-selected="value" selected="{{selectedLanguage}}" selected-item="{{selectedItem}}"> <template is="dom-repeat" items="[[_languages]]" as="language" sort="_sortLanguages"> <paper-item class="language" value="[[language.value]]" on-tap="_onLanguageClick">[[language.name]]</paper-item> </template> </paper-listbox> </div> </paper-menu-button> </template> <script> Polymer({
+      } </style> <paper-menu-button no-overlap horizontal-align="right"> <div class="dropdown-trigger"> <iron-icon icon="icons:language"></iron-icon> <%= i18n.language %> </div> <div class="dropdown-content"> <paper-listbox attr-for-selected="value" selected="{{selectedLanguage}}" selected-item="{{selectedItem}}"> <template is="dom-repeat" items="[[_languages]]" as="language" sort="_sortLanguages"> <paper-item class="language" value="[[language.value]]" on-tap="_onLanguageClick">[[language.name]]</paper-item> </template> </paper-listbox> </div> </paper-menu-button> </template> <script> Polymer({
       is: "language-selector",
 
       properties: {

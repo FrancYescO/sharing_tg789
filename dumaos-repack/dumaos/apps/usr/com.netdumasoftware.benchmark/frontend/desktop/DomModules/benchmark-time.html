@@ -1,4 +1,6 @@
-<link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html"> <dom-module id="benchmark-time"> <template> <style is="custom-style" include="duma-theme"> </style> <template is="dom-if" if="[[visible]]"> <div class="layout horizontal"> <div>Test Complete in [[completionTime]]</div> <div>[[testTime]]</div> </div> </template> </template> <script> Polymer({
+<link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="benchmark-time"> <template> <style is="custom-style" include="duma-theme duma-styles"> ::content .history-date {
+        color: var(--secondary-text-color);
+      } </style> <template is="dom-if" if="[[visible]]"> <div> <div><%= i18n.testComplete %> [[completionTime]]</div> <div class="history-date">[[testTime]]</div> </div> </template> </template> <script> Polymer({
       is: 'benchmark-time',
       properties: {
         completionTime:

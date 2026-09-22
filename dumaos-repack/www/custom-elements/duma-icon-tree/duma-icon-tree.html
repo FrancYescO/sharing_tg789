@@ -3,7 +3,7 @@
   Iain Fraser
 
   Icontree polymer component
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="../../libs/q.html"> <link rel="import" href="../../libs/d3.html"> <link rel="import" href="../../libs/util.html"> <link rel="import" href="../../libs/math.html"> <link rel="import" href="../../libs/sprintf.html"> <link rel="import" href="../../libs/svg-util.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="duma-icon-tree"> <template> <style is="custom-style" include="duma-theme"> :host {
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/q.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/d3.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/math.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/sprintf.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/svg-util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-icon-tree"> <template> <style is="custom-style" include="duma-theme"> :host {
         display: block;
         overflow: auto;
       }
@@ -43,9 +43,9 @@
         fill: var(--primary-color);
       }
 
-      #container {
+      .duma-icon-tree-container {
       	overflow: auto;
-      } </style> <svg id="container" class="svg_ratio_widget"> <g class="icontree-parent"></g> </svg> </template> <script> var duma_icon_tree_data = duma_icon_tree_data || {};
+      } </style> <svg class="duma-icon-tree-container svg_ratio_widget"> <g class="icontree-parent"></g> </svg> </template> <script> var duma_icon_tree_data = duma_icon_tree_data || {};
     var icon_tree_line = d3.svg.line()
                      .x( function(point) { return point.lx; })
                      .y( function(point) { return point.ly; });
@@ -187,7 +187,7 @@
       var diameter = Math.max( width, height);
       var iscurve = this.iscurve;
       var iscircular = this.iscircular;
-      var id = this.$$("#container");
+      var id = this.$$(".duma-icon-tree-container");
       var data = this.data;
       var duration = this.duration;
 
@@ -337,7 +337,7 @@
     }
 
     duma_icon_tree_data.do_dimensions = function(){
-      var obj = this.$$("#container");
+      var obj = this.$$(".duma-icon-tree-container");
       var width = $( obj ).parent().width();
       var height = $( obj ).parent().height();
 /*      var aspect = 7;
@@ -347,7 +347,7 @@
 	this.width = Math.max( width, 640 );
 	this.height = Math.max( height, 480 );
 
-        var svg = d3.select( this.$$("#container") )
+        var svg = d3.select( this.$$(".duma-icon-tree-container") )
           svg.attr("width",  this.width )
             .attr("height", this.height )
 //            .attr("viewBox", [0,0,this.width,this.height].join(" ") )

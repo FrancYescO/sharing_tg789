@@ -1,8 +1,6 @@
 <!--
   (C) 2019 NETDUMA Software
---> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/duma-chart/duma-chart.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js"></script> <dom-module id="adblock-day-view"> <template> <style include="duma-theme iron-flex"> .full-height {
-        height: 100%;
-      } </style> <div class="layout horizontal full-height"> <div style="flex:1;"> <duma-chart id="adblockStatusChart" class="full-height" type="line" data="[[dataOptions]]" options="[[chartOptions]]"> </duma-chart> </div> </div> </template> <script> Polymer(
+--> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-chart/duma-chart.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"></script> <dom-module id="adblock-day-view"> <template> <style include="duma-theme"></style> <div class="chart-wrapper" vertical> <duma-legend id="legend" hide-stats legend-stats="[[legendStats]]"></duma-legend> <duma-chart id="adblockStatusChart" class="full-height" type="line" data="[[dataOptions]]" options="[[chartOptions]]"> </duma-chart> </div> </template> <script> Polymer(
     {
       is: 'adblock-day-view',
       properties:
@@ -12,6 +10,7 @@
           type: Object,
           value:
           {
+            ariaHeaders: ["<%= i18n.queriesType %>", "<%= i18n.amount %>"],
             tooltips:
             {
               callbacks:
@@ -29,7 +28,7 @@
                   scaleLabel:
                   {
                     display: true,
-                    labelString: 'Queries'
+                    labelString: '<%= i18n.queriesYAxisLabel %>'
                   },
                   ticks:
                   {
@@ -47,7 +46,6 @@
                   display: true,
                   distribution: 'linear',
                   ticks: {
-                    maxTicksLimit: 25,
                     stepSize: 1,
                   },
                   bounds: "ticks",
@@ -66,7 +64,7 @@
             },
             legend:
             {
-              display: true,
+              display: false,
             },
             elements:
             {
@@ -78,6 +76,12 @@
               },
             },
           }
+        },
+        legendStats: {
+          type: Array,
+          value: function(){
+            return [];
+          }
         }
       },
       /**
@@ -88,6 +92,12 @@
        **/
       createDatasetObject(dataset, colour, label)
       {
+        this.push('legendStats',{
+          label: label,
+          colour: colour,
+          bgColour: colour,
+          visible: true
+        })
         return {
           borderColor: colour,
           pointBackgroundColor: colour,
@@ -144,10 +154,12 @@
       },
       UpdateStaticHistory: function()
       {
-        long_rpc_promise("com.netdumasoftware.adblocker", "static_history", []).done(function(data)
+        long_rpc_promise("com.netdumasoftware.burstwatch", "static_history", []).done(function(data)
         {
-          var parsedData = JSON.parse(data[0]);
+          var parsedData = data[0];
           var formattedDatasets = this.formatOriginalDatasets(parsedData);
+
+          this.splice('legendStats',0,this.legendStats.length);
 
           //set the datasets of the chart
           this.$.adblockStatusChart.data =
@@ -155,9 +167,9 @@
             labels: [],
             datasets:
             [
-              this.createDatasetObject(formattedDatasets.totalQueryDataset, this.colours[2], "Total Queries"),
-              this.createDatasetObject(formattedDatasets.allowedQueryDataset, this.colours[1], "Queries Allowed"),
-              this.createDatasetObject(formattedDatasets.blockedQueryDataset, this.colours[0], "Queries Blocked"),
+              this.createDatasetObject(formattedDatasets.totalQueryDataset, this.colours[2], "<%= i18n.totalQueries %>"),
+              this.createDatasetObject(formattedDatasets.allowedQueryDataset, this.colours[1], "<%= i18n.queriesAllowed %>"),
+              this.createDatasetObject(formattedDatasets.blockedQueryDataset, this.colours[0], "<%= i18n.queriesBlocked %>"),
             ],
           };
 
@@ -168,6 +180,7 @@
             $(this).closest("duma-panel").prop("loaded", true);
             this.loaded = true;
           }
+          this.$.legend.bindToChart(this.$.adblockStatusChart);
         }.bind(this));
       },
       ready: function ()

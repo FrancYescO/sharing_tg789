@@ -1,5 +1,5 @@
 {
-        "Uncategorised": 0,
+	"Uncategorized": 0,
         "Gaming": 1,
         "Media": 2,
         "Livestream": 3,
@@ -12,5 +12,7 @@
         "Printers": 10,
         "Social Media": 11,
         "VoIP": 12,
-        "Internet Maintinance": 13
+        "Internet Maintenance": 13,
+	"WorkAtHome": 14,
+        "Cloud Gaming": 15
 }

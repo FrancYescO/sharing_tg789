@@ -1,3 +1,9 @@
+
+<%
+require("libos")
+
+local platform_information = os.platform_information()
+%>
 void function() {
 
 	"use strict";
@@ -38,6 +44,50 @@ void function() {
 				if (element.selected === undefined) {
 					element.selected = 0;
 				}
+
+				var focusThis = function(elem){
+					setTimeout(function(){
+						$(elem).focus();
+						if(elem.select) return elem.select();
+						if(elem.$ && elem.$.input && elem.$.input.select) return elem.$.input.select();
+					},100)
+				}
+
+				window.addEventListener("keypress",function(e){
+					if(e.key === "Enter"){
+						var current = slide_list[element.selected];
+						var currentSlide = element.selectedItem;
+						var activeInput = $(document.activeElement).closest("input, paper-item")[0];
+						var inputs = $(currentSlide).find("input").filter(function(index,element){
+							var inSubAnim = $(element).parents("neon-animatable[name]");
+							if(inSubAnim.length){
+								return inSubAnim.hasClass("iron-selected");
+							}
+							return true;
+						});
+						if(activeInput){
+							if($(activeInput).closest(".dropdown-trigger")[0]) return;
+
+							var inputIndex = 0;
+							for(var i = 0; i < inputs.length; i++){
+								if(inputs[i] === activeInput){
+									inputIndex = i;
+									break;
+								}
+							}
+							if(inputIndex !== null){
+								var focusOn = inputIndex + 1;
+								if(focusOn < inputs.length){
+									return focusThis(inputs[focusOn]);
+								}
+							}
+						}else if(inputs.length){
+							return focusThis(inputs[0]);
+						}
+						var nextButton = current.dom.button_submit || current.dom.button_next || current.dom.button_start;
+						$(nextButton).click();
+					}
+				});
 			},
 
 			show: function() {
@@ -103,8 +153,19 @@ void function() {
 
 	window.onload = function() {
 		post_commands([
-			{method: "get_platform", args: []}
-		],function(platform) {
+			{method: "get_platform", args: []},
+			{method: "get_countries", args: []},
+		],function(platform,countryInfo) {
+			try {
+				countryInfo = JSON.parse(countryInfo);
+			} catch(exception) {
+				countryInfo = null;
+			}
+			<% if platform_information.model ~= "R1" then %>
+			var skipCountry = !countryInfo;
+			<% else %>
+			var skipCountry = true;
+			<% end %>
 			
 			slides.init();
 			
@@ -234,29 +295,41 @@ void function() {
 						dom.wan_pages.selected = sel;
 					})
 					
+					post_command("get_ipv6",[],function(result) {
+						if(result){
+							result = JSON.parse(result);
+							dom.ipv6_wan.checked = result.wan;
+							dom.ipv6_lan.checked = result.lan;
+						}
+					});
+
 					dom.button_submit.onclick = function() {
+						dom.button_submit.disabled = true;
 						var wan_type = dom.wan_pages.selected;
 
 						var after = function(wan_args){
-							if(!wan_args) wan_args = [];
-							wan_args.unshift(wan_type);
-							post_command("wan_setup",wan_args,function(result) {
-								if(result){
+							post_command("wan_setup",[dom.ipv6_wan.checked,dom.ipv6_lan.checked,wan_type].concat(wan_args || []),function(result) {
+								if(result == "true"){
 									slides.set("check_wan");
 								}
+								dom.button_submit.disabled = false;
 							});
 						}
 
 						if(wan_type === "static"){
 							if(dom.ip.validate() && dom.subnet_mask.validate() && dom.gateway.validate()){
 								after([dom.ip.value,dom.subnet_mask.value,dom.gateway.value]);
+							}else{
+								dom.button_submit.disabled = false;
 							}
 						}else if(wan_type === "pppoe"){
-							if(dom.pppoe_username.validate() && dom.pppoe_password.validate()){
-								after([dom.pppoe_username.value,dom.pppoe_password.value]);
+							if(dom.pppoe_username.validate() && dom.pppoe_password.validate() && dom.pppoe_service.validate()){
+								after([dom.pppoe_username.value,dom.pppoe_password.value,dom.pppoe_service.value]);
+							}else{
+								dom.button_submit.disabled = false;
 							}
 						}else{
-							after([]);
+							after([dom.dhcp_clientid.value,dom.dhcp_vendorid.value]);
 						}
 					}
 					dom.button_skip.onclick = function() {
@@ -385,8 +458,12 @@ void function() {
 
 					} else {
 						remove_from_dom(dom.button_retry);
-						if (!dom.input_upload.value.value) { dom.input_upload.value = "1000"; }
-						if (!dom.input_download.value.value) { dom.input_download.value = "1000"; }
+						if (!dom.input_upload.value) { dom.input_upload.value = "1000"; }
+						if (!dom.input_download.value) { dom.input_download.value = "1000"; }
+					}
+
+					dom.button_back.onclick = function() {
+						slides.set("check_wan");
 					}
 
 					dom.button_next.onclick = function() {
@@ -416,8 +493,15 @@ void function() {
 				"#div_authentication",
 
 				function(dom) {
+					function escapeRegExp(string) {
+						return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+					}
 					dom.input_password.onchange = function() {
-						dom.input_password_repeat.pattern = "^" + this.value + "$";
+						dom.input_password_repeat.pattern = "^" + escapeRegExp(this.value) + "$";
+					}
+
+					dom.button_back.onclick = function() {
+						slides.set("bandwidth");
 					}
 
 					dom.button_submit.onclick = function() {
@@ -429,12 +513,50 @@ void function() {
 
 						post_command("set_authentication",[dom.input_username.value,dom.input_password.value],function(result) {
 							if (result) {
-								slides.set("wifi");
+								slides.set(skipCountry ? "wifi" : "country" );
 							}
 						});
 					}
 				}
 			);
+
+			<% if platform_information.model ~= "R1" then %>
+			slides.add(
+				"country",
+				"#div_country",
+				function(dom) {
+					if(countryInfo){
+						var items = [];
+						for(var key in countryInfo.map){
+							items.push({code: key, name: countryInfo.map[key]});
+						}
+						dom.country_items.items = items.sort(function(a,b){
+							return a.name > b.name ? 1 : -1;
+						});
+						dom.country_listbox.selected = countryInfo.current;
+					}else{
+						slides.set("wifi");
+					}
+
+					dom.button_back.onclick = function() {
+						slides.set("authentication");
+					}
+
+					dom.button_submit.onclick = function() {
+						if(dom.country_listbox.selected){
+							post_command("set_country",[dom.country_listbox.selected],function(result) {
+								if (result) {
+									countryInfo.current = dom.country_listbox.selected;
+									slides.set("wifi");
+								}
+							});
+						}else{
+							dom.country_drop.invalid = true;
+						}
+					}
+				}
+			);
+			<% end %>
 
 			slides.add(
 				"wifi",
@@ -459,6 +581,10 @@ void function() {
 
 					dom.input_password.onchange = function() {
 						dom.input_password_repeat.pattern = "^" + this.value + "$";
+					}
+
+					dom.button_back.onclick = function() {
+						slides.set(skipCountry ? "authentication" : "country");
 					}
 
 					dom.button_submit.onclick = function() {
@@ -520,16 +646,54 @@ void function() {
 						}
 					});
 
+					dom.button_back.onclick = function() {
+						slides.set("wifi");
+					}
+
 					dom.button_submit.onclick = function() {
 
 						post_command("set_time_zone",[dom.time_zone_listbox.selected,dom.time_zone_dst.checked],function(result) {
 							if (result) {
-								slides.set("done");
+								if (platform === "NETDUMA") {
+									<% if platform_information.model ~= "R1" then %>
+									slides.set("preferences");
+									<% else %>
+									slides.set("done");
+									<% end %>
+								} else {
+									slides.set("done");
+								}
 							}
 						});
 					}
 				}
 			);
+
+			<% if platform_information.model ~= "R1" then %>
+			slides.add(
+				"preferences",
+				"#div_preferences",
+				function(dom) {
+
+					dom.button_back.onclick = function() {
+						slides.set("time_zone");
+					}
+
+					dom.button_submit.onclick = function() {
+
+						post_command("set_telem",[dom.tele.checked],function(result) {
+							if (result) {
+								slides.set("done");
+							}
+						});
+					}
+
+					dom.toggle_explain.onclick = function() {
+						dom.explain.classList.toggle("open");
+					}
+				}
+			);
+			<% end %>
 
 			slides.add(
 				"done",
@@ -537,7 +701,7 @@ void function() {
 
 				function(dom) {
 					post_command("done",[],function(result) {
-						set_location("/desktop/index.html?forceTourStart=true");
+						set_location("/desktop/relay.html?cache=0&forceTourStart=true&showWelcome=true");
 					});
 				}
 			);

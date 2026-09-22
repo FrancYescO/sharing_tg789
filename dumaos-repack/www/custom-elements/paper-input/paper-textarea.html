@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-autogrow-textarea/iron-autogrow-textarea.html"> <link rel="import" href="../iron-form-element-behavior/iron-form-element-behavior.html"> <link rel="import" href="paper-input-behavior.html"> <link rel="import" href="paper-input-char-counter.html"> <link rel="import" href="paper-input-container.html"> <link rel="import" href="paper-input-error.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-autogrow-textarea/iron-autogrow-textarea.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-form-element-behavior/iron-form-element-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-input-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-input-char-counter.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-input-container.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-input-error.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 `<paper-textarea>` is a multi-line text field with Material Design styling.
 
     <paper-textarea label="Textarea label"></paper-textarea>
@@ -31,7 +31,7 @@ style this element.
 
       label {
         pointer-events: none;
-      } </style> <paper-input-container no-label-float$="[[noLabelFloat]]" always-float-label="[[_computeAlwaysFloatLabel(alwaysFloatLabel,placeholder)]]" auto-validate$="[[autoValidate]]" disabled$="[[disabled]]" invalid="[[invalid]]"> <label hidden$="[[!label]]" aria-hidden="true">[[label]]</label> <iron-autogrow-textarea id="input" class="paper-input-input" bind-value="{{value}}" invalid="{{invalid}}" disabled$="[[disabled]]" autocomplete$="[[autocomplete]]" autofocus$="[[autofocus]]" inputmode$="[[inputmode]]" name$="[[name]]" placeholder$="[[placeholder]]" readonly$="[[readonly]]" required$="[[required]]" minlength$="[[minlength]]" maxlength$="[[maxlength]]" autocapitalize$="[[autocapitalize]]" rows$="[[rows]]" max-rows$="[[maxRows]]" on-change="_onChange"></iron-autogrow-textarea> <template is="dom-if" if="[[errorMessage]]"> <paper-input-error>[[errorMessage]]</paper-input-error> </template> <template is="dom-if" if="[[charCounter]]"> <paper-input-char-counter></paper-input-char-counter> </template> </paper-input-container> </template> </dom-module> <script> Polymer({
+      } </style> <paper-input-container no-label-float$="[[noLabelFloat]]" always-float-label="[[_computeAlwaysFloatLabel(alwaysFloatLabel,placeholder)]]" auto-validate$="[[autoValidate]]" disabled$="[[disabled]]" invalid="[[invalid]]"> <label hidden$="[[!label]]" aria-hidden="true">[[label]]</label> <iron-autogrow-textarea class="paper-input-input" bind-value="{{value}}" invalid="{{invalid}}" disabled$="[[disabled]]" autocomplete$="[[autocomplete]]" autofocus$="[[autofocus]]" inputmode$="[[inputmode]]" name$="[[name]]" placeholder$="[[placeholder]]" readonly$="[[readonly]]" required$="[[required]]" minlength$="[[minlength]]" maxlength$="[[maxlength]]" autocapitalize$="[[autocapitalize]]" rows$="[[rows]]" max-rows$="[[maxRows]]" on-change="_onChange"></iron-autogrow-textarea> <template is="dom-if" if="[[errorMessage]]"> <paper-input-error>[[errorMessage]]</paper-input-error> </template> <template is="dom-if" if="[[charCounter]]"> <paper-input-char-counter></paper-input-char-counter> </template> </paper-input-container> </template> </dom-module> <script> Polymer({
     is: 'paper-textarea',
 
     behaviors: [
@@ -76,15 +76,19 @@ style this element.
       }
     },
 
+    get $input() {
+      return this.__$input || (this.__$input = this.$$(".paper-input-input"));
+    },
+
     _ariaLabelledByChanged: function(ariaLabelledBy) {
-      this.$.input.textarea.setAttribute('aria-labelledby', ariaLabelledBy);
+      this.$input.textarea.setAttribute('aria-labelledby', ariaLabelledBy);
     },
 
     _ariaDescribedByChanged: function(ariaDescribedBy) {
-      this.$.input.textarea.setAttribute('aria-describedby', ariaDescribedBy);
+      this.$input.textarea.setAttribute('aria-describedby', ariaDescribedBy);
     },
 
     get _focusableElement() {
-      return this.$.input.textarea;
+      return this.$input.textarea;
     },
   }); </script> 

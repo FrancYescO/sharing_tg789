@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 <%
@@ -10,6 +10,9 @@ local platform_information = os.platform_information()
 %>
 
 (function (context) {
+
+var publicIpHide = $("duma-hidden",context);
+var routerPublicIP;
 
 function updateNetworkStatistics(networkStatisics) {
   $("#transmitted-bytes", context).text(networkStatisics.transmitted.bytes);
@@ -25,19 +28,32 @@ start_cycle(function () {
   return [
     long_rpc_promise("com.netdumasoftware.systeminfo", "get_network_statistics", [])
     <% if platform_information.vendor ~= "NETGEAR" then %>,
-      long_rpc_promise("com.netdumasoftware.systeminfo", "get_wan_ip", [])
+    long_rpc_promise("com.netdumasoftware.systeminfo", "get_wan_ip", []),
+    long_rpc_promise("com.netdumasoftware.config", "get", ["DumaOS_Public_IP"]),
     <% end %>
   ];
-}, function (networkStatistics, wanIp) {
-
+}, function (networkStatistics, wanIp, publicIp) {
   updateNetworkStatistics(networkStatistics[0])
-
-    
+  
   <% if platform_information.vendor ~= "NETGEAR" then %>
-    $("#wan-ip", context).text(wanIp[0] ? wanIp[0] : "Disconnected");
+  var hasPublicIp = publicIp && publicIp[0] && publicIp[1];
+  $("#wan-ip", context).text(wanIp && wanIp[0] ? wanIp[0] : "<%= i18n.disconnected %>");
+  routerPublicIP = hasPublicIp ? publicIp[1] : "<%= i18n.unknown %>";
+  $("#hidden-public-ip", context).text(hasPublicIp ? new Array(routerPublicIP.length).fill("●").join("") : "<%= i18n.unknown %>");
+  $("#public-ip", context).text(routerPublicIP);
+  $("#public-ip-hide paper-icon-button", context).prop("disabled", !hasPublicIp);
   <% end %>
   
   $("duma-panel", context).prop("loaded", true);
 }, 1000 * 2);
+
+// handle tap from show/hide button
+publicIpHide.on("visible-tap",() => {
+  publicIpHide[0].visible = !publicIpHide[0].visible;
+  // wait for template stamp
+  Polymer.RenderStatus.afterNextRender(this,() => {
+    $("#public-ip", context).text(routerPublicIP);
+  });
+});
 
 })(this);

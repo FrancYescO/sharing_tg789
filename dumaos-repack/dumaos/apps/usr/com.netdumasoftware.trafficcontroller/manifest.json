@@ -16,6 +16,11 @@
         "func" : "on_cleanup",
         "package" : "com.netdumasoftware.api",
         "method" : "cleanup"
+      },
+      {
+        "func" : "on_device_deleted",
+        "package" : "com.netdumasoftware.devicemanager",
+        "method" : "dev_deleted"
       }
   ],
   "methods" : [],

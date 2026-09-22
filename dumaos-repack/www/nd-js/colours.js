@@ -1,10 +1,31 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
- * Luke Meppem <luke.meppem@netduma.com>
+ * Kian Cross
+ * Luke Meppem
 */
 
-<% local json = require "json" %>
+<%
+local json = require "json"
+
+--[[
+  Way to get the shades, mainly for use in CSS.
+  Example usage: "< % = get_shade(0) % >"
+  You will need to copy to the specific file for haserl use
+]]
+function get_shade(index)
+  local shades = theme.COLOR_SHADES
+  local total,x = 0,1
+  for _,line in pairs(shades) do
+    total = total + #line
+  end
+  index = (index % total) + 1
+  while index > #shades do
+    index = index - #shades 
+    x = x + 1
+  end
+  return shades[index][x]
+end
+%>
 /**
  * Returns list of shade arrays
  * use [x][y] to get values
@@ -85,12 +106,18 @@ class Color {
         this.a = val;
         break;
     }
+    return this;
   }
 
   _parseHex(inp){
     var str = inp.replace('#','').replace('0x','');
+    //if length 3 or 4, convert to double up.
+    //i.e. #FFF becomes #FFFFFF
+    if(str.length === 3 || str.length === 4){
+      str = str.match(/.{1}/g).map(v => v+v).join("");
+    }
     if(str.length === 6 || str.length === 8){
-      var splits = str.match(/.{1,2}/g);
+      var splits = str.match(/.{2}/g);
       for(var i = 0; i < splits.length; i ++){
         var conv = parseInt(splits[i],16);
         this.setVal(conv,i);
@@ -157,18 +184,26 @@ class Color {
     	a = "0" + a;
   	return '#' + r + g + b + (alpha ? a : '');
   }
-  rgb(alpha=false){
+  rgb(alpha=false,asFloat=false){
   	if(alpha){
-    	return "rgba(" + [this.r,this.g,this.b, this.a].join(',') + ")";
+    	return "rgba(" + [this.r,this.g,this.b, asFloat ? (this.a/255) : this.a].join(',') + ")";
     }else{
     	return "rgb(" + [this.r,this.g,this.b].join(",") + ")";
     }
   }
-  rgba(){
-  	return this.rgb(true);
+  rgba(asFloat){
+  	return this.rgb(true,!!asFloat);
   }
   dec(alpha=true){
     var hex = this.hex(alpha).replace('#','');
     return parseInt(hex,16);
+  }
+  toArray(alpha=false){
+    var out = [this.r,this.g,this.b];
+    if(alpha) out.push(this.a);
+    return out;
+  }
+  clone(){
+    return new Color().setVal(this.r,0).setVal(this.g,1).setVal(this.b,2).setVal(this.a,3);
   }
 }

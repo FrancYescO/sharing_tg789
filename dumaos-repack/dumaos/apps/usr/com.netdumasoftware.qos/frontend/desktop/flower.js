@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 <%
@@ -100,6 +100,8 @@ function generateDeviceTree(node, devices) {
       },
       icon: getNodeIcon(parentNodeDomain, node.domain, node.id, devices)
     };
+    if(node.domain === "appcat")
+      output.help = true;
 
     if (doesVariableExist(node.children) && node.children.length > 0) {
       output.children = [];
@@ -397,6 +399,11 @@ Q.spread([
 
   var device_panel = null;
   var device_panel_is_loading = false;
+  
+  $("#device-tree", context).on("help", function (e) {
+    var services = $(top.document).find("#services-info")[0];
+    if(services) services.open();
+  });
 
   $("#device-tree", context).on("select", function (e) {
     // Works only if we aren't pinned to the dashboard

@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-selector/iron-multi-selectable.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <script> /**
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-selector/iron-multi-selectable.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> /**
    * `Polymer.IronMenuBehavior` implements accessible menu behavior.
    *
    * @demo demo/index.html
@@ -229,8 +229,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      */
     _focusedItemChanged: function(focusedItem, old) {
       old && old.setAttribute('tabindex', '-1');
+      old && old.removeAttribute('aria-current');
       if (focusedItem) {
         focusedItem.setAttribute('tabindex', '0');
+        focusedItem.setAttribute('aria-current', true);
         focusedItem.focus();
       }
     },
@@ -333,7 +335,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      */
     _onEscKey: function(event) {
       // esc blurs the control
-      this.focusedItem.blur();
+      this.focusedItem && this.focusedItem.blur();
     },
 
     /**

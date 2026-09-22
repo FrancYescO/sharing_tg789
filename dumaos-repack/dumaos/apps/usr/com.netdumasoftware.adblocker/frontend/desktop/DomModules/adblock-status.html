@@ -1,13 +1,9 @@
 <!--
   (C) 2019 NETDUMA Software
---> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/duma-chart/duma-chart.html"> <link rel="import" href="/custom-elements/duma-legend/duma-legend.html"> <link rel="import" href="/custom-elements/iron-flex-layout/iron-flex-layout-classes.html"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js"></script> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="adblock-status"> <template> <style include="duma-theme iron-flex"> :host {
+--> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-chart/duma-chart.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-legend/duma-legend.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"></script> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="adblock-status"> <template> <style include="duma-theme iron-flex"> :host {
         display: block;
         width: 100%;
-      }
-      ::content > div,
-      ::content duma-chart {
-        height: 100%;
-      } </style> <div class="layout horizontal"> <div> <duma-legend vertical id="statusLegend" legend-stats="[[legendStats]]"></duma-legend> </div> <duma-chart id="graph" type="doughnut"></duma-chart> </div> </template> <script> Polymer(
+      } </style> <div class="chart-wrapper"> <duma-legend vertical id="statusLegend" legend-stats="[[legendStats]]"></duma-legend> <duma-chart id="graph" type="doughnut"></duma-chart> </div> </template> <script> Polymer(
     {
       is: 'adblock-status',
       properties:
@@ -18,22 +14,24 @@
           value:
           [
             {
-              label: "Total Queries",
+              label: "<%= i18n.totalQueries %>",
               result: "-",
               visible: false,
               disableClick: true,
             },
             {
-              label: "Queries Allowed",
+              label: "<%= i18n.queriesAllowed %>",
               result: "-",
               visible: true,
               disableClick: true,
+              patternIndex: 0,
             },
             {
-              label: "Queries Blocked",
+              label: "<%= i18n.queriesBlocked %>",
               result: "-",
               visible: true,
               disableClick: true,
+              patternIndex: 1
             },
           ]
         },
@@ -53,7 +51,7 @@
       {
         // Colour selection
         var cgen = getColourGenerator();
-        let colours = [cgen(), cgen(), '#FFFFFF'];
+        var colours = [cgen(), cgen(), '#FFFFFF'];
         this.setLegendColour(0, colours[2]);
         this.setLegendColour(1, colours[1]);
         this.setLegendColour(2, colours[0]);
@@ -63,16 +61,17 @@
 
         setInterval(function()
         {
-          long_rpc_promise("com.netdumasoftware.adblocker", "static_history", []).done(function(data)
+          long_rpc_promise("com.netdumasoftware.burstwatch", "static_history", []).done(function(data)
           {
-            var parsedData = JSON.parse(data[0]);
-            var allowedQueries = parsedData.total_queries- parsedData.total_blocked_queries;
+            var parsedData = data[0];
+            var allowedQueries = parsedData.total_queries - parsedData.total_blocked_queries;
             this.setLegendResult(0, parsedData.total_queries);
             this.setLegendResult(1, allowedQueries);
             this.setLegendResult(2, parsedData.total_blocked_queries);
 
             this.$.graph.data.datasets[0].data = [parsedData.total_blocked_queries, allowedQueries];
             this.$.graph.update();
+            this.$.statusLegend._forceUpdate();
 
             if (this.loaded == false)
             {
@@ -98,10 +97,11 @@
                 hoverBorderWidth: 0,
               },
             ],
-            labels: [colours[0], colours[1]],
+            labels: ["<%= i18n.queriesAllowed %>", "<%= i18n.queriesBlocked %>"],
           },
           options:
           {
+            ariaHeaders: ["<%= i18n.queriesType %>", "<%= i18n.total %>"],
             responsive: true,
             legend:
             {

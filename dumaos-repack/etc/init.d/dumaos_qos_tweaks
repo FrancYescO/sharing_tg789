@@ -9,12 +9,14 @@ can_use() {
 }
 
 start() {
+	local lan_inf="$(ubus call network.interface.lan status | jsonfilter -e '@.l3_device')"
+
 	if can_use "ifconfig"
 	then
-		ifconfig br0 txqueuelen 1000
+		ifconfig "$lan_inf" txqueuelen 1000
 	elif can_use "ip"
 	then
-		ip link set br0 txqueuelen 1000
+		ip link set "$lan_inf" txqueuelen 1000
 	fi
 
 	if can_use "chrt"

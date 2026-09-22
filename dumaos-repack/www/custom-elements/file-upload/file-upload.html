@@ -2,7 +2,7 @@
 @license
 Copyright (c) 2015 Winston Howes. All rights reserved.
 This code may only be used under the MIT license found at https://github.com/winhowes/file-upload/blob/master/LICENSE
---> <link rel="import" href="../polymer/polymer.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 An element providing a solution to no problem in particular.
 
 Example:
@@ -10,7 +10,7 @@ Example:
     <file-upload target="/path/to/destination"></file-upload>
 
 @demo
---> <link rel="import" href="../paper-button/paper-button.html"> <link rel="import" href="../paper-progress/paper-progress.html"> <link rel="import" href="file-upload-icons.html"> <dom-module id="file-upload"> <style> :host {
+--> <link rel="import" href="../paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-progress/paper-progress.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="file-upload-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="file-upload"> <style include="duma-theme"> :host {
       display: inline-block;
       --error-color: #f40303;
     }
@@ -42,7 +42,10 @@ Example:
     }
 
     paper-button#button {
-      margin-bottom: 20px;
+      @apply(--paper-font-button);
+      display: block;
+      margin: 0 0 16px 0;
+      text-align: center;   
       @apply(--file-upload-button);
     }
 
@@ -88,7 +91,7 @@ Example:
 
     paper-progress[error] {
       --paper-progress-active-color: var(--error-color);
-    } </style> <template> <div> <paper-button id="button" icon="file-upload-icons:file-upload" class="blue" on-click="_fileClick" alt="{{paperButtonAlt}}" title="{{paperButtonTitle}}"> <content></content> </paper-button> <div id="UploadBorder" hidden$="{{hideFileList}}"> <div id="dropArea" hidden$="{{!_shownDropText}}">{{dropText}}</div> <template is="dom-repeat" items="{{files}}"> <div class="file"> <div class="name"> <span>{{item.name}}</span> <div class="commands"> <iron-icon icon="file-upload-icons:autorenew" title="{{retryText}}" on-click="_retryUpload" hidden$="{{!item.error}}"></iron-icon> <iron-icon icon="file-upload-icons:cancel" title="{{removeText}}" on-click="_cancelUpload" hidden$="{{item.complete}}"></iron-icon> <iron-icon icon="file-upload-icons:check-circle" title="{{successText}}" hidden$="{{!item.complete}}"></iron-icon> </div> </div> <div class="error" hidden$="{{!item.error}}">{{errorText}}</div> <div class="progress-bar" hidden$="{{progressHidden}}"> <paper-progress value$="{{item.progress}}" error$="{{item.error}}"></paper-progress> </div> </div> </template> </div> </div> <input type="file" id="fileInput" on-change="_fileChange" hidden multiple="{{multi}}" accept="{{accept}}"> <!--<paper-toast id="toastSuccess" text="File uploaded successfully!"></paper-toast>
+    } </style> <template> <div> <paper-button background id="button" icon="file-upload-icons:file-upload" class="blue" on-click="_fileClick" alt="{{paperButtonAlt}}" title="{{paperButtonTitle}}"> <content></content> </paper-button> <div id="UploadBorder" hidden$="{{hideFileList}}"> <div id="dropArea" hidden$="{{!_shownDropText}}">{{dropText}}</div> <template is="dom-repeat" items="{{files}}"> <div class="file"> <div class="name"> <span>{{item.name}}</span> <div class="commands"> <iron-icon icon="file-upload-icons:autorenew" title="{{retryText}}" on-click="_retryUpload" hidden$="{{!item.error}}"></iron-icon> <iron-icon icon="file-upload-icons:cancel" title="{{removeText}}" on-click="_cancelUpload" hidden$="{{item.complete}}"></iron-icon> <iron-icon icon="file-upload-icons:check-circle" title="{{successText}}" hidden$="{{!item.complete}}"></iron-icon> </div> </div> <div class="error" hidden$="{{!item.error}}">{{errorText}}</div> <div class="progress-bar" hidden$="{{progressHidden}}"> <paper-progress value$="{{item.progress}}" error$="{{item.error}}"></paper-progress> </div> </div> </template> </div> </div> <input type="file" id="fileInput" on-change="_fileChange" hidden multiple="{{multi}}" accept="{{accept}}"> <!--<paper-toast id="toastSuccess" text="File uploaded successfully!"></paper-toast>
     <paper-toast id="toastFail" text="Error uploading file!"></paper-toast>--> </template> </dom-module> <script> Polymer({
 
     is: 'file-upload',
@@ -432,6 +435,7 @@ Example:
           file.xhr.abort();
         }
         this.splice('files', this.files.indexOf(file), 1);
+        if(this.files.length === 0) this.$.fileInput.value = '';
         this._showDropText();
       }
     },

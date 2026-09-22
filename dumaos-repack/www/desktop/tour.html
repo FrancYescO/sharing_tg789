@@ -1,13 +1,13 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
+  Kian Cross
 --> <!--
   This is a special case tour as it must access the whole of DumaOS,
   it is not specific for any app. Therefore it can't be generic.
 --> <%
   local libos = require("libos")
   local platform_information = os.platform_information()
-%> <link rel="import" href="/libs/tour.html"> <script> duma.tour.setTour("desktop", (function () {
+%> <link rel="import" href="/libs/tour.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script> duma.tour.setTour("desktop", (function () {
   var desktopAppId = "com.netdumasoftware.desktop";
 
   function isTargetDefined(target) {
@@ -54,10 +54,12 @@
       var tourWindow = getTourWindow();
 
       var callback = function () {
-        tourWindow.hopscotch.startTour(
-          tourWindow.duma.tour.getTour(true)(position),
-          position
-        );
+        if(tourWindow.hopscotch && tourWindow.duma && tourWindow.duma.tour && typeof tourWindow.duma.tour.getTour === "function"){
+          tourWindow.hopscotch.startTour(
+            tourWindow.duma.tour.getTour(true)(position),
+            position
+          );
+        }
       }
 
       if (onNext) {
@@ -86,13 +88,13 @@
           null,
           multipageIndex + 1
         )();
-
+        
         break;
-
+        
       } else if (step.multipage && step.getNextWindow) {
         step.onNext = getOnNext(step.getNextWindow, step.userOnNext, i + 1);
         break;
-      
+        
       } else if (
         steps[i + 1] &&
         !isTargetDefined(steps[i + 1].target) &&
@@ -285,7 +287,7 @@
           content: "<%= i18n.step13Content %>",
 
           placement: "left",
-          target: "dumaos-information-button"
+          target: "help-menu-button"
         }
       ]
     }, start);

@@ -1,6 +1,6 @@
 <!--
   (C) 2017 NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
+  Kian Cross
 --> <script> var Duma = Duma || {};
   Duma.InputInputsBehavior = {
     properties: {
@@ -89,6 +89,25 @@
       return {};
     },
 
+    _formatPaste: function(text){
+      var digitsRegex = /[\d]+/g;
+      var split = text.split(this._delimiter).filter((x) => !!x).map((x) => x.match(digitsRegex));
+      var len = this.querySelectorAll("input").length;
+
+      for(var i = 0; i < len; i ++){
+        if(!this.parts[i] && split[i]) split.push("");
+      }
+      
+      while(split.length < len) split.unshift("");
+      if(split.length > len) split.length = len;
+
+      for(var i = split.length - 1; i >= 0; i--){
+        if(!split[i]) split[i] = this.parts[i];
+      }
+
+      return split.join(this._delimiter);
+    },
+
     _onPaste: function (e) {
       e.stopPropagation();
       e.preventDefault();
@@ -96,7 +115,8 @@
       var siblings = this._getFocusedSiblings(document.activeElement);
 
       if (siblings.focused) {
-        this.value = e.clipboardData.getData("Text");
+        //Paste pastes from the end, going backwards. But fill with blank if there are currently blanks at the front
+        this._setValueCheckDisabled( this._formatPaste( e.clipboardData.getData("Text") ) );
       }
 
       while (siblings.next) {
@@ -158,25 +178,48 @@
         this.value = value;
       }
     },
+
+    setParts: function(newParts){
+      //If newParts is not there, then assume inputs being cleared, so set all to ""
+      var toReplace = newParts ? this.parts.slice() : ["","","",""];
+      for(var i = 0; newParts && i < newParts.length; i++){
+        if(this._checkDisabledOnSet && this.disabled && (this.disabled === true || this.disabled[i] === true)) continue;
+        toReplace[i] = newParts[i];
+      }
+      this.parts = toReplace;
+      //update the actual input elements
+      var inputs = this.querySelectorAll("input");
+      for (var i = 0; i < inputs.length; i++) {
+        if (this.parts[i] || this.parts[i] === 0) {
+          inputs[i].value = this.parts[i];
+        } else {
+          inputs[i].value = "";
+        }
+      }
+    },
+
+    _setValueCheckDisabled: function(value){
+      this._checkDisabledOnSet = true;
+      this.value = value;
+      this._checkDisabledOnSet = false;
+    },
     
     _setValue: function (value) {
       if (!this._delimiter) {
         return false;
       }
+
+      //If value is "", we need to clear all inputs
+      if(value === "") {
+        this.setParts(null);
+        return true;
+      }
+      var inputs = this.querySelectorAll("input");
       
       value = value.replace(/ /g, "");
+      value = value.split(this._delimiter);
 
-      var inputs = this.querySelectorAll("input");
-      var value = value.split(this._delimiter);
-
-      this.parts = value;
-      for (var i = 0; i < inputs.length; i++) {
-        if (value[i]) {
-          inputs[i].value = value[i];
-        } else {
-          inputs[i].value = "";
-        }
-      }
+      this.setParts(value);
 
       this.validate();
 

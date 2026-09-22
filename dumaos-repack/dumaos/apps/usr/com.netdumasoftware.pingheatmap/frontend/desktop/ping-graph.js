@@ -110,24 +110,29 @@
       }
     }
 
-    if(currentPing){
-      currentPing.t = new Date(end);
-      pingData.push(currentPing);
-      styles.push(triangle);
-      colours.push(scoreUtil.getPingColour(currentPing.y));
-      // if(currentPing.y < ticksBounds[0]){
-      //   ticksBounds[0] = currentPing.y;
-      // }
-      // if(currentPing.y > ticksBounds[1]){
-      //   ticksBounds[1] = currentPing.y;
-      // }
-    }
+    // code to enable the moving arrow showing the current ping
+    // the arrow would move up and down the right side
+    // left here in case functionality wants to be added in future
+    // also, because this is a GOOD FEATURE JACK WHY WOULD WE WANT IT REMOVED
+    // if(currentPing){
+    //   currentPing.t = new Date(end);
+    //   pingData.push(currentPing);
+    //   styles.push(triangle);
+    //   colours.push(scoreUtil.getPingColour(currentPing.y));
+    //   // if(currentPing.y < ticksBounds[0]){
+    //   //   ticksBounds[0] = currentPing.y;
+    //   // }
+    //   // if(currentPing.y > ticksBounds[1]){
+    //   //   ticksBounds[1] = currentPing.y;
+    //   // }
+    // }
     average = (average[0] / average[1]).toFixed(2);
     var padding = 5;
     ticksBounds[0] = Math.max(0,ticksBounds[0] - padding); //padding
     ticksBounds[1] = Math.max(ticksBounds[1] + padding, ticksBounds[0] + 20); //padding || bottom bound + 20
     var datasets = [
       {
+        ariaModeTableEveryLine: true,
         data: pingData,
         pointStyle: styles,
         pointBorderColor: colours,
@@ -137,6 +142,7 @@
         showLine: false
       },
       {
+        ariaIgnoreDataset: true,
         data: [{t:min_date,y:average},{t:max_date,y:average}],
         fill: false,
         borderColor: scoreUtil.getPingColour(average),
@@ -145,8 +151,8 @@
         forceTooltips: [true,false]
       }
     ];
-    chart.chart.config.options.scales.xAxes[0].time.min = min_date;
-    chart.chart.config.options.scales.xAxes[0].time.max = max_date;
+    chart.chart.config.options.scales.xAxes[0].ticks.min = min_date;
+    chart.chart.config.options.scales.xAxes[0].ticks.max = max_date;
     chart.chart.config.options.scales.yAxes[0].ticks.min = ticksBounds[0];
     chart.chart.config.options.scales.yAxes[0].ticks.max = ticksBounds[1];
 
@@ -164,7 +170,8 @@
       history_data.push({
         t: new Date(snapTime),
         y: Math.ceil(v),
-        unix: snapTime
+        unix: snapTime,
+        sort_key: snapTime
       });
     });
     history_data.sort(function(a,b) {return a.unix - b.unix});
@@ -189,13 +196,15 @@
     var timeDisplayFormat = "DD MMM";
     chart.options = {
       live: true,
+      animation: false,
       tooltips: {
         displayColors: false,
         callbacks: {
           title: function(tooltipItems, data) {
-            if(data.datasets[tooltipItems[0].datasetIndex].data[tooltipItems[0].index].now) return "Current Ping: " + tooltipItems[0].yLabel + "ms";
-            if(tooltipItems[0].datasetIndex === 1) return "Average Ping: " + tooltipItems[0].yLabel + "ms";
-            return tooltipItems[0].xLabel.toLocaleDateString([], {day:'numeric', month: 'numeric'}) + " " + tooltipItems[0].xLabel.toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit'})
+            if(data.datasets[tooltipItems[0].datasetIndex].data[tooltipItems[0].index].now) return "<%= i18n.currentPing %>: " + tooltipItems[0].yLabel + "ms";
+            if(tooltipItems[0].datasetIndex === 1) return "<%= i18n.averagePing %>: " + tooltipItems[0].yLabel + "ms";
+            var tdate = new Date(tooltipItems[0].xLabel);
+            return tdate.toLocaleDateString([], {day:'numeric', month: 'numeric'}) + " " + tdate.toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit'})
           },
           label: function(tooltipItem, data) {
             if(tooltipItem.datasetIndex === 1 || data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].now) return;
@@ -212,12 +221,10 @@
           display: true,
           distribution: 'linear',
           time: {
-            min: new Date(Date.now() - 86400000),
-            max: new Date(Date.now()),
             displayFormats: {
               'millisecond': timeDisplayFormat,
               'second': timeDisplayFormat,
-              'minute': timeDisplayFormat,
+              'minute': timeDisplayFormat + " HH:MM",
               'hour': timeDisplayFormat + " HH:00",
               'day': timeDisplayFormat,
               'week': timeDisplayFormat,
@@ -228,11 +235,17 @@
             minUnit: 'hour'
           },
           ticks: {
+            min: new Date(Date.now() - 86400000),
+            max: new Date(Date.now()),
             autoSkip: true,
             maxTicksLimit: 12,
             maxRotation: 0,
           },
-          bounds: 'ticks'
+          bounds: 'ticks',
+          scaleLabel: {
+            display: false,
+            labelString: "<%= i18n.dateAndTime %>"
+          }
         }],
         yAxes: [{
           ticks: {
@@ -241,7 +254,7 @@
           },
           scaleLabel: {
             display: true,
-            labelString: "Ping (ms)"
+            labelString: "<%= i18n.pingMS %>"
           }
         }]
       },
@@ -289,8 +302,8 @@
     delete history.references;
     init(category, servers);
     format_history(history);
-    var wi = OnWord("dumaos is the best",function(){do_icons = !do_icons;refresh();}.bind(this));
-    panel.destructorCallback = function(){ current_loop(false);OffWord(wi);};
+    var wi = duma.type.OnWord("dumaos is the best",function(){do_icons = !do_icons;refresh();}.bind(this));
+    panel.destructorCallback = function(){ current_loop(false);duma.type.OffWord(wi);};
     $("#AddToList",context).on("click", OnClickAddToList);
     setHeader();
     $("duma-panel", context).prop("loaded", true);

@@ -1,10 +1,11 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cros@netduma.com>
+ * Kian Cross
 */
 
 <%
 require "libos"
+local platform = os.platform_information()
 %>
 
 (function () {
@@ -17,28 +18,38 @@ function getPath(file) {
 
 browserSetup.onReady(function () {
   $(document).ready(function () {
+    <% if platform.model == "RASPI3B" then %>
     $("duma-panels")[0].add(getPath("cpu-usage.html"), packageId, null, {
-      x: 0, y: 0, width: 4, height: 4
+      x: 0, y: 0, width: 8, height: 6
     });
 
     $("duma-panels")[0].add(getPath("ram-usage.html"), packageId, null, {
-      x: 4, y: 0, width: 4, height: 4
+      x: 8, y: 0, width: 4, height: 6
+    });
+    <% else %>
+    $("duma-panels")[0].add(getPath("cpu-usage.html"), packageId, null, {
+      x: 0, y: 0, width: 6, height: 4
+    });
+
+    $("duma-panels")[0].add(getPath("ram-usage.html"), packageId, null, {
+      x: 6, y: 0, width: 3, height: 4
     });
 
     $("duma-panels")[0].add(getPath("flash-usage.html"), packageId, null, {
-      x: 8, y: 0, width: 4, height: 4
+      x: 9, y: 0, width: 3, height: 4
     });
+    <% end %>
 
     $("duma-panels")[0].add(getPath("system-information.html"), packageId, null, {
-      x: 0, y: 4, width: 4, height: 4
+      x: 0, y: 6, width: 4, height: 4
     });
 
     $("duma-panels")[0].add(getPath("network-status.html"), packageId, null, {
-      x: 4, y: 4, width: 4, height: 4
+      x: 4, y: 6, width: 4, height: 4
     });
 
     $("duma-panels")[0].add(getPath("installed-apps.html"), packageId, null, {
-      x: 8, y: 4, width: 4, height: 4
+      x: 8, y: 6, width: 4, height: 4
     });
 
     <% if os.implements_netgear_specification() then %>

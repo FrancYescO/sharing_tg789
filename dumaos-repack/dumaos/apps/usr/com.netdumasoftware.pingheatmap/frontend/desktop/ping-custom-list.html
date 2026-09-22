@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/duma-panels/duma-panel.html"> <link rel="import" href="/custom-elements/duma-alert/duma-alert.html"> <link rel="import" href="/custom-elements/duma-ip-input/duma-ip-input.html"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html"> <link rel="import" href="/custom-elements/paper-input/paper-input.html"> <link rel="import" href="/custom-elements/paper-button/paper-button.html"> <link rel="import" href="/custom-elements/paper-tooltip/paper-tooltip.html"> <link rel="import" href="/custom-elements/paper-icon-button/paper-icon-button.html"> <link rel="import" href="/custom-elements/iron-icons/iron-icons.html"> <link rel="import" href="/custom-elements/iron-icons/image-icons.html"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/set-tracking.html"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/bulk-add-ip.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="ping-custom-list"> <template> <style is="custom-style" include="duma-theme"> .inputs-wrapper h5 {
+<link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-panels/duma-panel.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-alert/duma-alert.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/duma-ip-input/duma-ip-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-tooltip/paper-tooltip.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-icon-button/paper-icon-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-icons/image-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/set-tracking.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/apps/com.netdumasoftware.pingheatmap/desktop/bulk-add-ip.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="ping-custom-list"> <template> <style is="custom-style" include="duma-theme"> .inputs-wrapper h5 {
         margin-bottom: 0;
       }
       .must-horizontal {
@@ -31,7 +31,7 @@
       #addIpName{
         margin-bottom: -1.5em;
         margin-top: 1em;
-      } </style> <paper-dialog id="dialog" modal> <div class="inner layout vertical"> <div class="layout vertical inputs-wrapper"> <h2>Custom List</h2> <div class="must-horizontal"> <paper-input id="listName" value="{{name}}" label="List Name" required maxlength="32" minlength="0" allowed-pattern="[[_nameRegex]]" prevent-invalid-input pattern="[[_nameRegex]]" auto-validate></paper-input> <paper-icon-button id="set-tracking" icon="schedule" on-click="_track_open"></paper-icon-button> </div> <paper-input id="addIpName" label="IP Address Name" maxlength="32" minlength="0" allowed-pattern="[[_nameRegex]]" prevent-invalid-input pattern="[[_nameRegex]]" auto-validate></paper-input> <div class="must-horizontal"> <duma-ip-input id="addIpInput" error-message="[[_invalidText(_ipTemp)]]"></duma-ip-input> <paper-icon-button id="addIpButton" icon="add" on-click="_add_ip_click"></paper-icon-button> <paper-icon-button id="bulk-edit" icon="image:edit" on-click="_bulk_edit_open"></paper-icon-button> </div> <div class="list-scrollable"> <template id="ipListRepeat" is="dom-repeat" items="[[_ipList(ip_addresses)]]" as="ipData"> <div class="must-horizontal center"> <span class="ip-display">[[_createIpText(ipData)]]</span> <paper-icon-button icon="delete-forever" ip-data="[[ipData]]" on-click="_delete_ip_click"></paper-icon-button> </div> </template> </div> </div> <div class="buttons"> <template is="dom-if" if="[[_edit]]"> <paper-button id="delete" on-click="delete_list">Delete</paper-button> </template> <paper-button id="cancel" dialog-dismiss>Cancel</paper-button> <paper-button id="saveButton" background disabled="[[_saveDisabled(name,ip_addresses)]]" on-click="save_and_close">Save</paper-button> </div> </div> </paper-dialog> <set-tracking id="setTracking"></set-tracking> <bulk-add-ip id="bulkEdit"></bulk-add-ip> <duma-alert id="alert"></duma-alert> </template> <script> var packageId = "com.netdumasoftware.pingheatmap";
+      } </style> <paper-dialog id="dialog" modal> <div class="inner layout vertical"> <div class="layout vertical inputs-wrapper"> <iron-pages selected="[[_page]]" attr-for-selected="name"> <iron-page name="main"> <h2 dialog-label><%= i18n.customList %></h2> <div class="must-horizontal"> <paper-input id="listName" value="{{name}}" label="<%= i18n.listName %>" required maxlength="32" minlength="0" allowed-pattern="[[_nameRegex]]" prevent-invalid-input pattern="[[_nameRegex]]" auto-validate></paper-input> <paper-icon-button id="set-tracking" icon="schedule" on-click="_track_open"></paper-icon-button> </div> </iron-page> <iron-page name="ip-add"> <paper-input id="addIpName" label="<%= i18n.ipName %>" maxlength="32" minlength="0" allowed-pattern="[[_nameRegex]]" prevent-invalid-input pattern="[[_nameRegex]]" auto-validate></paper-input> <div class="must-horizontal"> <duma-ip-input id="addIpInput" error-message="[[_invalidText(_ipTemp)]]"></duma-ip-input> <paper-icon-button id="addIpButton" icon="add" on-click="_add_ip_click"></paper-icon-button> <!-- <paper-icon-button id="bulk-edit" icon="image:edit" on-click="_bulk_edit_open"></paper-icon-button> --> </div> </iron-page> </iron-pages> <div class="list-scrollable"> <template id="ipListRepeat" is="dom-repeat" items="[[_ipList(ip_addresses)]]" as="ipData"> <div class="must-horizontal center"> <span class="ip-display">[[_createIpText(ipData)]]</span> <paper-icon-button icon="delete-forever" ip-data="[[ipData]]" on-click="_delete_ip_click"></paper-icon-button> </div> </template> </div> <div> <template is="dom-if" if="[[_pageEquals(_page,'main')]]"> <paper-button background on-click="_onAddIpClick"><%= i18n.addIP %></paper-button> </template> </div> </div> <div class="buttons"> <template is="dom-if" if="[[_showDelete(_edit,_page)]]"> <paper-button id="delete" on-click="delete_list"><%= i18n.deleteList %></paper-button> </template> <paper-button id="cancel" on-click="cancel_click">[[_cancelButtonText(_page)]]</paper-button> <template is="dom-if" if="[[_pageEquals(_page,'ip-add')]]"> <paper-button id="bulk-edit" on-click="_bulk_edit_open"><%= i18n.bulkEdit %></paper-button> </template> <paper-button id="saveButton" background disabled="[[_saveDisabled(name,ip_addresses)]]" on-click="save_and_close"><%= i18n.saveList %></paper-button> </div> </div> </paper-dialog> <set-tracking id="setTracking"></set-tracking> <bulk-add-ip id="bulkEdit"></bulk-add-ip> <duma-alert id="alert"></duma-alert> </template> <script> var packageId = "com.netdumasoftware.pingheatmap";
 
     Polymer({
       is: "ping-custom-list",
@@ -65,6 +65,10 @@
         _bulkMode: {
           type: Boolean,
           value: false
+        },
+        _page: {
+          type: String,
+          value: "main"
         }
       },
 
@@ -79,6 +83,20 @@
         this._ipInputInputs.on("value-changed",function(e){
           this._ipTemp = e.detail.value;
         }.bind(this));
+      },
+
+      _pageEquals: function(current,testAgainst){
+        return current == testAgainst;
+      },
+      _setPage: function(newPage){
+        this._page = newPage || "main";
+      },
+      _onAddIpClick: function(){
+        this._setPage('ip-add')
+      },
+
+      _showDelete: function(edit,page){
+        return edit && page == "main";
       },
 
       open: function(){
@@ -98,7 +116,7 @@
               this._id = category.identifier;
               this.delete_list();
             }.bind(this)
-            this.$.alert.open("An error occurred while opening the list.", [{ text: "Delete List", action: "dismiss", callback: del_call },{ text: "Ok", default: true, action: "confirm" }])
+            this.$.alert.open("<%= i18n.errorOpen %>", [{ text: "<%= i18n.deleteList %>", action: "dismiss", callback: del_call },{ text: "<%= i18n.ok %>", default: true, action: "confirm" }])
           }
         }.bind(this));
       },
@@ -131,6 +149,7 @@
         this._edit = false;
         this._track = null;
         this._oldTrack = null;
+        this._page = "main";
       },
 
       _ipChanged: function(newValue){
@@ -138,8 +157,8 @@
       },
       _invalidText: function(ip_address){
         return !this.$.addIpInput.validate() ? (
-          this._hasIp(ip_address) ? "IP Address already in list" : "Invalid IP address"
-          ) : "Invalid";
+          this._hasIp(ip_address) ? "<%= i18n.errorExists %>" : "<%= i18n.errorInvalid %>"
+          ) : "<%= i18n.invalid %>";
       },
 
       _refresh: function(){
@@ -167,7 +186,6 @@
         return !!this.ip_addresses[ip];
       },
       _ipValid: function(){
-        console.log("NAME",this.$.addIpName.validate())
         return this.$.addIpInput.validate() && this.$.addIpName.validate();
       },
       _deleteIp: function(ip_address){
@@ -238,7 +256,7 @@
             }
           }.bind(this));
         }else{
-          this.$.alert("Custom list not found");
+          this.$.alert("<%= i18n.errorNotFound %>");
         }
       },
 
@@ -266,6 +284,17 @@
         this.$.dialog.open();
         this._track = cronString;
         this._oldTrack = oldRule;
+      },
+
+      cancel_click: function(){
+        if(this._page !== "main"){
+          this._page = "main"
+        }else{
+          this.$.dialog.close();
+        }
+      },
+      _cancelButtonText: function(page){
+        return page == "main" ? "<%= i18n.cancel %>" : "<%= i18n.back %>";
       },
 
       behaviours: [

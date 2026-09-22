@@ -1,6 +1,6 @@
 {
   "package" : "com.netdumasoftware.benchmark",
-  "version" : "0.0.1",
+  "version" : "2.0.0",
   "name": "Connection Benchmark",
   "foreground" : true,
   "background" : true,

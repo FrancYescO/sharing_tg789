@@ -3,6 +3,12 @@
 * Utility functions.
 */
 
+<%
+  local libos = require("libos")
+  local platform_information = os.platform_information()
+%>
+
+
 function svg_2d( fn, x , y ){
   var out = fn + "(" + x;
   if( is_defined( y ) )
@@ -23,24 +29,8 @@ function svg_scale( x, y ){
 
 /* Binary prefix's */
 function binary_format( x ){
-	var bin_prefix = [
-		 [ 30, 'Gi' ]
-		,[ 20, 'Mi' ]
-		,[ 10, 'Ki' ]
-		,[  0, '' ]
-	]
-
-	var suffix,unit;
-
-	for( var i = 0; i < bin_prefix.length; i++ ){
-		unit = Math.pow( 2, bin_prefix[i][0] );
-		if( x >= unit || ( !x && unit == 1 ) ){
-			suffix = bin_prefix[i][1];
-			break;
-		}
-	}
-
-	return "" + ( ( x / unit ) ).toFixed(1) + " " + suffix + "B";
+  // we remade this further down, so just use that one instead
+  return format_binary(x);
 }
 
 function SI_suffix_format( x, suffix ){
@@ -929,5 +919,254 @@ function isBrowserHighPerformance(callback) {
       }
       resolve(score > 2);
     });
+  });
+}
+
+function _default_pow_units(index){
+  var defaults = ["","k","m","b","t"];
+
+  if(index < defaults.length){
+    return defaults[index];
+  }else{
+    var aIndex = 'a'.charCodeAt(0);
+    var uStart = index - defaults.length;
+    var secondChar = uStart % 26;
+    var firstChar = uStart / 26;
+    return String.fromCharCode(firstChar + aIndex) + String.fromCharCode(secondChar + aIndex);
+  }
+}
+
+function format_pow(num,options){
+  var scale = options && options.scale || 10;
+  var round = options && options.round || 100;
+  var multi = options && options.multi || 1000;
+  var symbols = options && options.symbols || _default_pow_units;
+  var sep = options && options.separator || '';
+  var len = Array.isArray(symbols) ? symbols.length : 32;
+  for(var i = 0;i < len; ++i){
+    var pow = Math.pow(multi,i);
+    var amount = Math.round((num / pow) * round)/round;
+    // when equal, we want to display something like 1mb instead of 1000kb, so continue to next level
+    if(amount >= multi*scale){
+      continue;
+    }
+    var sym = typeof symbols === "function" ? symbols.call(this,i) : symbols[i];
+    if(i == 0) {
+      return num + sep + sym;
+    }else{
+      return amount + sep + sym;
+    }
+  }
+  return num;
+}
+
+var __byteSymbols = ['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
+function format_bytes(bytes,scale=10,multi=1000){
+  return format_pow(bytes,{symbols:__byteSymbols, scale:scale, multi:multi, separator:' '});
+}
+var __binarySymbols = ['B','KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+function format_binary(bytes,scale=1,multi=1024){
+  return format_pow(bytes,{symbols:__binarySymbols, scale:scale, multi:multi, separator:' '});
+}
+var __bpsSymbols = ['bps','Kbps','Mbps','Gbps','Tbps','Pbps','Ebps','Zbps','Ybps'];
+function format_bps(bps,scale=1,multi=1024){
+  return format_pow(bps,{symbols:__bpsSymbols, scale:scale, multi:multi, separator: ' '});
+}
+
+function fireTop(eventString){
+  var reloadEvent = document.createEvent("HTMLEvents");
+  reloadEvent.initEvent(eventString,true,true);
+  if(top !== window){
+    document.dispatchEvent(reloadEvent);
+  }else{
+    $("iframe")[0].contentWindow.document.dispatchEvent(reloadEvent);
+  }
+}
+
+/**
+ * Create a websocket, by passing in port and command/data
+ * @param {number|[number,number]} port The port is either a number or an array.
+ * If a number, then it will use `port` for ws, `port + 1000` for wss.
+ * If array, it will use `port[0]` for ws, `port[1]` for wss.
+ * @param {string} data The command/data to open with
+ * @returns {WebSocket}
+ * @example var socket = newWebSocket(8071,"benchmark") -> ws: 8071, wss: 9071
+ * @example var socket = newWebSocket([8071,8093],"benchmark") -> ws: 8071, wss: 8093
+ */
+function newWebSocket(port,data){
+  var isSec = top.location.protocol.indexOf("https") > -1;
+  var normalPort = Array.isArray(port) ? port[0] : port;
+  var securePort = Array.isArray(port) ? port[1] : port + 1000;
+  var port = isSec ? securePort : normalPort;
+  if(!port) throw new Error("Invalid port for websocket");
+  var url = "{0}://{1}/duma-socket/{2}";
+  return new WebSocket(url.format(isSec ? "wss" : "ws",document.domain,port),data);
+}
+
+/**
+ * Makes an rpc call to the rapp to get the websocket ports, then creates the websocket that way
+ * @param {*} rapp The id of the rapp
+ * @param {*} data The command / data to send
+ * @returns {Promise<WebSocket>} a promise resolving to a websocket
+ * 
+ * @example
+ * newFetchedWebSocket(packageId, "benchmark").then((socket) => {
+ *   this.websocket = socket;
+ *   socket.addEventListener(`open`, this.SocketOpen.bind(this));
+ *   socket.addEventListener(`close`, this.SocketClose.bind(this));
+ *   socket.addEventListener(`error`, this.SocketError.bind(this));
+ *   socket.addEventListener(`message`, this.SocketRecieveMessage.bind(this));
+ * });
+ */
+function newFetchedWebSocket(rapp, data){
+  return new Promise((resolve, reject) => {
+    long_rpc_promise(rapp, "get_websocket_ports", [data]).then((ports) => {
+      var socket = newWebSocket(ports,data);
+      if(socket) resolve(socket);
+      else reject();
+    }).catch(reject);
+  });
+}
+
+
+/**
+ * Load and cache the countries json, and create a list of country names.
+ * Retrieved using the functions loadCountriesJSON() and loadCountriesList().
+ */
+var countryListCache;
+var countriesJSONCache;
+var load_countries_promise;
+/**
+ * Load the countries geo json for the map, such as duma-map.
+ * If it's already been cached, just return that instead.
+ * If a promise already exists for it, return that promise instead of creating a new request.
+ * @returns a Promise to get the geoJSON of the map
+ */
+function loadCountriesJSON(){
+  //If a promise doesn't exist, create a new promise to wait for the ajax request
+  if(!load_countries_promise){
+    load_countries_promise = new Promise(function(resolve,reject){
+      //if the data already exists, then resolve that
+      if(countriesJSONCache){
+        resolve(countriesJSONCache);
+        load_countries_promise = null;
+        return;
+      }
+      // get the geojson
+      safe_getJSON_promise("/json/countries.json").then(function(data){
+        //save the geojson in the cache variable
+        countriesJSONCache = data;
+        load_countries_promise = null;
+        resolve(data);
+      }).fail(reject);
+    });
+    load_countries_promise.catch(console.error);
+  }
+  return load_countries_promise;
+}
+/**
+ * Return a list of country names, and states if provided.
+ * @returns a Promise with object: {
+ *    countries: {
+ *      name: string,
+ *      index: number, // index in geoJSON object,
+ *      stateList: string // key for states object - list of states belonging to this
+ *    }[],
+ *    states: {
+ *      [index: string] : string[]
+ *    }
+ * }
+ */
+function loadCountriesList(){
+  return new Promise(function(resolve,reject){
+    // if the country list has already been made, just return that
+    if(countryListCache){
+      resolve(countryListCache);
+      return;
+    }
+    loadCountriesJSON().then(function(countries){
+      // US is added because US is not in countries json: all states are listed independantly
+      var out = {
+        countries: [{name: "<%= i18n and i18n.unitedStates %>", index: -1, stateList: "US"}],
+        states: {}
+      }
+      for(var i = 0; i < countries.features.length; i++){
+        var props = countries.features[i].properties;
+        if(props){
+          // if properties of this object has the StateOf set, then insert to the states object. Otherwise, insert to the countries list.
+          if(props.StateOf){
+            if(!out.states[props.StateOf]) out.states[props.StateOf] = [];
+            out.states[props.StateOf].push(props.Name);
+          }else{
+            out.countries.push(
+              {
+                name: props.Name,
+                index: i
+              }
+            );
+          }
+        }
+      }
+      function sortAscAlphabetic(a,b){
+        var x = a.toLowerCase();
+        var y = b.toLowerCase();
+        if (x < y) {return -1;}
+        if (x > y) {return 1;}
+        return 0;
+      }
+      function sortName(a,b){
+        var x = a.name.toLowerCase();
+        var y = b.name.toLowerCase();
+        return sortAscAlphabetic(x,y);
+      }
+      //preemptively sort them to save time later
+      out.countries.sort(sortName);
+      for(var key in out.states){
+        out.states[key].sort(sortAscAlphabetic);
+      }
+      //save to cache
+      countryListCache = out;
+      resolve(countryListCache);
+    });
+  });
+}
+
+
+//Moved these to global from try-the-mobile-app.html
+//These test the browser's user agent/vendor/opera to see if the device they're on is a mobile device, or the second function also includes tablet devices
+function _isMobile(){
+  var check = false;
+  (function(a){
+    if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)
+    ||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4)))
+      check = true;
+  })(navigator.userAgent||navigator.vendor||window.opera);
+  return check;
+}
+function _isMobileOrTablet(){
+  let check = false;
+  (function(a){
+    if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a)
+    ||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4)))
+      check = true;
+  })(navigator.userAgent||navigator.vendor||window.opera);
+  return check;
+}
+
+/**
+ * Get if blocking network traffic is disabled.
+ * Used to tell when vendors want to disable us blocking
+ */
+function is_blocking_disabled() {
+  return long_rpc_promise('com.netdumasoftware.config', 'is_blocking_disabled', []).then(function(result){
+    if(result != null && result.length){
+      return !!result[0];
+    }else{
+      return false;
+    }
+  }, function(err){
+    // if this errors, the rpc doesn't exist, and so we don't need to worry about it
+    console.err(err);
+    return false;
   });
 }

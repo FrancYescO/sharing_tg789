@@ -3,7 +3,7 @@
   Iain Fraser
 
   Flower polymer widget for allcoated shared distribution.
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <link rel="import" href="/libs/d3.html"> <link rel="import" href="/libs/util.html"> <link rel="import" href="/libs/math.html"> <link rel="import" href="/libs/sprintf.html"> <dom-module id="duma-flower"> <template> <style include="duma-theme"> :host {
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/d3.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/math.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/sprintf.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-flower"> <template> <style include="duma-theme"> :host {
         display: block;
         position: absolute;			
         height: 100%;
@@ -61,7 +61,7 @@
 
       .svg_ratio_widget:hover	.outskirt	{
         fill: var(--diabled-color);
-      } </style> <div class="svg-container"> <svg id="container"> </svg> </div> </template> <script> // constants
+      } </style> <div class="svg-container"> <svg class="duma-flower-container" aria-label="[[label]]"> </svg> </div> </template> <script> // constants
     var R = 12;         // size of petals
     var epsilon = 0.01;
     var pi2 = Math.PI * 2;  
@@ -147,7 +147,7 @@
     function clip_string( x ){
       var max_length = 10;
       if( x.length > max_length )
-        return x.substring( 0, max_length );
+        return x.substring( 0, max_length ) + '..';
       else
         return x;
     }
@@ -421,12 +421,12 @@
           return p[0] > 0 ? "start" : "start"; 
         } )
         .attr("dy", "-0.3em" )
-        .text( function( d, i ){ return d.name; } )
+        .text( function( d, i ){ return clip_string( d.name ); } )
      
     }
 
     function create_origin(){
-      var svg = this.$$("#container")
+      var svg = this.$$(".duma-flower-container")
       $(svg).empty();
       this.scopeSubtree( svg, true);
 
@@ -457,7 +457,7 @@
 
 
     function do_dimensions(){
-      var obj = this.$$("#container");
+      var obj = this.$$(".duma-flower-container");
       if( is_undefined( this.width ) ) 
           this.width = $( this ).width();
 
@@ -473,7 +473,7 @@
       this.height = dims.height;
 
       if( !this.dimensions_ready ){
-        var svg = d3.select( this.$$("#container") )
+        var svg = d3.select( this.$$(".duma-flower-container") )
           svg.attr("width",  this.width )
             .attr("height", this.height )
             .attr("viewBox", [0,0,this.width,this.height].join(" ") )
@@ -519,7 +519,7 @@
   
     function do_update_node( i, mag ){
       do_more_update_node(i, mag, this.data);
-      var sliders = d3.select( this.$$("#container") ).selectAll(".slider");
+      var sliders = d3.select( this.$$(".duma-flower-container") ).selectAll(".slider");
       update_sliders.call( this, this.data, sliders );
     }
 
@@ -543,7 +543,8 @@
         data: { type: Array, observer: '_datachange' },
         aspect_ratio : { type: Number, value: 1.1 },
         min_width : { type: Number, value: 720 },
-        dimensions_ready : { type: Boolean, value: false }
+        dimensions_ready : { type: Boolean, value: false },
+        label : { type: String }
       },
       _datachange : function( newValue, oldValue ){
         render.call( this );

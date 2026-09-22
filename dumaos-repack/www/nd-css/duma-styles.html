@@ -1,7 +1,7 @@
 <!--
   (C) 2016 NETDUMA Software
   Josh Clarke <josh.clarke@netdma.com>
---> <link rel="import" href="../custom-elements/polymer/polymer.html"> <!-- custom-style.html --> <dom-module id="duma-styles"> <template> <style is="custom-style"> :root {    
+--> <link rel="import" href="../custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!-- custom-style.html --> <dom-module id="duma-styles"> <template> <style is="custom-style"> :root {    
 				--primary-text-color: <%= theme.PRIMARY_TEXT_COLOR %>;
 				--primary-background-color: <%= theme.PRIMARY_BACKGROUND_COLOR %>;
 				--primary-background-rgb: <%= theme.PRIMARY_BACKGROUND_RGB %>;
@@ -148,7 +148,7 @@
         height: 24px;
         width: 24px;
         padding: 0;
-      }
+      }  
       paper-icon-button {
         --paper-icon-button: {
           transition: color ease 150ms;  
@@ -165,6 +165,12 @@
         max-width: 48px;
         padding: 8px;
       }
+      paper-icon-button[background],
+      ::content paper-icon-button[background] {
+        background: var(--primary-color);
+        color: var(--primary-text-color);
+        border-radius: 3px;
+      }          
       
       /* paper-button */
       ::content paper-button,
@@ -179,6 +185,7 @@
           opacity: 0.5;
         };
       }
+
       paper-button[background],
       ::content paper-button[background]  {   
         background: var(--primary-color);
@@ -341,6 +348,7 @@
 			
 			/* paper-toggle-button */
 			paper-toggle-button {
+        cursor: pointer;
 				padding: 8px 12px 8px 0;
 			}
 			paper-toggle-button ::content .toggle-button.paper-toggle-button {
@@ -373,6 +381,10 @@
         --paper-progress-container-color: var(--secondary-text-color);
         width: 100%;
       }
+      ::content paper-progress[accent],
+      paper-progress[accent] {
+        --paper-progress-active-color: var(--accent-color);
+      }
 
       /* paper-badge */
       paper-badge {
@@ -382,8 +394,11 @@
       }
       
       /* paper-toast */
+      ::content paper-toast,
       paper-toast {
         z-index: 100;
+        --paper-toast-background-color: var(--primary-background-color);
+        --paper-toast-color: var(--primary-text-color);
       }
       /* paper-tooltip */
       ::content paper-tooltip,
@@ -402,12 +417,19 @@
       paper-slider,
       ::content paper-slider {
         width: 100%;
+        min-width: 160px;
         --paper-slider-height: 2px;
         --paper-slider-active-color: var(--primary-color);
-        --paper-slider-secondary-color: var(--light-primary-color);
+        --paper-slider-disabled-active-color: var(--disabled-text-color);
+        --paper-slider-disabled-secondary-color: var(--disabled-text-color);
+        --paper-slider-secondary-color: var(--dark-primary-color);
+        --paper-slider-markers-color: var(--primary-color);
         --paper-slider-container-color: var(--secondary-text-color);
         --paper-slider-knob-color: var(--primary-color);
+        --paper-slider-knob-start-color: var(--secondary-text-color);
+        --paper-slider-knob-start-border-color: var(--secondary-text-color);
         --paper-slider-pin-color: var(--primary-color);
+        --paper-slider-pin-start-color: var(--secondary-text-color);
         --paper-slider-input: {
           width: 72px;
           min-width: 72px;
@@ -416,18 +438,41 @@
           padding: 4px 0 4px 8px;
         }             
       }
-      paper-slider ::content #sliderContainer {
-        margin-left: 6px;
+      paper-slider[accent],
+      ::content paper-slider[accent] {
+        --paper-slider-active-color: var(--accent-color);
+        --paper-slider-secondary-color: var(--dark-accent-color);
+        --paper-slider-markers-color: var(--accent-color);
+        --paper-slider-container-color: var(--secondary-text-color);
+        --paper-slider-knob-color: var(--accent-color);
+        --paper-slider-pin-color: var(--accent-color);
+        --paper-slider-pin-start-color: var(--secondary-text-color);
       }
-      paper-slider ::content #sliderContainer.editable {
+      paper-slider ::content .slider-container {
+        margin-left: 6px;
+        cursor: pointer;
+      }
+      paper-slider ::content .slider-container.editable {
         margin-top: 4px;
         margin-bottom: 4px;
       }
-      paper-slider ::content #sliderContainer .slider-knob-inner:after {
+      paper-slider ::content .slider-container .slider-knob-inner:after {
         top: -3px;
         left: 49.5%
       }
+      ::content paper-slider ::content .slider-container.ring > .slider-knob > .slider-knob-inner:after,
+      paper-slider ::content .slider-container.ring > .slider-knob > .slider-knob-inner:after {
+        color: var(--primary-background-color);
+      }
+      ::content paper-slider ::content .slider-container.ring > .slider-knob > .slider-knob-inner,
+      paper-slider ::content .slider-container.ring > .slider-knob > .slider-knob-inner {
+        border: none;
+      }      
             
+      ::content vertical-slider ::content .slider-container,
+      vertical-slider ::content .slider-container  {
+        cursor: pointer;
+      }
       /* paper-spinner */
       paper-spinner {
         vertical-align: middle;
@@ -596,4 +641,35 @@
       iron-overlay-backdrop {
         --iron-overlay-backdrop-opacity: 0.75;
         --iron-overlay-backdrop-background-color: var(--primary-background-color);
+      }
+      
+      ::content .chart-wrapper {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+        height: 100%;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      ::content .chart-wrapper[vertical] {
+        @apply(--layout-vertical);
+        flex-wrap: nowrap;
+      }
+      .sr-only:not(:focus):not(:active) {
+        clip: rect(0 0 0 0); 
+        clip-path: inset(50%);
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap; 
+        width: 1px;
+      }
+      
+      ::content *:not([exclude-focus-outline]):focus-visible,
+      *:not([exclude-focus-outline]):focus-visible {
+        outline: var(--primary-text-color) 2px dotted !important;
+        outline-offset: -2px;
+      }      
+      ::content *:focus:not(:focus-visible),
+      *:focus:not(:focus-visible)      {
+        outline: none !important;
       } </style> </template> </dom-module> 

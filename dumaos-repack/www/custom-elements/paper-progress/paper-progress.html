@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html"> <link rel="import" href="../iron-range-behavior/iron-range-behavior.html"> <link rel="import" href="../paper-styles/color.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-range-behavior/iron-range-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/color.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Progress & activity](https://www.google.com/design/spec/components/progress-activity.html)
 
 The progress bars are for situations where the percentage completed can be
@@ -90,30 +90,30 @@ Custom property                                  | Description                  
         display: none !important;
       }
 
-      #progressContainer {
+      .paper-progress-container {
         @apply(--paper-progress-container);
         position: relative;
       }
 
-      #progressContainer,
+      .paper-progress-container,
       /* the stripe for the indeterminate animation*/
       .indeterminate::after {
         height: var(--paper-progress-height, 4px);
       }
 
-      #primaryProgress,
-      #secondaryProgress,
+      .paper-progress-primary,
+      .paper-progress-secondary,
       .indeterminate::after {
         @apply(--layout-fit);
       }
 
-      #progressContainer,
+      .paper-progress-container,
       .indeterminate::after {
         background: var(--paper-progress-container-color, --google-grey-300);
       }
 
-      :host(.transiting) #primaryProgress,
-      :host(.transiting) #secondaryProgress {
+      :host(.transiting) .paper-progress-primary,
+      :host(.transiting) .paper-progress-secondary {
         -webkit-transition-property: -webkit-transform;
         transition-property: transform;
 
@@ -130,8 +130,8 @@ Custom property                                  | Description                  
         transition-delay: var(--paper-progress-transition-delay, 0s);
       }
 
-      #primaryProgress,
-      #secondaryProgress {
+      .paper-progress-primary,
+      .paper-progress-secondary {
         @apply(--layout-fit);
         -webkit-transform-origin: left center;
         transform-origin: left center;
@@ -140,30 +140,30 @@ Custom property                                  | Description                  
         will-change: transform;
       }
 
-      #primaryProgress {
+      .paper-progress-primary {
         background: var(--paper-progress-active-color, --google-green-500);
       }
 
-      #secondaryProgress {
+      .paper-progress-secondary {
         background: var(--paper-progress-secondary-color, --google-green-100);
       }
 
-      :host([disabled]) #primaryProgress {
+      :host([disabled]) .paper-progress-primary {
         background: var(--paper-progress-disabled-active-color, --google-grey-500);
       }
 
-      :host([disabled]) #secondaryProgress {
+      :host([disabled]) .paper-progress-secondary {
         background: var(--paper-progress-disabled-secondary-color, --google-grey-300);
       }
 
-      :host(:not([disabled])) #primaryProgress.indeterminate {
+      :host(:not([disabled])) .paper-progress-primary.indeterminate {
         -webkit-transform-origin: right center;
         transform-origin: right center;
         -webkit-animation: indeterminate-bar var(--paper-progress-indeterminate-cycle-duration, 2s) linear infinite;
         animation: indeterminate-bar var(--paper-progress-indeterminate-cycle-duration, 2s) linear infinite;
       }
 
-      :host(:not([disabled])) #primaryProgress.indeterminate::after {
+      :host(:not([disabled])) .paper-progress-primary.indeterminate::after {
         content: "";
         -webkit-transform-origin: center center;
         transform-origin: center center;
@@ -234,7 +234,7 @@ Custom property                                  | Description                  
         100% {
           transform: scaleX(.75) translateX(125%);
         }
-      } </style> <div id="progressContainer"> <div id="secondaryProgress" hidden$="[[_hideSecondaryProgress(secondaryRatio)]]"></div> <div id="primaryProgress"></div> </div> </template> </dom-module> <script> Polymer({
+      } </style> <div class="paper-progress-container"> <div class="paper-progress-secondary" hidden$="[[_hideSecondaryProgress(secondaryRatio)]]"></div> <div class="paper-progress-primary"></div> </div> </template> </dom-module> <script> Polymer({
     is: 'paper-progress',
 
     behaviors: [
@@ -287,10 +287,22 @@ Custom property                                  | Description                  
       role: 'progressbar'
     },
 
+    get $primaryProgress() {
+      return this.__$primaryProgress || (this.__$primaryProgress = this.$$(".paper-progress-primary"));
+    },
+
+    get $secondaryProgress() {
+      return this.__$secondaryProgress || (this.__$secondaryProgress = this.$$(".paper-progress-secondary"));
+    },
+
+    get $progressContainer() {
+      return this.__$progressContainer || (this.__$progressContainer = this.$$(".paper-progress-container"));
+    },
+
     _toggleIndeterminate: function(indeterminate) {
       // If we use attribute/class binding, the animation sometimes doesn't translate properly
       // on Safari 7.1. So instead, we toggle the class here in the update method.
-      this.toggleClass('indeterminate', indeterminate, this.$.primaryProgress);
+      this.toggleClass('indeterminate', indeterminate, this.$primaryProgress);
     },
 
     _transformProgress: function(progress, ratio) {
@@ -299,7 +311,7 @@ Custom property                                  | Description                  
     },
 
     _mainRatioChanged: function(ratio) {
-      this._transformProgress(this.$.primaryProgress, ratio);
+      this._transformProgress(this.$primaryProgress, ratio);
     },
 
     _progressChanged: function(secondaryProgress, value, min, max) {
@@ -310,8 +322,8 @@ Custom property                                  | Description                  
       var mainRatio = this._calcRatio(value) * 100;
 
       this._setSecondaryRatio(secondaryRatio);
-      this._transformProgress(this.$.secondaryProgress, secondaryRatio);
-      this._transformProgress(this.$.primaryProgress, mainRatio);
+      this._transformProgress(this.$secondaryProgress, secondaryRatio);
+      this._transformProgress(this.$primaryProgress, mainRatio);
 
       this.secondaryProgress = secondaryProgress;
 

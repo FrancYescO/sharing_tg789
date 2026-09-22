@@ -1,6 +1,7 @@
 /*
- * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * (C) 2020 NETDUMA Software
+ * Kian Cross
+ * Luke Meppem
 */
 
 <%
@@ -12,6 +13,9 @@ var desktopAppId = "com.netdumasoftware.desktop";
 var systemInfoAppId = "com.netdumasoftware.systeminfo";
 var configAppId = "com.netdumasoftware.config";
 var procmanagerAppId = "com.netdumasoftware.procmanager";
+var hasBeenFactoryReset = false;
+var notificationRefresh = 0;
+var _doUpdateFirmwareDialogBind = true;
 
 function apps() {
   return Q.promise(function (resolve, reject) {
@@ -133,19 +137,21 @@ function loadApp(appId, callback) {
   changeApplication(app, callback);
 }
 
-function generateApplicationIframe(id, callback) {
+function generateApplicationIframe(app, callback) {
   var frame = $("<iframe></iframe>")
     .css("visibility", "hidden")
-    .attr("id", id)
+    .attr("id", app.id)
+    .attr("title", app.title)
     .one("load", function () {
       $(this).css("visibility", "visible");
       
       callback(this);
 
       hideApplicationLoader();
+      bindGlobalMenuIframeEvents(this);
     });
 
-  $(frame).attr("src", "/apps/" + id + "/desktop/??v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>");
+  $(frame).attr("src", "/apps/" + app.id + "/desktop/index.html??v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>");
 
   return frame;
 }
@@ -158,9 +164,9 @@ function getFormattedDate(date) {
 
 function setAppHelpButtonVisible(show) {
   if (show) {
-    $("#app-help-button").show();
+    $("#app-help-button").show().attr("aria-disabled",false).attr("aria-hidden",false);
   } else {
-    $("#app-help-button").hide();
+    $("#app-help-button").hide().attr("aria-disabled",true).attr("aria-hidden",true);
   }
 }
 
@@ -173,6 +179,37 @@ function getTour(windowContext, desktop) {
   ) {
     return windowContext.duma.tour.getTour(desktop);
   }
+}
+
+function appHelpVisibleRefresh(frame){
+  if(!frame) frame = $("#application").find("iframe")[0];
+  if(frame && frame.contentWindow)
+    frame.contentWindow.browserSetup.onReady(function () {
+      setAppHelpButtonVisible(typeof getTour(frame.contentWindow) !== "undefined");
+    });
+}
+
+function showTourCanBeFoundHereTooltip(){
+  var tooltip = $("#tour-help-tooltip");
+  tooltip.find(".tooltip-close").on("click",function(){
+    tooltip[0].hide();
+  });
+  tooltip[0].show();
+  tooltip[0].onmouseleave = function(e){
+    this.hide();
+  }
+}
+
+function bindReloadToursEvent(){
+  $("#application").find("iframe").load(function(){
+    var contents = $(this).contents(); // contents of the iframe
+    contents.on('reload-tours', function() {
+      appHelpVisibleRefresh(); 
+    });
+    contents.on('show-tour-found-here', function() {
+      showTourCanBeFoundHereTooltip();
+    });
+  });
 }
 
 function changeApplication(app, callback) {
@@ -188,22 +225,25 @@ function changeApplication(app, callback) {
 
   setPageTitle(app.title);
 
-  $("#application").append(generateApplicationIframe(app.id, function (frame) {
+  $("#application").append(generateApplicationIframe(app, function (frame) {
 
-    frame.contentWindow.browserSetup.onReady(function () {
-      setAppHelpButtonVisible(typeof getTour(frame.contentWindow) !== "undefined");
-    });
+    appHelpVisibleRefresh();
 
     if (callback) {
       callback(frame);
     }
+    checkStartTour();
   }));
   bindReloadSideBarEvent();
+  bindReloadToursEvent();
 }
 
 function bindNotificationBarEvent() {
   $("#notifications-open, #notifications-close").click(function () {
     $("#notification-drawer")[0].toggle();
+  });
+  $("#delete-all-notifications").click(function() {
+    deleteAllNotifications();
   });
 }
 
@@ -213,11 +253,15 @@ function findApp(id, apps) {
   });
 }
 
-function setNotificationNumber(notificationNumber) {
-  if (notificationNumber) {
-    $("#notification-number").prop("label", notificationNumber);
+function setNotificationNumber(notificationNumber,append=false) {
+  var notificationNumberElement = $("#notification-number");
+  var offset = append ? parseInt(notificationNumberElement.prop("label") || 0) : 0;
+  var final = notificationNumber + offset;
+  if (final) {
+    notificationNumberElement.show();
+    notificationNumberElement.prop("label", final);
   } else {
-    $("#notification-number").hide();
+    notificationNumberElement.hide();
   }
 }
 
@@ -246,7 +290,7 @@ function deleteNotification(
 ) {
   function on_notification_deleted() {
     $(notificationElement).remove();
-    setNotificationNumber($("#notification-number").prop("label") - notificationClass.length);
+    setNotificationNumber(0 - notificationClass.length,true);
   }
 
   if (appId === "cloud") {
@@ -259,7 +303,15 @@ function deleteNotification(
 
   if ($("#notification-number").prop("label") === 0) {
     showNoNotificationsMessage();
+  }else{
+    hideNoNotificationsMessage();
   }
+}
+
+function deleteAllNotifications(){
+  long_rpc_promise(desktopAppId,"delete_all_notifications",[]).done(function(){
+    reloadNotifications();
+  });
 }
 
 function appendToElement(parent, children) {
@@ -406,9 +458,14 @@ function generateNotification(app, appId, title, apps) {
 function showNoNotificationsMessage() {
   $("#no-notifications-message").show();
 }
+function hideNoNotificationsMessage() {
+  $("#no-notifications-message").hide();
+}
 
 function loadNotifications(notifications, apps) {
   notifications = processNotifications(notifications);
+  var notiEl = $("#notifications");
+  notiEl.children().not("#no-notifications-message").remove();
 
   for (var appId in notifications) {
     if (notifications.hasOwnProperty(appId)) {
@@ -417,7 +474,7 @@ function loadNotifications(notifications, apps) {
       for (var title in app) {
         if (app.hasOwnProperty(title)) {
           appendToElement(
-            $("#notifications"),
+            notiEl,
             generateNotification(app, appId, title, apps)
           );
         }
@@ -427,7 +484,19 @@ function loadNotifications(notifications, apps) {
 
   if (jQuery.isEmptyObject(notifications)) {
     showNoNotificationsMessage();
+  }else{
+    hideNoNotificationsMessage();
   }
+}
+
+function reloadNotifications(){
+  Q.spread([
+    apps(),
+    notifications()
+  ], function (apps, notifications) {
+    loadNotifications(notifications, apps);
+    setNotificationNumber(notifications.length);
+  });
 }
 
 function bindOnHashChange() {
@@ -485,6 +554,20 @@ function startDisconnectPoll(success, failure) {
           top.location="/multi_login.html";
           return;
         }
+        if( response.indexOf("<!DOCTYPE HTML>") != -1 ){
+          <% if platform_information.model == "LH1000" then %>
+          location.replace(location.protocol + "//" + location.hostname + "/home.htm");
+          <% elseif platform_information.odm == "TECHNICOLOR" then %>
+            <% if platform_information.model == "DJA0231" or platform_information.model == "DJA0230" then %>
+              location.replace(location.protocol + "//" + location.hostname + "/home.lp");
+            <% else %>
+              location.replace(location.protocol + "//" + location.hostname + "/gateway.lp");
+            <% end %>
+          <% else %>
+          location.reload();
+          <% end %>
+          return;
+        }
 
         var parsedResponse = JSON.parse(response);
 
@@ -492,10 +575,15 @@ function startDisconnectPoll(success, failure) {
         var url = location.protocol + "//" + "routerlogin.net";   
 
         if (parsedResponse.router) {
+          if( hasBeenFactoryReset ){
+            location.reload();
+            return;
+          }
           /*
           * Make sure in correct mode either Router or AP.
           */
           if( Boolean( apMode ) != Boolean( parsedResponse.ap_mode ) ){
+            apMode = parsedResponse.ap_mode;
             DelayedRedirect( url, apChangeDelay );
             return;
           }
@@ -519,6 +607,16 @@ function startDisconnectPoll(success, failure) {
           ) {
             location.reload();
             return;
+          }
+
+          if (parsedResponse.notificationRefresh !== notificationRefresh){
+            reloadNotifications();
+            notificationRefresh = parsedResponse.notificationRefresh;
+          }
+
+          // deprecation resetting
+          if (parsedResponse.accessibilityMode === true){
+            passRouterA11yToLocalA11y();
           }
 
           success();
@@ -642,7 +740,9 @@ function checkChromeWindowsHttps() {
       return;
 
     } else {
+      <% if platform_information.vendor ~= "TELSTRA" then %>
       location.href = "/desktop/chrome-https.html";
+      <% end %>
       return;
     }
   }
@@ -654,10 +754,34 @@ function bindLogoutButtonClick() {
     serial_netgear_soap_rpc("DeviceConfig", "WebLogout").done( function( obj ){ 
       top.location="/goodbye.html";
     });
+    <% elseif platform_information.model == "LH1000" then %>
+    //Ripped from LH000
+    var dLogout=GetCookie("disableLogout");
+    dLogout=(dLogout)?dLogout:0;
+    if(dLogout==0){              
+      window.location.href=URLTimeStamp("/logout.htm");
+    }
+    <% elseif platform_information.odm == "TECHNICOLOR" then %>
+    var token = $("meta[name=CSRFtoken]").attr("content");
+    if(token){
+
+      $.ajax({
+        url: "/login.lp",
+        type: 'POST',
+        data: {
+          do_signout: 1,
+          CSRFtoken: token
+        },
+        success: function(data){
+          console.log("Logging out...")
+        }
+      })
+    }
     <% else %>
     // document.location = "http://log:out@" + document.domain;
     var xml = new XMLHttpRequest();
     xml.open('GET',document.baseURI,false,"a","a");
+    xml.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     xml.send('');
     // console.log(xml,document.domain)
     <% end %>
@@ -700,12 +824,16 @@ function bindAccountSettings() {
     }
   });
 
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  }
+
   $("#account-settings-password").change(function () {
 
     var passwordConfirmation = $("#account-settings-password-confirmation")[0];
 
     $(passwordConfirmation)
-      .prop("pattern", "^" + $(this).val() + "$");
+      .prop("pattern", "^" + escapeRegExp($(this).val()) + "$");
 
     if ($(passwordConfirmation).val()) {
       passwordConfirmation.validate();
@@ -742,6 +870,12 @@ function bindTimeSettings(){
   });
 }
 
+function bindRappOverview(){
+  $("#rapp-overview-button").click(function () {
+    $("#rapp-overview")[0].open();
+  });
+}
+
 function reload_themes(){
   return Q.spread([
     themes(true),
@@ -775,7 +909,7 @@ function onRebootClick() {
 
     [   
       { text: "<%= i18n.cancel %>", action: "dismiss" },
-      { text: "<%= i18n.reboot %>", action: "confirm", callback: function () {
+      { text: "<%= platform_information.vendor == "TELSTRA" and "Reboot" or i18n.reboot %>", action: "confirm", callback: function () {
 
         long_rpc_promise(systemInfoAppId, "reboot", []).done(function () {
           $("#generic-duma-alert")[0].show(
@@ -805,7 +939,11 @@ function onFactoryResetClick() {
 
             [{ text: "<%= i18n.gotIt %>", action: "confirm" }]
 
-          );  
+          );
+          //Timeout - allow webserver to stop first
+          setTimeout(function(){
+            hasBeenFactoryReset = true;
+          },1000)
         }); 
 
       }}  
@@ -815,6 +953,7 @@ function onFactoryResetClick() {
 function onRestoreDefaultsClick() {
   $("#restore-defaults-dialog")[0].open();
 }
+
 
 function bindDumaOSInformationClick(apMode) {
   $("#dumaos-information-button").click(function () {
@@ -999,17 +1138,31 @@ function updatebtn_click_netgear(firmwareInformation){
   );
 }
 
-function updatebtn_click_generic(){
-  $("#firmware-upgrade-dialog")[0].open();
+function _firmwareDialogButtonsHidden(state){
+  var divP = $("#firmware-upgrade-button").parent();
+  divP.find("paper-button").attr("hidden",!!state);
+  divP.prev().attr("hidden",!state);
+}
 
-  $("#firmware-upgrade-button").click(function () {
+function bind_updatebtn_click_generic(){
+  var upgradeButton = $("#firmware-upgrade-button");
+
+  upgradeButton.click(function () {
     if ($("#firmware-upgrade-file").prop("files").length == 1) {
       $("#firmware-upgrade-file")[0]
         .uploadFile($("#firmware-upgrade-file").prop("files")[0]);
-        var divP = $(this).parent();
-        divP.find("paper-button").attr("disabled",true).attr("hidden",true);
-        divP.prev().attr("hidden",false);//.attr("hidden",null);
-      }
+      _firmwareDialogButtonsHidden(true);
+    }
+  });
+
+  $("#firmware-upgrade-file").on("files-changed", function (event) {
+    var canUpload = false;
+    if(!event.detail.path && Array.isArray(event.detail.value) && event.detail.value.length === 1){
+      canUpload = true;
+    }else if(event.detail.path === "files.length" && event.detail.value === 1){
+      canUpload = true;
+    }
+    upgradeButton.prop("disabled",!canUpload);
   });
 
   $("#firmware-upgrade-file").on("success", function (response) {
@@ -1022,15 +1175,26 @@ function updatebtn_click_generic(){
   $("#firmware-upgrade-file").on("error", function (e) {
 
     $(this).prop("errorText", e.detail.xhr.responseText);
+    _firmwareDialogButtonsHidden(false);
 
     e.stopPropagation();
   });
+  _doUpdateFirmwareDialogBind = false;
+}
+
+function updatebtn_click_generic(){
+  $("#firmware-upgrade-dialog")[0].open();
+  if(_doUpdateFirmwareDialogBind) bind_updatebtn_click_generic();
+  $("#firmware-upgrade-file")[0].clear();
+  $("#firmware-upgrade-button").prop("disabled", true);
 }
 
 function startFirmwareCheck() {
   var firmwareInformation;
+  var updateButton = $("#update-button");
+  var updateButtonText = $(".update-button-text, #update-button > span");
 
-  $("#update-button").click(function () {
+  updateButton.click(function () {
     <% if os.implements_netgear_specification() then %>
       updatebtn_click_netgear(firmwareInformation);
     <% else %>
@@ -1038,6 +1202,7 @@ function startFirmwareCheck() {
     <% end %>
   });
 
+  if(updateButton[0]){
   /* NETGEAR platforms have automatic update detection. */
   <% if os.implements_netgear_specification() then %>
     start_cycle(function () {
@@ -1049,25 +1214,23 @@ function startFirmwareCheck() {
     }, function ( firmupdate ) {
       if(firmupdate.code === "000" && firmupdate.response.NewVersion !== "") {
 
-        $("#update-button").prop("disabled", false);
+        updateButton.prop("disabled", null);
 
-        Polymer.dom($("paper-tooltip[for=update-container]")[0])
-          .textContent = "<%= i18n.updateAvailable %>";
+        updateButtonText.text("<%= i18n.updateAvailable %>");
 
         firmwareInformation = firmupdate.response;
 
       } else {
-        $("#update-button").prop("disabled", true);
+        updateButton.prop("disabled", true);
 
-        Polymer.dom($("paper-tooltip[for=update-container]")[0])
-          .textContent = "<%= i18n.noUpdateAvailable %>";
+        updateButtonText.text("<%= i18n.noUpdateAvailable %>");
       }
     }, firmware_check_interval);
   <% else %>
-    $("#update-button").prop("disabled", false);
-    Polymer.dom($("paper-tooltip[for=update-container]")[0])
-      .textContent = "<%= i18n.update %>";
+    updateButton.prop("disabled", null);
+    updateButtonText.text("<%= i18n.update %>");
   <% end %>
+  }
 }
 
 function bindAppHelpButton() {
@@ -1121,9 +1284,16 @@ function disconnectionPollFailure() {
   showDisconnectionPage();
 }
 
+var doStartTourOnNextLoad = null;
 function checkStartTour() {
-  if (getUrlParameter("forceTourStart") === "true") {
+  if(doStartTourOnNextLoad === true){
     hopscotch.startTour(getTour(window, true)(0), 0);
+    <% if platform_information.vendor == "TELSTRA" then %>
+    localStorage.setItem("block-force-tour-start",true);
+    <% end %>
+    doStartTourOnNextLoad = false;
+  }else if (doStartTourOnNextLoad === null && getUrlParameter("forceTourStart") === "true" && !blockForceTourStart) {
+    doStartTourOnNextLoad = true;
   }
 }
 
@@ -1148,6 +1318,228 @@ function checkAdblocker() {
     blockAdBlock.onDetected(detected);
   }
 }
+
+function createRappButton(detail){
+  var newButton = $('<div rapp-button></div>').text(detail.text);
+  if(detail.hasOwnProperty("checkbox")){
+    var newCheckbox = $(document.createElement("paper-checkbox")).attr("checked",detail.checkbox ? true : null)
+    if(detail.callback){
+      newCheckbox.on("checked-changed",detail.callback)
+    }
+    newButton.prepend(newCheckbox);
+  }else if(detail.hasOwnProperty("toggle")){
+    var newToggle = $(document.createElement("paper-toggle-button")).attr("checked",detail.toggle ? true : null)
+    if(detail.callback){
+      newToggle.on("checked-changed",detail.callback)
+    }
+    newButton.prepend(newToggle);
+  }else if(detail.callback){
+    newButton.on("click",detail.callback);
+  }
+  if(detail.icon){
+    newButton.prepend($(document.createElement("iron-icon")).attr("icon",detail.icon));
+  }
+  newButton.prepend(document.createElement("paper-ripple"));
+  return newButton;
+}
+function bindGlobalMenuIframeEvents(frame){
+  var iframe = $(frame);
+  var buttons = $("#user-settings-button, #help-menu-button");
+  var jhtml = iframe.contents();
+  jhtml.on("click",function(){
+    buttons.each(function(index,elem){
+      if(elem.opened) elem.close();
+    });
+  });
+  var rappSpecificButton = $("#rappMenuButton").attr("disabled",true);
+  var rappSpecificDiv = $("#rappMenu");
+  rappSpecificDiv.children("[rapp-button]").remove();
+  jhtml.find("html").on("add-rapp-button",function(e){
+    var newButton = createRappButton(e.detail);
+    rappSpecificDiv.append(newButton);
+    rappSpecificButton.attr("disabled",null);
+  });
+  duma.type.doListeners([jhtml[0]]);
+}
+function triggerBandwidthChange(download,upload) {
+  var conts = $("#application").find("iframe").contents().find("html");
+  var send = {}
+  if(download || download === 0){
+    send.down = parseInt(download);
+  }
+  if(upload || upload === 0){
+    send.up = parseInt(upload);
+  }
+  conts[0].dispatchEvent(new CustomEvent("network-speeds-changed", {detail:send}));
+}
+
+function bindPreferences(){
+  var notiToggle = $("#notifications-toggle");
+  long_rpc_promise(desktopAppId,"enable_notifications",[]).done(function(result){
+    if(result[0]){
+      notiToggle.attr("checked",true);
+    }
+  });
+  notiToggle.on("checked-changed",function(e){
+    long_rpc_promise(desktopAppId,"enable_notifications",[e.detail.value]).done();
+  });
+  <% if platform_information.model == "R2" then %>
+  var teleToggle = $("#telemetry-toggle");
+  long_rpc_promise(configAppId,"toggle_telemetry",[]).done(function(result){
+    if(result[0]){
+      teleToggle.attr("checked",true);
+    }
+  });
+  teleToggle.on("checked-changed",function(e){
+    long_rpc_promise(configAppId,"toggle_telemetry",[e.detail.value]).done();
+  });
+  <% end %>
+}
+
+/** Call if router accessibility mode is set to true, to deprecate it. */
+function passRouterA11yToLocalA11y(){
+  // if local storage is not set, then set it and reload
+  if(localStorage.getItem("accessibility-mode") == null){
+    localStorage.setItem('accessibility-mode',true);
+    location.reload();
+  }
+}
+
+function bindAccessibilitySettings(){
+  var accessibilityModeToggle = $("#accessibility-toggle");
+  var chartTableModeToggle = $("#chart-table-toggle");
+  var accessDialog = $("#accessibility-dialog");
+
+  var accessButton = $("#accessibility-button");
+
+  var accessibilitySaveButton = accessDialog.find("#accessibility-save");
+  var accessibilityCancelButton = accessDialog.find("#accessibility-cancel");
+
+  var isSaveEnabledChecks = [];
+
+  function updateSave(){
+    for(var i = 0; i < isSaveEnabledChecks.length; i ++){
+      if(isSaveEnabledChecks[i]()){
+        accessibilitySaveButton.prop("disabled",null);
+        return
+      }
+    }
+    accessibilitySaveButton.prop("disabled",true);
+  }
+
+  // accessibility mode
+  accessibilityModeToggle.prop("checked",top.accessibility_mode);
+  isSaveEnabledChecks.push(function(){
+    return accessibilityModeToggle.prop("checked") !== top.accessibility_mode;
+  });
+  accessibilityModeToggle.on("checked-changed",updateSave);
+
+  // charts as tables
+  chartTableModeToggle.prop("checked",top.chartsAsTables);
+  isSaveEnabledChecks.push(function(){
+    return chartTableModeToggle.prop("checked") !== top.chartsAsTables;
+  });
+  chartTableModeToggle.on("checked-changed",updateSave);
+
+
+  accessibilitySaveButton.click(function(){
+    // send changes to values with rpcs here
+    var willReloadLater = false;
+    if(accessibilityModeToggle.prop("checked") !== top.accessibility_mode){
+      if(accessibilityModeToggle.prop("checked")) duma.storage("com.netdumasoftware.devicemanager", "deviceViewMode", "table");
+      willReloadLater = true;
+      localStorage.setItem("accessibility-mode",accessibilityModeToggle.prop("checked"));
+      location.reload();
+    }
+    if(chartTableModeToggle.prop("checked") !== top.chartsAsTables){
+      localStorage.setItem("chartsAsTables",chartTableModeToggle.prop("checked"));
+      if(!willReloadLater) location.reload();
+    }
+    accessDialog[0].close();
+  });
+  accessibilityCancelButton.click(function(){
+    // revert changes here
+    accessibilityModeToggle.prop("checked",top.accessibility_mode);
+    chartTableModeToggle.prop("checked",top.chartsAsTables);
+    accessDialog[0].close();
+  });
+
+  accessDialog.on("iron-overlay-closed",function(){
+    updateSave();
+  });
+
+  $("#enable-all-accessibility",accessDialog[0]).click(function(){
+    // add enable all here
+    accessibilityModeToggle.prop("checked",true);
+  });
+  
+  accessButton.click(function(){
+    accessDialog[0].open();
+    updateSave();
+  });
+
+  duma.type.OnWord("access",accessDialog[0].open.bind(accessDialog[0]));
+}
+
+function bindDumaosSuspend(){
+  $("#dumaos-suspend").click(function(){
+    window.location.replace("/cgi-bin/restart.htm?cache=0&ACTION=stop")
+  })
+}
+
+/**
+ * Bind menu buttons on the top nav bar
+ */
+function bindGlobalMenuButtons() {
+  setupSettingsPages();
+  //Network speeds button
+  $('#network-speeds-button').click(function() {
+    $("#network-speeds")[0].open();
+  });
+
+  //Services Info button
+  $('#services-info-button').click(function() {
+    $("#services-info")[0].open();
+  });
+
+  $("#preferences-button").click(function(){
+    $("#preferences-dialog")[0].open();
+  });
+
+  $("#network-speeds").on("speeds-saved",function(e){
+    var vals = e.detail;
+    triggerBandwidthChange(vals.download,vals.upload);
+  });
+
+};
+
+function setupSettingsPages(){
+  var buttons = $("#user-settings-button, #help-menu-button");
+  // On click, does the menu close?
+  buttons.each(function(index,elem){
+    if(elem.close){
+      var menu = $(elem).find("duma-menu");
+      menu.on("menu-click",function(e){
+        elem.close();
+      });
+    }
+  });
+  buttons.on("iron-overlay-closed",function(e){
+    var menu = $(e.target).closest("paper-menu-button");
+    if(menu[0]){
+      menu.find(".dropdown-trigger").blur();
+    }
+  });
+}
+
+function extendCookieCycle(){
+  <% if platform_information.model == "LH1000" then %>
+  setInterval(function(){
+    $.ajax(location.origin);
+  },1000 * 60);
+  <% end %>
+}
+
 
 browserSetup.onReady(function () {
   checkChromeWindowsHttps();
@@ -1177,7 +1569,7 @@ browserSetup.onReady(function () {
     apps(),
     notifications(),
     themes(),
-    activeTheme()
+    activeTheme(),
   ], function (apps, notifications, themes, activeTheme) {
     startDisconnectPoll(disconnectionPollSuccess, disconnectionPollFailure);
     loadApplicationSideBar(apps);
@@ -1191,13 +1583,26 @@ browserSetup.onReady(function () {
     checkStartTour();
     bindThemeSelection();
     bindTimeSettings();
+    bindRappOverview();
     loadThemes(themes, activeTheme);
+    bindGlobalMenuButtons();
+    bindPreferences();
+    bindAccessibilitySettings();
+    bindDumaosSuspend();
+
     
     history.replaceState({}, null, location.pathname + location.hash);
 
     <% if platform_information.sdk == "OpenWRT" then %>
       bindAccountSettings();
     <% end %>
+
+
+    $("#skip-nav-focus-button").on("click",function(){
+      $($("#application").find("iframe").contents()).find("duma-panel:first").find(".skip-to-next-panel").focus();
+    });
+
+    extendCookieCycle();
 
     removePageLoader();
   }).done();

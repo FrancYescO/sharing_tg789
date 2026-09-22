@@ -34,6 +34,11 @@
         "func" : "on_init",
         "package" : "com.netdumasoftware.api",
         "method" : "init"
+      },
+      {
+        "func" : "dhcp_event",
+        "package" : "com.netdumasoftware.dpiclass",
+        "method" : "dhcp_event"
       }
   ],
   "methods" : [

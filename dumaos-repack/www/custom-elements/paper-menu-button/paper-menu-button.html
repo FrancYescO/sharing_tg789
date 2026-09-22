@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html"> <link rel="import" href="../iron-behaviors/iron-control-state.html"> <link rel="import" href="../iron-dropdown/iron-dropdown.html"> <link rel="import" href="../neon-animation/animations/fade-in-animation.html"> <link rel="import" href="../neon-animation/animations/fade-out-animation.html"> <link rel="import" href="../paper-styles/default-theme.html"> <link rel="import" href="../paper-styles/shadow.html"> <link rel="import" href="paper-menu-button-animations.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-behaviors/iron-control-state.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-dropdown/iron-dropdown.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/animations/fade-in-animation.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../neon-animation/animations/fade-out-animation.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/default-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/shadow.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="paper-menu-button-animations.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Dropdown buttons](https://www.google.com/design/spec/components/buttons.html#buttons-dropdown-buttons)
 
 `paper-menu-button` allows one to compose a designated "trigger" element with
@@ -88,9 +88,9 @@ Custom property | Description | Default
         margin-top: 20px;
       }
       
-      #trigger {
+      .paper-menu-button-trigger {
         cursor: pointer;
-      } </style> <div id="trigger" on-tap="toggle"> <content select=".dropdown-trigger"></content> </div> <iron-dropdown id="dropdown" opened="{{opened}}" horizontal-align="[[horizontalAlign]]" vertical-align="[[verticalAlign]]" dynamic-align="[[dynamicAlign]]" horizontal-offset="[[horizontalOffset]]" vertical-offset="[[verticalOffset]]" no-overlap="[[noOverlap]]" open-animation-config="[[openAnimationConfig]]" close-animation-config="[[closeAnimationConfig]]" no-animations="[[noAnimations]]" focus-target="[[_dropdownContent]]" allow-outside-scroll="[[allowOutsideScroll]]" restore-focus-on-close="[[restoreFocusOnClose]]" on-iron-overlay-canceled="__onIronOverlayCanceled"> <div class="dropdown-content"> <content id="content" select=".dropdown-content"></content> </div> </iron-dropdown> </template> <script> (function() {
+      } </style> <div class="paper-menu-button-trigger" on-tap="toggle"> <content select=".dropdown-trigger"></content> </div> <iron-dropdown class="paper-menu-button-dropdown" opened="{{opened}}" horizontal-align="[[horizontalAlign]]" vertical-align="[[verticalAlign]]" dynamic-align="[[dynamicAlign]]" horizontal-offset="[[horizontalOffset]]" vertical-offset="[[verticalOffset]]" no-overlap="[[noOverlap]]" open-animation-config="[[openAnimationConfig]]" close-animation-config="[[closeAnimationConfig]]" no-animations="[[noAnimations]]" focus-target="[[_dropdownContent]]" allow-outside-scroll="[[allowOutsideScroll]]" restore-focus-on-close="[[restoreFocusOnClose]]" on-iron-overlay-canceled="__onIronOverlayCanceled"> <div class="dropdown-content"> <content class="paper-menu-button-content" select=".dropdown-content"></content> </div> </iron-dropdown> </template> <script> (function() {
       'use strict';
 
       var config = {
@@ -318,7 +318,19 @@ Custom property | Description | Default
          * The content element that is contained by the menu button, if any.
          */
         get contentElement() {
-          return Polymer.dom(this.$.content).getDistributedNodes()[0];
+          return Polymer.dom(this.$content).getDistributedNodes()[0];
+        },
+
+        get $trigger() {
+          return this.__$trigger || (this.__$trigger = this.$$(".paper-menu-button-trigger"));
+        },
+
+        get $dropdown() {
+          return this.__$dropdown || (this.__$dropdown = this.$$(".paper-menu-button-dropdown"));
+        },
+
+        get $content() {
+          return this.__$content || (this.__$content = this.$$(".paper-menu-button-content"));
         },
 
         /**
@@ -341,14 +353,14 @@ Custom property | Description | Default
             return;
           }
 
-          this.$.dropdown.open();
+          this.$dropdown.open();
         },
 
         /**
          * Hide the dropdown content.
          */
         close: function() {
-          this.$.dropdown.close();
+          this.$dropdown.close();
         },
 
         /**
@@ -413,7 +425,7 @@ Custom property | Description | Default
         __onIronOverlayCanceled: function(event) {
           var uiEvent = event.detail;
           var target = Polymer.dom(uiEvent).rootTarget;
-          var trigger = this.$.trigger;
+          var trigger = this.$trigger;
           var path = Polymer.dom(uiEvent).path;
 
           if (path.indexOf(trigger) > -1) {

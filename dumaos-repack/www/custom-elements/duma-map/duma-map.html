@@ -1,7 +1,11 @@
 <!--
   (C) 2016 NETDUMA Software
   Iain Fraser <iainf@netduma.com>
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <link rel="import" href="/libs/d3.html"> <link rel="import" href="/libs/jquery.html"> <link rel="import" href="/libs/util.html"> <link rel="import" href="/libs/q.html"> <link rel="import" href="/libs/sprintf.html"> <link rel="import" href="/libs/topojson.html"> <link rel="import" href="/libs/vectors2.html"> <!--
+--> <%
+require("libos")
+
+local platform_information = os.platform_information()
+%> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/d3.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/jquery.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/util.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/q.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/sprintf.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/topojson.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/vectors2.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/libs/storage.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Custom property | Description | Default
 ----------------|-------------|----------
 `--geofilter-icon-color`          |  | `--primary-text-color`
@@ -292,21 +296,20 @@ Custom property | Description | Default
       ::content g.icon-content[type="peer-blacklisted"],         
       ::content g.icon-content[type="peer-blocked"] {
         fill: var(--geofilter-icon-blocked-color, --primary-text-color);
-      } </style> <div id="worldmap" class="svg-container"> <svg id="container" class="worldmapsvg"> <g id="zoomg" transform="rotate(0)"> <!-- <rect class="svg-border" width="100%" height="102%" y="-9px"></rect> --> <g id="countries"></g> <g id="states"></g> <g id="aus"></g> <g id="can"></g> <g id="polygons"></g> <g id="home"></g> <g id="trace"></g> <g id="points"></g> <g id="radial"></g> </g> </svg> </div> </template> <script> var _worldmap, _usstates, _canprov, _ausstates, _lowdetail;
+      } </style> <div id="worldmap" class="svg-container" role="region" aria-label="<%= i18n.ariaMap %>"> <svg id="container" class="worldmapsvg"> <g id="zoomg" transform="rotate(0)"> <!-- <rect class="svg-border" width="100%" height="102%" y="-9px"></rect> --> <g id="countries"></g> <g id="states"></g> <g id="aus"></g> <g id="can"></g> <g id="polygons"></g> <g id="home"></g> <g id="trace"></g> <g id="points"></g> <g id="radial"></g> </g> </svg> </div> </template> <script> var _worldmap, _lowdetail;
     var world_radius = 6371;    // km
 
     function getdata(that, cb, lowres) {
       if (_worldmap) {
-        cb.call(that, _lowdetail, _worldmap, _usstates, _canprov, _ausstates);
+        cb.call(that, _lowdetail, _worldmap);
       } else {
-        var url = "/json"; // "http://netdumasoftware.com/dumaos/resources/json"
         safe_getJSON_promise("/json/world-countries-low-detail.json").
           done(function (lowdetail) {
             _lowdetail = topojson.feature(lowdetail, lowdetail.objects.countries);
             cb.call(that, _lowdetail);
           });
         Q.all([
-          safe_getJSON_promise(url + "/countries.json"),
+          loadCountriesJSON(),
         ]).spread(function (world) {
           _worldmap = world;
           cb.call(that, _worldmap);
@@ -321,7 +324,6 @@ Custom property | Description | Default
       var extra = cat.extra;
 
       var that = this;
-      var projection = that.projection;
       var enter = {
         "image": function () {
           var mx = extra.width / 2;
@@ -345,11 +347,11 @@ Custom property | Description | Default
 
           return selection
             .append("g")
-            .attr("x", function (d) { return proj([d.value.lng, d.value.lat])[0] - mx; })
-            .attr("y", function (d) { return proj([d.value.lng, d.value.lat])[1] - my; })
+            .attr("x", function (d) { return proj([d.value.lng, d.value.lat])[0]; })
+            .attr("y", function (d) { return proj([d.value.lng, d.value.lat])[1]; })
             .attr("transform",function(d){
               var pos = proj([d.value.lng, d.value.lat]);
-              return "translate("+(pos[0] - mx)+","+(pos[1] - my)+")";
+              return "translate("+(pos[0])+","+(pos[1])+")";
             });
         }
       }
@@ -471,17 +473,19 @@ Custom property | Description | Default
             });
           });
 
-          this._bind_shift();
         })
+        this._bind_shift();
+        this._bindMouseZoom(this.$.container);
+        this._bindMousePan(this.$.container);
       },
       properties: {
         width: { type: Number },
         height: { type: Number },
         islowres: { type: Boolean, value: false },
         distance: { type: Number, value: 2000, observer: '_distance_change' },
-        zoomfactor : { type: Number, value: 1 },
-        zoomx : { type: Number },
-        zoomy : { type: Number},
+        zoomfactor : { type: Number, value: 1, notify: true },
+        zoomx : { type: Number, notify: true },
+        zoomy : { type: Number, notify: true },
         polygonMode : {type: Boolean, observer: "_polygonModeChange"},
         host_global_scale : { type: Boolean, value: true },
         home: { 
@@ -495,12 +499,162 @@ Custom property | Description | Default
         polygonCount: {type: Number, value: 0},
         polygonMax: {type: Number, value: 0},
         _shiftDown: {type: Boolean, value: false},
+        zoomInfo: {type: Object, notify: true},
+        _canUseLeftClickToPan: {type: Boolean, value: true}
       },
       observers: [
         "_onzoomchange(zoomfactor)"
       ],
       ST: function(val){ //Scale with thickness
         return val/(this.zoomfactor);
+      },
+      clampZoom: function(vertex){
+        var projection = this.__makeProjection();
+        var clamped = projection.invert([vertex.x, vertex.y]);
+        var padding = 10
+        clamped[0] = Math.min(Math.max(clamped[0],-180+padding),180-padding)
+        clamped[1] = Math.min(Math.max(clamped[1],-90+padding),90-padding)
+        clamped = projection(clamped);
+        vertex.x = clamped[0];
+        vertex.y = clamped[1];
+        return vertex;
+      },
+      _atStartZooming: null,
+      _on_end_zoom: function(){
+        this._atStartZooming = null;
+      },
+      do_zoom: function( x, y, k, width, height, instant ){
+        if(this._atStartZooming && k > 1){
+          x = this._atStartZooming.x;
+          y = this._atStartZooming.y;
+        }
+        var pos = this.clampZoom(this._createVertex(x,y));
+        this.zoomx = pos.x;
+        this.zoomy = pos.y;
+        this.zoomfactor = k;
+        var dims = this.__getDims();
+        var t = svg_translate( dims[0], dims[1] ) + svg_scale( k )  + svg_translate( -pos.x, -pos.y );
+        var duration = instant ? 0 : 750;
+        d3.select(this.$.zoomg).transition()
+            .duration(duration)
+            .attr("transform",t)
+            .each("end", this._on_end_zoom.bind(this));
+            
+            
+        this.zoomInfo = {x: pos.x, y: pos.y, factor: k, transform: t, duration: duration};
+        if(!instant) this._atStartZooming = this._atStartZooming || this.zoomInfo;
+      },
+      _zooms: [1,1.5,2.5,3.5,4.75,6.25,8,10,12.25,14.75],
+      _getNextZoomFactor: function(direction){
+        var i;
+        for(i = 0; i < this._zooms.length; i++){
+          if(this._zooms[i] === this.zoomfactor) break;
+        }
+        i += direction;
+        return this._zooms[Math.min(Math.max(i,0),this._zooms.length-1)];
+      },
+      _getZoomXY: function(mousepos,elem,dims){
+        var origin = this._createVertex(mousepos[0],mousepos[1]);
+        origin.x = (origin.x / elem.clientWidth) * this.width;
+        origin.y = (origin.y / elem.clientHeight) * this.height * 0.61;
+        var vertex = this._getTranslatedSvgVertex(origin,this._atStartZooming ? this._atStartZooming : null);
+        return vertex;
+      },
+      _bindMouseZoom: function(elem){
+        var delem = d3.select(elem);
+        var that = this;
+        var zoomedOutScrollCount;
+        delem.on("wheel",function () {
+          var mouse = d3.mouse(this);
+          var dims = that.__getDims();
+          var zoomAmount = d3.event.deltaY * -1;
+          var newZoomFactor = that._getNextZoomFactor(zoomAmount > 0 ? 1 : -1);
+          if(newZoomFactor === that.zoomfactor){
+            // If continually scrolling down, and already fully zoomed out, then don't prevent page from scrolling
+            if(zoomedOutScrollCount < 8){
+              d3.event.preventDefault();
+            }
+            if(newZoomFactor === that._zooms[0]){
+              zoomedOutScrollCount += 1;
+            }
+            return;
+          }
+          zoomedOutScrollCount = 0;
+          d3.event.preventDefault();
+          var pos = that._getZoomXY(mouse,elem,dims);
+          var xDo = newZoomFactor == 1 ? dims[0] : pos.x;
+          var yDo = newZoomFactor == 1 ? dims[1] : pos.y;
+          that.do_zoom(xDo,yDo,newZoomFactor,that.width,that.height);
+        });
+      },
+      _bindMousePan: function(elem){
+        var jelem = $(elem);
+        var that = this;
+        var drag = {
+            x: 0,
+            y: 0,
+            state: false
+        };
+        jelem.mousedown(function(e) {
+          if (!drag.state && (e.which == 2 || (e.which == 1 && that._canUseLeftClickToPan))) {
+            drag.x = e.pageX;
+            drag.y = e.pageY;
+            drag.state = true;
+          }
+          return false;
+        });
+        $(window).mousemove(function(e) {
+          if (drag.state && this.zoomfactor > 1) {
+            this.zoomx -= (e.pageX - drag.x) / (this.zoomfactor/2);
+            this.zoomy -= (e.pageY - drag.y) / (this.zoomfactor/2);
+            this.do_zoom(this.zoomx, this.zoomy,this.zoomfactor,this.width,this.height,true);
+
+            drag.x = e.pageX;
+            drag.y = e.pageY;
+          }
+        }.bind(this));
+        $(window).mouseup(function() {
+          if (drag.state) {
+            drag.state = false;
+          }
+        });
+      },
+      _getDefaultZoomInfo: function(){
+        var lat = 0;
+        var long = 0;
+        var factor = 1; <% if platform_information.vendor == "TELSTRA" then %> //Australia
+        lat = -33;
+        long = 134;
+        factor = 3.5; <% end %> var projection = this.__makeProjection();
+        var out = projection([long,lat]);
+        return {
+          x: out[0],
+          y: out[1],
+          factor: factor
+        }
+      },
+      saveZoom: function(rappid){
+        var info = {
+          factor: this.zoomfactor,
+          x: this.zoomx,
+          y: this.zoomy
+        }
+        duma.storage(rappid, "zoominfo", JSON.stringify(info) );
+      },
+      loadZoom: function(rappid){
+        var zoominfo = duma.storage(rappid, "zoominfo" );
+        zoominfo = zoominfo ? JSON.parse(zoominfo) : null;
+        if(!zoominfo){
+          zoominfo = this._getDefaultZoomInfo();
+        }
+        if( zoominfo ){
+          var details = this.get_zoom_info();
+          this.zoomx = zoominfo.x;
+          this.zoomy = zoominfo.y;
+          this.zoomfactor = zoominfo.factor;
+          this.do_zoom( this.zoomx,this.zoomy, this.zoomfactor, details.width, details.height , true); 
+          this.saveZoom(rappid);
+        }
       },
       _onzoomchange: function(zoom){
         d3.selectAll("#polygons .lines line").transition().duration(750).style("stroke-width",this.ST(STROKE_WIDTH));
@@ -739,6 +893,7 @@ Custom property | Description | Default
 
       _attachMouseClickEventToContainer: function (callback) {
         var _this = this;
+        this._canUseLeftClickToPan = false;
 
         d3.select(this.$$("#container")).on("click.polygon-container", function () {
           var m = d3.mouse(this);
@@ -749,11 +904,13 @@ Custom property | Description | Default
       },
 
       _detachMouseClickEventFromContainer: function () {
+        this._canUseLeftClickToPan = true;
         d3.select(this.$$("#container")).on("click.polygon-container", null);
       },
 
       _attachMouseClickEventToPolygons: function (callback) {
         var _this = this;
+        this._canUseLeftClickToPan = false;
 
         var polygons = d3.select(this.$$("#container"))
           .selectAll("#polygons g");
@@ -774,6 +931,7 @@ Custom property | Description | Default
       },
 
       _detachMouseClickEventFromPolygons: function () {
+        this._canUseLeftClickToPan = true;
         d3.select(this.$$("#container")).selectAll("#polygons g").on("click.polygon-container", null);
       },
 
@@ -896,6 +1054,8 @@ Custom property | Description | Default
           }
         }
 
+        if(p.x === q.x && p.y === q.y) return true;
+
         return false;
       },
 
@@ -913,9 +1073,9 @@ Custom property | Description | Default
           .classed("fixed", true);
       },
 
-      _getTranslatedSvgVertex: function (vertex) {
+      _getTranslatedSvgVertex: function (vertex,zoomInfoOverride) {
 
-        var scaleFactor = 1 / this.zoomfactor;
+        var scaleFactor = 1 / (zoomInfoOverride ? zoomInfoOverride.factor : this.zoomfactor);
 
         var dims = this.__getDims();
 
@@ -928,8 +1088,8 @@ Custom property | Description | Default
         var sy = cy * scaleFactor;
 
         // Translate so centre of SVG is origin (not zoom position).
-        sx += this.zoomx;
-        sy += this.zoomy;
+        sx += (zoomInfoOverride ? zoomInfoOverride.x : this.zoomx) || dims[0];
+        sy += (zoomInfoOverride ? zoomInfoOverride.y : this.zoomy) || dims[1];
 
         return this._createVertex(sx, sy);
       },
@@ -1051,6 +1211,17 @@ Custom property | Description | Default
         vertex.y = clamped[1];
         return vertex;
       },
+      roundVertex: function(vertex){
+        var projection = this.__makeProjection();
+        var rounded = projection.invert([vertex.x, vertex.y]);
+        rounded[0] = Math.round(rounded[0]);
+        rounded[1] = Math.round(rounded[1]);
+        rounded = projection(rounded);
+        return {
+          x: rounded[0],
+          y: rounded[1]
+        };
+      },
       // min angle, max angle and func
       // 0 is left, right is 180 OR -180, up is 90, down is -90
       // func takes 4 arguments: 
@@ -1128,15 +1299,17 @@ Custom property | Description | Default
           var lastVertex = this._getLastItemInArray(vertices);
 
           if(this._shiftDown) this.snapVertex(vertex,vertices);
-          this.clampVertex(vertex);
+          vertex = this.roundVertex(this.clampVertex(vertex));
           var crosses = vertices.length ? this._doesNewLineCrossVerticies(vertices, lastVertex, vertex) : false;
+          this._changeLine(this._getCurrentLine(polygonGroup), vertex);
 
           if (
             firstVertex && vertices.length > 2 &&
             this._withinPointSnapRadius(
-              SNAP_RADIUS, firstVertex, vertex
+              this.ST(SNAP_RADIUS), firstVertex, vertex
             ) && !crosses
           ) {
+            this._changeLine(this._getCurrentLine(polygonGroup), firstVertex);
             this._setInProgressFixed(polygonGroup);
             this._hideSnapCircle(polygonGroup);
 
@@ -1162,7 +1335,7 @@ Custom property | Description | Default
           var line = this._getCurrentLine(polygonGroup);
 
           if(this._shiftDown) this.snapVertex(vertex,vertices);
-          this.clampVertex(vertex);
+          vertex = this.roundVertex(this.clampVertex(vertex));
 
           if (!line.empty()) {
 
@@ -1175,7 +1348,7 @@ Custom property | Description | Default
             if (
               firstVertex && vertices.length > 2 &&
               this._withinPointSnapRadius(
-                SNAP_RADIUS, firstVertex, vertex
+                this.ST(SNAP_RADIUS), firstVertex, vertex
               ) && (
                 !lastVertex || (lastVertex &&
                   !this._doesNewLineCrossVerticies(

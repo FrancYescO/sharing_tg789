@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html"> <link rel="import" href="../paper-styles/color.html"> <link rel="import" href="../paper-styles/default-theme.html"> <link rel="import" href="../paper-behaviors/paper-checked-element-behavior.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-flex-layout/iron-flex-layout.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/color.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-styles/default-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-behaviors/paper-checked-element-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Switch](https://www.google.com/design/spec/components/selection-controls.html#selection-controls-switch)
 
 `paper-toggle-button` provides a ON/OFF switch that user can toggle the state
@@ -169,7 +169,7 @@ In order to apply the `Roboto` font to this element, make sure you've imported `
 
       :host([invalid]) .toggle-ink {
         color: var(--paper-toggle-button-invalid-ink-color, --error-color);
-      } </style> <div class="toggle-container"> <div id="toggleBar" class="toggle-bar"></div> <div id="toggleButton" class="toggle-button"></div> </div> <div class="toggle-label"><content></content></div> </template> <script> Polymer({
+      } </style> <div class="toggle-container"> <div class="toggle-bar"></div> <div class="toggle-button"></div> </div> <div class="toggle-label"><content></content></div> </template> <script> Polymer({
       is: 'paper-toggle-button',
 
       behaviors: [
@@ -199,6 +199,14 @@ In order to apply the `Roboto` font to this element, make sure you've imported `
         track: '_ontrack'
       },
 
+      get $toggleBar() {
+        return this.__$toggleBar || (this.__$toggleBar = this.$$(".toggle-bar"))
+      },
+
+      get $toggleButton() {
+        return this.__$toggleButton || (this.__$toggleButton = this.$$(".toggle-button"))
+      },
+
       attached: function() {
         Polymer.RenderStatus.afterNextRender(this, function() {
           this.setScrollDirection('y');
@@ -217,31 +225,31 @@ In order to apply the `Roboto` font to this element, make sure you've imported `
       },
 
       _trackStart: function(track) {
-        this._width = this.$.toggleBar.offsetWidth / 2;
+        this._width = this.$toggleBar.offsetWidth / 2;
         /*
          * keep an track-only check state to keep the dragging behavior smooth
          * while toggling activations
          */
         this._trackChecked = this.checked;
-        this.$.toggleButton.classList.add('dragging');
+        this.$toggleButton.classList.add('dragging');
       },
 
       _trackMove: function(track) {
         var dx = track.dx;
         this._x = Math.min(this._width,
             Math.max(0, this._trackChecked ? this._width + dx : dx));
-        this.translate3d(this._x + 'px', 0, 0, this.$.toggleButton);
+        this.translate3d(this._x + 'px', 0, 0, this.$toggleButton);
         this._userActivate(this._x > (this._width / 2));
       },
 
       _trackEnd: function(track) {
-        this.$.toggleButton.classList.remove('dragging');
-        this.transform('', this.$.toggleButton);
+        this.$toggleButton.classList.remove('dragging');
+        this.transform('', this.$toggleButton);
       },
 
       // customize the element's ripple
       _createRipple: function() {
-        this._rippleContainer = this.$.toggleButton;
+        this._rippleContainer = this.$toggleButton;
         var ripple = Polymer.PaperRippleBehavior._createRipple();
         ripple.id = 'ink';
         ripple.setAttribute('recenters', '');

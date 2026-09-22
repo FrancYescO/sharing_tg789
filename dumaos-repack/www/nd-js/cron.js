@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Luke Meppem <luke.meppem@netduma.com>
+ * Luke Meppem
 */
 
 class Cron {
@@ -48,7 +48,7 @@ class Cron {
   pm(){
     return this.hours.slice(12);
   }
-  
+
   _boolsToCron(boolList,error,offset=0){
     if (!boolList.includes(true)) {
       console.log("CRON list '" + error + "' has no true values. CRON is invalid.");
@@ -93,7 +93,7 @@ class Cron {
     }
     return inters;
   }
-  
+
   _intervalsToBools(inters,length){
     var out = [];
     for(var i = 0;i<length;++i){
@@ -107,7 +107,7 @@ class Cron {
     }
     return out;
   }
-  
+
   _cronToBools(cronString){
     if(cronString.match(/[^0-9,\- *]/gm)) {
       console.error("Only simple cron is currently supported. Please use only numbers, commas, asterisks and dashes.")
@@ -118,7 +118,7 @@ class Cron {
     var _days = crons[2].split(',');
     var _months = crons[3].split(',');
     var _weekdays = crons[4].split(',');
-    
+
     this.setMinutes(_min == '*' ? new Array(60).fill(true) : this._intervalsToBools(this._cronToIntervals(_min),60));
     this.setHours(_hours == '*' ? new Array(24).fill(true) : this._intervalsToBools(this._cronToIntervals(_hours),24));
     this.setDays(_days == '*' ? new Array(31).fill(true) : this._intervalsToBools(this._cronToIntervals(_days,1),31));
@@ -150,15 +150,20 @@ class Cron {
    * How well this cron matches a given cron
    * @param {*} cron A Cron object or cron string
    */
-  matches(cron){
+  matches(cron,singleBool){
     if(typeof(cron) === "string") cron = new Cron(cron);
-    return {
+    var results = {
       minutes: this._arrsMatch(this.minutes, cron.minutes),
       hours: this._arrsMatch(this.hours, cron.hours),
       days: this._arrsMatch(this.days, cron.days),
       months: this._arrsMatch(this.months, cron.months),
       weekdays: this._arrsMatch(this.weekdays, cron.weekdays)
     };
+    if(singleBool){
+      return results.minutes && results.hours && results.days && results.months && results.weekdays;
+    }else{
+      return results;
+    }
   }
 
   /**
@@ -166,7 +171,7 @@ class Cron {
    * @param {*} date The date to check the cron against. Defaults to now.
    * @param {*} returnAll If true, returns a bool value for each section (minute, hour, day, month, weekday). Defaults to false.
    */
-  is(date=false,returnAll=false){
+  is(date,returnAll){
     var now = date ? date : new Date();
     var minute = now.getMinutes();
     var hour = now.getHours();
@@ -193,17 +198,57 @@ class Cron {
    * @param {*} max An integer representing the maximum time in the future to check. Default is 1 year (31,536,000,000).
    * @param {*} interval An integer representing the gaps between checks. Default is 1 minute (60,000).
    */
-  next(max=31536000000,interval=60000){
-    var count = 0;
-    var start = Math.ceil(Date.now()/interval)*interval;
-    while(count < max){
-      var date = new Date(start + count);
-      if(this.is(date)){
-        return date;
+  next(max,interval,startDate){
+    if(!max) max = 24 * 3600 * 366 * 1000;
+    var isMoment = startDate && startDate._isAMomentObject;
+
+
+    startDate = isMoment ? moment(startDate) : startDate ? new Date(startDate) : new Date();
+    // make compatible with both moment and Date objects
+    var getTime = isMoment ? 'valueOf' : 'getTime';
+    var getMonth = isMoment ? 'month' : 'getMonth';
+    var setMonth = isMoment ? 'month' : 'setMonth';
+    var getDate = isMoment ? 'date' : 'getDate';
+    var getDay = isMoment ? 'day' : 'getDay';
+    var setDate = isMoment ? 'date' : 'setDate';
+    var getHours = isMoment ? 'hour' : 'getHours';
+    var setHours = isMoment ? 'hour' : 'setHours';
+    var getMinutes = isMoment ? 'minute' : 'getMinutes';
+    var setMinutes = isMoment ? 'minute' : 'setMinutes';
+    var setSeconds = isMoment ? 'second' : 'setSeconds';
+
+    var initUnix = startDate[getTime]();
+    var maxDate = new Date(initUnix + max);
+    var nextUnixStart = initUnix + 60000;
+    var next = isMoment ? moment.tz(nextUnixStart, startDate.tz()) : new Date(nextUnixStart);
+
+    next[setSeconds](0);
+    // Loop forwards in time, advancing in the largest interval possible, and slowly use smaller intervals as time draws nearer. This massively shortens the time needed to process.
+    // This will first look for a matching month, then day/date (weekday and date must match), then hour, then minute
+    while(true){
+      if(max > 0 && next[getTime]() > maxDate.getTime()) return null;
+      if(!this.months[next[getMonth]()]){
+        next[setMonth](next[getMonth]() + 1);
+        next[setDate](1);
+        next[setHours](0);
+        next[setMinutes](0);
+        continue;
+      }else if(!this.days[next[getDate]() - 1] || !this.weekdays[next[getDay]()]){
+        next[setDate](next[getDate]() + 1);
+        next[setHours](0);
+        next[setMinutes](0);
+        continue;
+      }else if(!this.hours[next[getHours]()]){
+        next[setHours](next[getHours]() + 1);
+        next[setMinutes](0);
+        continue;
+      }else if(!this.minutes[next[getMinutes]()]){
+        next[setMinutes](next[getMinutes]() + 1);
+        continue;
       }
-      count += interval;
+      break;
     }
-    return null;
+    return next;
   }
 }
 

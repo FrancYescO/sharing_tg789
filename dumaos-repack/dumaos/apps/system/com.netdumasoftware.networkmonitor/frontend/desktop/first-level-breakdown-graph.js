@@ -1,9 +1,15 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
+
+var legendElem = $("duma-legend",context);
+var chartElem = $("#first-level-breakdown-graph",context);
+chartElem[0].ariaValueFormatter = function(val){
+  return format_bps(val * 1000 * 1000,1,1000);
+}
 
 var processor;
 var nm;
@@ -54,7 +60,7 @@ function firstLevelBreakdownGraph(deviceId, download, marks) {
         if (!categories[category]) {
           categories[category] = sampler_create(maximumVisibleConnections);
         }
-        sampler_add(categories[category], categoryTotals[category]);
+        sampler_add(categories[category], categoryTotals[category] / (duration / 1000));
       }
     }
     categoryTotals = {};
@@ -63,6 +69,7 @@ function firstLevelBreakdownGraph(deviceId, download, marks) {
   }
 
   function plot() {
+    var legend = [];
     var graph = {
       labels: [],
       meta: {
@@ -83,8 +90,10 @@ function firstLevelBreakdownGraph(deviceId, download, marks) {
 
     for (var category in categories) {
       if (categories.hasOwnProperty(category)) {
+        var label = category === "null" ? "<%= i18n.unknown %>" : category;
+        var colour = colourGenerator();
         graph.meta.map.push(category);
-        graph.labels.push(category === "null" ? "<%= i18n.unknown %>" : category);
+        graph.labels.push(label);
         
         graph.datasets[0].data.push(
           nm.convertToCorrectUnit(sampler_moving_average(
@@ -92,11 +101,19 @@ function firstLevelBreakdownGraph(deviceId, download, marks) {
           ))
         );
 
-        graph.datasets[0].backgroundColor.push(colourGenerator());
+        graph.datasets[0].backgroundColor.push(colour);
+        legend.push({
+          label: label,
+          result: 0,
+          colour: colour,
+          bgColour: colour,
+          visible: true
+        });
       }
     }
 
-    $("#first-level-breakdown-graph", context).prop("data", nm.roundGraph(graph, 1));
+    chartElem.prop("data", nm.roundGraph(graph, 1));
+    legendElem.prop("legendStats", legend);
     firstLevelBreakdownPanel.loaded = true;
   }
 
@@ -139,13 +156,17 @@ function initilisation() {
     nm.setChartTitle(
       devices,
       data.deviceId,
-      $("#first-level-breakdown-graph", context),
-      data.download
+      chartElem,
+      data.download,
+      ["<%= i18n.appCategory %>", "<%= i18n.bandwidthPerSecond %>"]
     );
   });
+
+  legendElem[0].bindToChart(chartElem[0]);
 }
 
-$("#first-level-breakdown-graph", context).on("chartClick", function (e) {
+// so it's just spaces to listen to multiple events, no commas :P
+chartElem.on("chartClick labelClick", function (e) {
   if (
     secondLevelBreakdownPanel === true ||
     firstLevelBreakdownPanel.desktop === true
@@ -166,7 +187,7 @@ $("#first-level-breakdown-graph", context).on("chartClick", function (e) {
 
   panels.update(overviewPanel, { width: 8 });
 
-  var graphMetaData = $("#first-level-breakdown-graph", context).prop("data").meta;
+  var graphMetaData = chartElem.prop("data").meta;
 
   panels.add(
     getFilePath("second-level-breakdown-graph.html"), packageId, {

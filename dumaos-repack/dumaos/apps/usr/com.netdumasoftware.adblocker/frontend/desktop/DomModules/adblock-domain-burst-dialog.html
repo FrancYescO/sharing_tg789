@@ -1,4 +1,4 @@
-<link rel="import" href="/custom-elements/iron-icons/iron-icons.html"> <link rel="import" href="/custom-elements/polymer/polymer.html"> <link rel="import" href="/custom-elements/paper-button/paper-button.html"> <link rel="import" href="/custom-elements/paper-tabs/paper-tabs.html"> <link rel="import" href="/custom-elements/paper-tabs/paper-tab.html"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html"> <link rel="import" href="/custom-elements/paper-input/paper-input.html"> <link rel="import" href="/custom-elements/paper-input/paper-textarea.html"> <link rel="import" href="/custom-elements/file-upload/file-upload.html"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js"></script>.0 <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="adblock-domain-burst-dialog"> <template> <style include="duma-theme iron-flex"> ::content #mainTable {
+<link rel="import" href="/custom-elements/iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-button/paper-button.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-tabs/paper-tabs.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-tabs/paper-tab.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/iron-pages/iron-pages.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-input.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/paper-input/paper-textarea.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/custom-elements/file-upload/file-upload.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <script src="/apps/com.netdumasoftware.adblocker/desktop/Scripts/utillity.js?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"></script>.0 <!-- Theme, loaded last --> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="adblock-domain-burst-dialog"> <template> <style include="duma-theme iron-flex"> ::content #mainTable {
         display: block;
         max-height: 300px;
         width: 100%;
@@ -12,7 +12,7 @@
       }
       ::content #mainTable td:last-child {
         padding-right: 24px;
-      } </style> <paper-dialog id="dialog" modal> <h2>[[title]] <div id="titleTime" class="rowTimeEntry"> </div> </h2> <div class="inner"> Total Domains Blocked: [[totalBlocked]] </div> <paper-dialog-scrollable> <iron-pages selected="{{loading}}"> <div> <table id="mainTable"> <thead> <tr> <td>Domain</td> <template is="dom-if" if="[[showTimeColumn]]"> <td>Time Since</td> </template> <td>Current List</td> </tr> </thead> <tbody id="tableBody"> </tbody> </table> </div> <div> <paper-spinner-lite active> </paper-spinner-lite></div> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <paper-button dialog-dismiss autofocus id="closeButton" on-tap="Hide">Close</paper-button> </div> </paper-dialog> </template> <script> Polymer(
+      } </style> <paper-dialog id="dialog" modal> <h2 dialog-label>[[title]] <div id="titleTime" class="rowTimeEntry"> </div> </h2> <div dialog-desc class="inner"> <%= i18n.totalDomainsBlocked %>: [[totalBlocked]] </div> <paper-dialog-scrollable> <iron-pages selected="{{loading}}"> <div> <table id="mainTable"> <thead> <tr> <td><%= i18n.domain %></td> <template is="dom-if" if="[[showTimeColumn]]"> <td><%= i18n.timeSince %></td> </template> <td><%= i18n.currentList %></td> </tr> </thead> <tbody id="tableBody"> </tbody> </table> </div> <div> <paper-spinner-lite active> </paper-spinner-lite></div> </iron-pages> </paper-dialog-scrollable> <div class="buttons"> <paper-button dialog-dismiss autofocus id="closeButton" on-tap="Hide"><%= i18n.close %></paper-button> </div> </paper-dialog> </template> <script> Polymer(
     {
       is: 'adblock-domain-burst-dialog',
       properties:
@@ -40,7 +40,7 @@
         title:
         {
           type: String,
-          value: "Recent Domains"
+          value: "<%= i18n.recentDomains %>"
         },
         devices: Object,
         lists: Array,
@@ -77,7 +77,7 @@
         this.showTimeColumn = false;
         $(this.$.tableBody).empty();
         this.$.dialog.open();
-        long_rpc_promise("com.netdumasoftware.adblocker", "burst_domains", [deviceID, timestamp]).done(this.ProcessData.bind(this));
+        long_rpc_promise("com.netdumasoftware.burstwatch", "burst_domains", [deviceID.toString(), timestamp]).done(this.ProcessData.bind(this));
       },
       ShowRange: function(startTimestamp, endTimestamp, deviceID)
       {
@@ -86,7 +86,7 @@
         this.showTimeColumn = true;
         $(this.$.tableBody).empty();
         this.$.dialog.open();
-        long_rpc_promise("com.netdumasoftware.adblocker", "burst_range", [true, {time: startTimestamp.toFixed(1), relative: true}, {time: endTimestamp.toFixed(1), relative: true}]).done(this.ProcessData.bind(this));
+        long_rpc_promise("com.netdumasoftware.burstwatch", "burst_range", ["true", "true", startTimestamp.toFixed(1), "true", endTimestamp.toFixed(1)]).done(this.ProcessData.bind(this));
       },
       Hide: function()
       {
@@ -95,14 +95,14 @@
       ProcessData: function(data)
       {
         this.extraTime = 0;
-        var json = JSON.parse(data);
+        var json = data[0];
 
         if (!this.showTimeColumn)
         {
           if (json.bursts.length == 0)
           {
             this.Hide();
-            throw "Error: Error loading domain burst. Please try again later";
+            throw "Error: <%= i18n.errorLoadingBurst %>";
             return;
           }
 

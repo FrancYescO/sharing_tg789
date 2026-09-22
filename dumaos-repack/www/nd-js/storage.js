@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 var duma = duma || {};
@@ -21,4 +21,18 @@ duma.storage = function (packageId, name, value) {
   } else {
     return localStorage.setItem(getKey(packageId, name), value);
   }
+}
+
+duma.storageReset = function(packageId) {
+  if (typeof (localStorage) === "undefined") {
+    throw Error("Local storage not implemented in browser");
+  }
+  var count = 0;
+  for(var key in localStorage) {
+    if(key.startsWith(packageId)){
+      localStorage.removeItem(key);
+      count += 1;
+    }
+  }
+  return count;
 }

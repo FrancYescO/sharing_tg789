@@ -6,7 +6,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-a11y-announcer/iron-a11y-announcer.html"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html"> <!--
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-a11y-announcer/iron-a11y-announcer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <!--
 Material design: [Snackbars & toasts](https://www.google.com/design/spec/components/snackbars-toasts.html)
 
 `paper-toast` provides a subtle notification toast. Only one `paper-toast` will
@@ -61,7 +61,7 @@ In order to apply the `Roboto` font to this element, make sure you've imported `
         background-color: var(--paper-toast-background-color, #323232);
         color: var(--paper-toast-color, #f1f1f1);
         min-height: 48px;
-        min-width: 288px;
+        min-width: 160px;
         padding: 16px 24px;
         box-sizing: border-box;
         box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
@@ -92,7 +92,12 @@ In order to apply the `Roboto` font to this element, make sure you've imported `
         opacity: 1;
         -webkit-transform: translateY(0px);
         transform: translateY(0px);
-      } </style> <span id="label">{{text}}</span> <content></content> </template> <script> (function() {
+      }
+      :host .toast-label,
+      :host ::content .label {
+        text-transform: uppercase;
+        font-weight: bold;
+      } </style> <span class="toast-label">{{text}}</span> <content></content> </template> <script> (function() {
       // Keeps track of the toast currently opened.
       var currentToast = null;
 

@@ -1,6 +1,6 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
  * Iain Fraser <iainf@netduma.com>
 */
 

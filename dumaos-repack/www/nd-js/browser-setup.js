@@ -1,12 +1,35 @@
 /*
  * (C) 2016 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 window.Polymer = {
   dom: "shady",
   lazyRegister: true
 };
+
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number]
+        : match
+      ;
+    });
+  };
+}
+if (!String.format) {
+  String.format = function(format) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return format.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number] 
+        : match
+      ;
+    });
+  };
+}
 
 var browserSetup = (function() {
 
@@ -27,8 +50,25 @@ function isBrowserSupported() {
 function bindErrors() {
   var errorDialog = document.createElement("duma-alert");
   document.body.appendChild(errorDialog);
-  
-  window.onerror = function (errorMessage) {
+  var noDialogErrors = ["AP RPC Error"]; // List of error prefixes that will not pop up in the dialog
+  var isNoDialogError = function(errorMessage){
+    for(var i = 0; i < noDialogErrors.length; i ++){
+      var errorPrefix = noDialogErrors[i];
+      if(errorMessage.startsWith(errorPrefix) || errorMessage.startsWith("Uncaught " + errorPrefix)){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  window.onunhandledrejection = window.onerror = function (errorMessage) {
+    if (errorMessage instanceof PromiseRejectionEvent) {
+      errorMessage = errorMessage.reason.toString();
+    }
+    if(isNoDialogError(errorMessage)){
+      console.warn(errorMessage)
+      return true;
+    }
     var message = errorMessage.replace("Uncaught Error:", "");
     if (errorDialog.show) {
       errorDialog.show(message);

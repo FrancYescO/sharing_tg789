@@ -1,6 +1,6 @@
 /*
  * (C) 2017 NETDUMA Software
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {
@@ -8,12 +8,11 @@
   var first = true;
 
   function add_log(time, ruleName, device, event) {
-    var deviceFill = $("<span></span>").text(device);
+    var deviceFill = $('<span class="device-name"></span>').text(device);
     var row = $("<tr></tr>")
+      .append($('<td></td>').append($('<span class="rule-name"></span>').text(ruleName)))
       .append($("<td></td>")
         .text(new Date(time * 1000).toLocaleString()))
-      .append($("<td></td>")
-        .text(ruleName))
       .append($("<td></td>")
         .html(event.replace("{0}",deviceFill.prop('outerHTML'))));
 

@@ -1,7 +1,7 @@
 /*
  * (C) 2017 NETDUMA Software
  * Iain Fraser <iainf@netduma.com>
- * Kian Cross <kian.cross@netduma.com>
+ * Kian Cross
 */
 
 (function (context) {

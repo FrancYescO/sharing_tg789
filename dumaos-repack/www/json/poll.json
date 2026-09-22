@@ -1,16 +1,22 @@
 <%
-  libos = require("libos")
+  require("libos")
   
   local platform_information = os.platform_information()
 
   local lang = os.get_gui_language() or "English"
-  local langpath = string.format("/www/language/dumaos/%s/ready", lang)
+  if platform_information.model == "XB7" or (platform_information.model == "RPI3" and platform_information.vendor == "COMCAST") then
+    langpath = string.format("/media/dumaos_output/www/language/dumaos/%s/ready", lang)
+  else
+    langpath = string.format("/www/language/dumaos/%s/ready", lang)
+  end
 
   local ap_mode = os.get_ap_mode()
   local hijack_mode = os.get_hijack_mode()
   local firmware_version = os.firmware_version()
   local hardware_version =  platform_information.model
   local translationReady = os.load(langpath) == "true"
+  local notificationRefresh = os.load("/tmp/NotificationRefreshCounter") or 0
+  local accessibility_mode = os.config_get("accessibility_mode") == "1"
 
   -- The router field in this JSON file used to always be set to true. We 
   -- then ran into an issue with the first firmware after translation. DumaOS
@@ -37,5 +43,7 @@
   "ap_mode" : <%= ap_mode %>,
   "hijack_mode" : <%= hijack_mode %>,
   "firmwareVersion" : "<%= firmware_version %>",
-  "translationReady" : <%= translationReady %>
+  "translationReady" : <%= translationReady %>,
+  "notificationRefresh" : <%= notificationRefresh %>,
+  "accessibilityMode": <%= accessibility_mode %>
 }

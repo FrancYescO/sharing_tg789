@@ -1,7 +1,7 @@
 <!-- 
   (C) NETDUMA Software
-  Kian Cross <kian.cross@netduma.com>
---> <link rel="import" href="../polymer/polymer.html"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html"> <link rel="import" href="../duma-alert/duma-alert.html"> <link rel="import" href="../../libs/gridstack.html"> <link rel="import" href="../../libs/rpc.html"> <link rel="import" href="../../libs/jquery.html"> <link rel="import" href="../paper-spinner/paper-spinner-lite.html"> <link rel="import" href="../paper-dialog/paper-dialog.html"> <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html"> <link rel="import" href="duma-panel.html"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html"> <dom-module id="duma-panels"> <template> <style is="custom-style" include="duma-theme"> :host {
+  Kian Cross
+--> <link rel="import" href="../polymer/polymer.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../duma-alert/duma-alert.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/gridstack.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/rpc.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../../libs/jquery.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-spinner/paper-spinner-lite.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dialog/paper-dialog.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icon/iron-icon.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../iron-icons/iron-icons.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="../paper-toast/paper-toast.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="duma-panel.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <link rel="import" href="/themes/<%= current_theme %>/duma-theme.html?v=<%= dumaos_version %>&lang=<%= lang %>&theme=<%= current_theme %>&themeVersion=<%= current_theme_version %>"> <dom-module id="duma-panels"> <template> <style is="custom-style" include="duma-theme"> :host {
         display: block;
         padding: 0;
         height: 100%;
@@ -46,7 +46,7 @@
         border-radius: 50%;
       }
       
-      :host:hover ::content .grid-stack > .grid-stack-item.ui-resizable-autohide > .ui-resizable-se {
+      :host[isdesktop]:hover ::content .grid-stack > .grid-stack-item.ui-resizable-autohide > .ui-resizable-se {
         opacity: 0;
         visibility; hidden;
         transition: opacity ease .15s;
@@ -138,7 +138,13 @@
         opacity: 1;
         visibility: visible;
         transition: opacity 0.2s ease;
-      } </style> <div class="grid-stack"></div> </template> <script> Polymer({
+      }
+      :host #newPanelToast {
+        cursor: pointer;
+      }
+      :host #newPanelToast ::content .label {
+        margin-left: 1em;
+      } </style> <div class="grid-stack"></div> <paper-toast id="newPanelToast" no-cancel-on-outside-click="false"><iron-icon icon="arrow-downward"></iron-icon><span class="label">Go to panel</span></paper-toast> </template> <script> Polymer({
       is: "duma-panels",
 
       properties: {
@@ -164,6 +170,11 @@
           value: false,
           type: Boolean,
           observer: "_onResizableChange"
+        },
+
+        isdesktop: {
+          type: Boolean,
+          value: top.location.hash === "com.netdumasoftware.desktop"
         }
       },
       
@@ -220,14 +231,44 @@
       _bindEvents: function () {
         var grid = $(this.$$(".grid-stack"));
         
-        $(grid).on("dragstart resizestart", function (event) {
+        grid.on("dragstart resizestart", function (event) {
           $(this).find(".overlay").addClass("show-overlay");
         });
 
         var _this = this;
         
-        $(grid).on("dragstop resizestop", function (event) {
+        grid.on("dragstop resizestop", function (event) {
           $(this).find(".overlay").removeClass("show-overlay");
+        });
+
+        // re-arrange the order of panels in children so tabbing is conventional
+        grid.on("change",function(e, items){
+          //ignore change events from paper elements etc...
+          if(!e.target.classList.contains("grid-stack") || !items) return;
+          // items is a list of panels who's position has changed, or are indexed by the parent later than the one that changed
+          // sort by Y ascending, then by X ascending, so it's left->right, top->bottom
+          function sortGridstackByYThenX(a,b){
+            if(a.y !== b.y) return a.y - b.y;
+            return a.x - b.x;
+          }
+          items.sort(sortGridstackByYThenX);
+          //get the first index of the items that have changed
+          //because we only get the changed items, and all items indexed after them, we only want to change the index of the changed ones
+          var startIndex = 9001;
+          for(var i = 0; i < items.length; i++){
+            var index = $(items[i].el).index();
+            if(index < startIndex) startIndex = index;
+          }
+          for(var i = 0; i < items.length; i++){
+            var info = items[i];
+            var el = $(info.el);
+            var setIndex = i + startIndex;
+            //re-get the panels each iteration, as the order changes each iteration of the for loop
+            var panels = el.parent().children();
+            //if it's not the last panel, insert it at the index. Otherwise, append to the end
+            if(setIndex < panels.length - 1) el.insertBefore(panels.eq(setIndex));
+            else el.parent().append(el);
+          }
         });
       },
 
@@ -262,14 +303,15 @@
 
       _getPanelWrapper: function (loader) {
         return $("<div></div>")
+          .attr("role","region")
           .addClass("panel-wrapper")
 
           .append($("<div class='overlay'></div>"))
 
-          .append($("<div class='drag-handle drag-handle-1'></div>"))
-          .append($("<div class='drag-handle drag-handle-2'></div>"))
-          .append($("<div class='drag-handle drag-handle-3'></div>"))
-          .append($("<div class='drag-handle drag-handle-4'></div>"))
+          .append($("<div class='drag-handle drag-handle-1' aria-label='<%= i18n.ariaDragHandle %>'></div>"))
+          .append($("<div class='drag-handle drag-handle-2' aria-label='<%= i18n.ariaDragHandle %>'></div>"))
+          .append($("<div class='drag-handle drag-handle-3' aria-label='<%= i18n.ariaDragHandle %>'></div>"))
+          .append($("<div class='drag-handle drag-handle-4' aria-label='<%= i18n.ariaDragHandle %>'></div>"))
 
           .append($("<div class='loader-wrapper'></div>")
             .append(loader)
@@ -495,7 +537,36 @@
         return contentWrapper;
       },
 
-      add: function (file, packageId, data, options) {
+      _toastLockState: 0,
+      _showAddToast: function(newPanel){
+        // Don't show toast for first 5 seconds of loading
+        if(this._toastLockState < 2){
+          if(this._toastLockState === 0){
+            this._toastLockState = 1;
+            setTimeout(function(){
+              this._toastLockState = 2;
+            }.bind(this),5000);
+          }
+          return
+        }
+        var $w = $(window), wh = $w.height(),
+          top = $w.scrollTop(), bottom = top + wh,
+          $panel = $(newPanel),
+          panelCenter = $panel.offset().top + $panel.height()/2;
+        if (!(panelCenter >= top && panelCenter < bottom)) {
+          // the image is not half-visible
+          this.$.newPanelToast.show();
+          this.$.newPanelToast.onclick = function(){
+            newPanel.scrollIntoView({
+              block: "end",
+              inline: "nearest",
+              behavior: "smooth"
+            });
+          };
+        }
+      },
+
+      add: function (file, packageId, data, options, dontTriggerToast) {
         if (typeof options === "undefined") {
           options = {};
         }
@@ -519,6 +590,8 @@
           options.id
         );
 
+        if(!dontTriggerToast) this._showAddToast(panelWrapper[0]);
+
         return panelWrapper;
       },
 
@@ -541,8 +614,8 @@
         
         if (panel) {
           panel._triggerDestructor();
-          grid.removeWidget(panelWrapper);
         }
+        grid.removeWidget(panelWrapper);
       },
 
       update: function (element, options) {
