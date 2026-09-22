@@ -2,8 +2,8 @@ Package: dumaos-repack
 Priority: optional
 Section: net
 Depends: terminfo libncurses libedit
-Description: DumaOS
+Description: DumaOS UI/QoS repack for TCH firmware (AGTEF etc.)
 Maintainer: FrancYescO <francyesc0@hotmail.it>
-Source: https://github.com/Ansuel/tch-nginx-gui
-Version: 1.0-0
+Source: https://github.com/FrancYescO/sharing_tg789
+Version: 1.1-0
 Architecture: all

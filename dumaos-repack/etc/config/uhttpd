@@ -6,8 +6,9 @@ config uhttpd main
 #	list listen_http	[::]:81
 
 	# HTTPS listen addresses, multiple allowed
-	list listen_https	0.0.0.0:443
-#	list listen_https	[::]:443
+	# 8443 to avoid clashing with the stock nginx UI on 443
+	list listen_https	0.0.0.0:8443
+#	list listen_https	[::]:8443
 
 	# Server document root
 	option home		/www

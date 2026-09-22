@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Re-apply the DumaOS/autoadmin firewall state after a firewall reload
+# (same hook as etc/firewallExt/M1_NetDuma_99.user on DJA0231).
+
+ubus call com.netdumasoftware.autoadmin fw_restart '{"reload_zone":true}' 2>/dev/null
+exit 0
