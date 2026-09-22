@@ -50,10 +50,11 @@ jobs:
           trap 'rm -rf "$work_dir"' EXIT
 
           test -s "$package"
-          tar -tzf "$package" | grep -Eq '^(\./)?debian-binary$'
-          tar -tzf "$package" | grep -Eq '^(\./)?control\.tar\.gz$'
-          tar -tzf "$package" | grep -Eq '^(\./)?data\.tar\.gz$'
-          ! tar -tzf "$package" | grep -Eq 'PaxHeader|(^|/)\._'
+          tar -tzf "$package" > "$work_dir/list.txt"
+          grep -Eq '^(\./)?debian-binary$' "$work_dir/list.txt"
+          grep -Eq '^(\./)?control\.tar\.gz$' "$work_dir/list.txt"
+          grep -Eq '^(\./)?data\.tar\.gz$' "$work_dir/list.txt"
+          ! grep -Eq 'PaxHeader|(^|/)\._' "$work_dir/list.txt"
 
           tar -xzf "$package" -C "$work_dir"
           mkdir -p "$work_dir/control" "$work_dir/data"
@@ -87,6 +88,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
       - name: Download built package
         uses: actions/download-artifact@v4
         with:
