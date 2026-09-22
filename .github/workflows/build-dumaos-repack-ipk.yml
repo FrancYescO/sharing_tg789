@@ -32,6 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf dist
           mkdir -p dist
           sh ./ipkg-build.sh ./dumaos-repack ./dist
 
