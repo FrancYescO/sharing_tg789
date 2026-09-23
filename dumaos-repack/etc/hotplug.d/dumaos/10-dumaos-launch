@@ -50,7 +50,9 @@ fi
 # Recover from a crashed run: if the state file says we are not stopped
 # but procmanager is not running, the previous run died mid-transition
 # (e.g. missing module) and left a stale state that deadlocks resume.
-if [ -e /var/run/dumaos-status ] && [ "$(cat /var/run/dumaos-status)" != "stopped" ] && ! pgrep -f com.netdumasoftware.procmanager >/dev/null 2>&1; then
+# A missing file (fresh boot) counts as "stopped" so the resume flow
+# below can transition stopped -> starting -> running.
+if ! [ -e /var/run/dumaos-status ] || { [ "$(cat /var/run/dumaos-status)" != "stopped" ] && ! pgrep -f com.netdumasoftware.procmanager >/dev/null 2>&1; }; then
   printf "stopped" > /var/run/dumaos-status
 fi
 
