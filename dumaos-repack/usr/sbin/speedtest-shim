@@ -1,0 +1,52 @@
+#!/bin/sh
+# Shim for the netduma speedtest client (reflector 80.239.170.203:3001 is dead).
+# Emulates the CLI and the /tmp/benchmark result files, measuring through
+# the Cloudflare edge over plain HTTP (no CA bundle on this firmware).
+threads=3; dl=1; ul=1; pingip=""; maxmb=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -i) bindip=$2; shift 2;;
+    -b) shift;;
+    -t) threads=$2; shift 2;;
+    -m) maxmb=$2; shift 2;;
+    -I) pingip=$2; shift 2;;
+    -u) ul=0; shift;;
+    -d) dl=0; shift;;
+    *) shift;;
+  esac
+done
+[ -z "$pingip" ] && pingip=1.1.1.1
+mkdir -p /tmp/benchmark
+PINGF=/tmp/benchmark/.ping.$$
+rm -f $PINGF
+( i=0; while [ $i -lt 60 ]; do ping -c 1 -W 1 "$pingip" 2>/dev/null | grep -o 'time=[0-9.]*' | cut -d= -f2 >> $PINGF; i=$((i+1)); sleep 1; done ) &
+PINGPID=$!
+if [ "$dl" = 1 ]; then
+  dlbytes=80000000
+  [ -n "$maxmb" ] && dlbytes=$((maxmb*1000000))
+  speed=$(curl -s -o /dev/null --max-time 25 -w '%{speed_download}' "http://speed.cloudflare.com/__down?bytes=$dlbytes")
+  dlmbps=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+else
+  dlmbps=0.000; sleep 2
+fi
+if [ "$ul" = 1 ]; then
+  head -c 15000000 /dev/zero > /tmp/st_up.bin
+  speed=$(curl -s -o /dev/null --max-time 25 -T /tmp/st_up.bin -w '%{speed_upload}' "http://speed.cloudflare.com/__up")
+  ulmbps=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+  rm -f /tmp/st_up.bin
+else
+  ulmbps=0.000
+fi
+kill $PINGPID 2>/dev/null
+avg=$(awk '{s+=$1;n++} END{if(n)printf "%.3f",s/n; else print "0.000"}' $PINGF)
+jitter=$(awk 'NR>1{d=$1-p; if(d<0)d=-d; s+=d; n++} {p=$1} END{if(n)printf "%.3f",s/n; else print "0.000"}' $PINGF)
+now=$(date +%s)
+nsf=$(awk "{printf \"%09d\", ($1-int($1))*1000000000}" /proc/uptime)
+{ echo "speed-down-$dlmbps"; while read -r p; do echo "ping-$p-$jitter-0"; done < $PINGF; } > "/tmp/benchmark/1-$threads-$dlmbps-$now.$nsf"
+echo "speed-up-$ulmbps" > "/tmp/benchmark/2-$threads-$ulmbps-$now.$nsf"
+{ echo "ping-$avg-$jitter-0"; echo "bbloat-idle-$avg"; } > "/tmp/benchmark/3-$threads-$avg-$now.$nsf"
+echo "Download: $dlmbps mbit/s"
+echo "Upload: $ulmbps mbit/s"
+echo "Latency: $avg ms"
+rm -f $PINGF
+exit 0

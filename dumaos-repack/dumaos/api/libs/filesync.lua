@@ -12,10 +12,32 @@ local function safe(f)
     return f(unpack(a, 1, n))
   end
 end
-if type(syslog) == 'table' then
-  for _, k in ipairs({'debug','info','notice','warning','warn','err','error','critical','alert','emerg'}) do
-    syslog[k] = safe(syslog[k])
+local lastfn
+local function guard()
+  local s = syslog
+  if type(s) == 'table' then
+    if not s.__safe_wrapped then
+      for _, k in ipairs({'debug','info','notice','warning','warn','err','error','critical','alert','emerg'}) do
+        s[k] = safe(s[k])
+      end
+      s.__safe_wrapped = true
+    end
+  elseif type(s) == 'function' and s ~= lastfn then
+    s = safe(s)
+    syslog = s
+    lastfn = s
   end
 end
-if type(syslog) == 'function' then syslog = safe(syslog) end
-return real
+local t = {}
+for k, v in pairs(real) do
+  if type(v) == 'function' then
+    t[k] = function(...)
+      guard()
+      return v(...)
+    end
+  else
+    t[k] = v
+  end
+end
+guard()
+return t
