@@ -85,6 +85,9 @@ jobs:
           test -f "$work_dir/data/usr/lib/detectlist.xor"
           test -f "$work_dir/data/usr/lib/libnetfilter_queue.so.1"
           test -f "$work_dir/data/usr/lib/nfqverdict-shim.so"
+          test -f "$work_dir/data/usr/lib/openssl-compat-shim.so"
+          test -x "$work_dir/data/usr/bin/openssl"
+          test -x "$work_dir/data/etc/dumaos/openssl-agtef/openssl"
           grep -q nfqverdict-shim.so "$work_dir/data/usr/bin/dpiclass"
 
           # MR22 ubus stack (stock AGTEF copies stashed for uninstall)

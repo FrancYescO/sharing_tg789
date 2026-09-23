@@ -22,11 +22,21 @@ fi
 # attribute used by DumaOS's custom libnetfilter_queue, so every nfqueue
 # verdict (dpiclass QoS, geoip) is refused and DNS stalls in queue 10.
 # The preload shim translates nfq_set_verdict2_extra() to plain
-# nfq_set_verdict2(). ld.so.preload is shared with Telstra's
-# libpreload-tch.so, so append (and never overwrite).
-if [ -z "$IPKG_INSTROOT" ] && [ -f /usr/lib/nfqverdict-shim.so ]; then
+# nfq_set_verdict2(). The Telstra libssl/libcrypto lack the zlib/SRP/NPN
+# symbols the stock openssl binary references, so every openssl call
+# died with "undefined symbol: BIO_f_zlib" (exit 127), breaking DumaOS
+# cloud package verify/decrypt; /usr/bin/openssl is replaced by a static
+# 1.1.1w build (cloud .cloud files need the SHA-256 EVP KDF of 1.1.x) and
+# openssl-compat-shim.so covers any other dynamically linked consumer.
+# ld.so.preload is shared with Telstra's libpreload-tch.so, so append
+# (and never overwrite).
+if [ -z "$IPKG_INSTROOT" ]; then
   grep -q '^/usr/lib/nfqverdict-shim.so$' /etc/ld.so.preload 2>/dev/null || \
     echo /usr/lib/nfqverdict-shim.so >> /etc/ld.so.preload
+  if [ -f /usr/lib/openssl-compat-shim.so ]; then
+    grep -q '^/usr/lib/openssl-compat-shim.so$' /etc/ld.so.preload 2>/dev/null || \
+      echo /usr/lib/openssl-compat-shim.so >> /etc/ld.so.preload
+  fi
 fi
 
 # Stash the stock AGTEF ubus stack outside the package filelist so postrm
