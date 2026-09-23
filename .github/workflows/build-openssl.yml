@@ -24,7 +24,8 @@ jobs:
           make -j4 apps/openssl
           arm-linux-gnueabi-strip apps/openssl
           file apps/openssl
-          cp apps/openssl openssl-1.1.1w-arm-static
+          cp apps/openssl ../openssl-1.1.1w-arm-static
+          cd ..
       - uses: actions/upload-artifact@v4
         with:
           name: openssl-1.1.1w-arm
