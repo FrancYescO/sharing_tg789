@@ -45,6 +45,22 @@ if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos/openssl-agtef/openssl ]; then
     cp -f /etc/dumaos/openssl-agtef/openssl /usr/bin/openssl
 fi
 
+# Restore the stock conntrack (the package replaces /usr/sbin/conntrack
+# with a -k -> -m wrapper for the Geo-Filter; conntrack.orig is also
+# package-owned and purged). Reboot after removing.
+if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos-conntrack-stock/conntrack ]; then
+  cp -f /etc/dumaos-conntrack-stock/conntrack /usr/sbin/conntrack
+  rm -rf /etc/dumaos-conntrack-stock
+fi
+
+# Disable the DumaOS nginx reverse proxy on :80 (package file is purged,
+# reload so nginx drops the include) and the seeded default theme.
+if [ -z "$IPKG_INSTROOT" ]; then
+  rm -f /etc/nginx/main_dumaos.conf
+  rm -rf /www/themes/default
+  command -v nginx >/dev/null 2>&1 && (nginx -t >/dev/null 2>&1 && nginx -s reload 2>/dev/null)
+fi
+
 # Restore the stock AGTEF ubus stack (DumaOS needs the MR22 one, which
 # the package ships at /lib/libubus.so, /lib/libubox.so, /sbin/ubusd,
 # /bin/ubus and /usr/lib/lua/ubus.so). Reboot after removing.

@@ -50,7 +50,7 @@ if [ "${ODM}" = "SEAL" ]; then
 fi
 
 if [ "$SERVER_PORT" != "80" ] && [ "$MODEL" != "BEACON6" ];then
-	SERVER_ACCESS=" -p 0.0.0.0:$SERVER_PORT -p [::]:$SERVER_PORT " # AGTEF: no reverse proxy, bind LAN
+	SERVER_ACCESS=" -p 127.0.0.1:$SERVER_PORT -p [::1]:$SERVER_PORT " # AGTEF: nginx reverse-proxies DumaOS on :80 (/desktop, /duma-socket), keep 81 loopback-only
 else
 	SERVER_ACCESS=" -p 0.0.0.0:$SERVER_PORT -p [::]:$SERVER_PORT "
 fi

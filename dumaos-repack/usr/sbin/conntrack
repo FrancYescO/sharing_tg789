@@ -1,0 +1,7 @@
+#!/bin/sh
+args=""
+for a in "$@"; do
+  case "$a" in -k) a=-m;; esac
+  args="$args $a"
+done
+exec /usr/sbin/conntrack.orig $args

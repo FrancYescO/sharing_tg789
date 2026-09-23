@@ -46,6 +46,37 @@ if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ] && ! [ -e /etc/dumao
   cp -f /etc/dumaos/ubus-agtef/* /etc/dumaos-ubus-stock/
 fi
 
+# The stock AGTEF conntrack (v1.4.5) has no "-k" mark filter, which the
+# Geo-Filter uses to flush denied conntracks; the package ships a wrapper
+# at /usr/sbin/conntrack that rewrites -k to -m and execs conntrack.orig.
+# Stash the stock binary outside the package filelist so postrm can
+# restore it after opkg purges our files.
+if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/dumaos/conntrack-agtef/conntrack ] && ! [ -e /etc/dumaos-conntrack-stock/conntrack ]; then
+  mkdir -p /etc/dumaos-conntrack-stock
+  cp -f /etc/dumaos/conntrack-agtef/conntrack /etc/dumaos-conntrack-stock/
+fi
+
+# The "Cloudsync Themes" mirrors are dead and the desktop UI requests
+# /themes/default/duma-theme.html, so seed the default theme from the
+# files the stock webroot already ships.
+if [ -z "$IPKG_INSTROOT" ] && [ -f /www/themes/duma-theme.html ]; then
+  mkdir -p /www/themes/default
+  cp -f /www/themes/duma-theme.html /www/themes/manifest.json /www/themes/default/ 2>/dev/null
+fi
+
+# The package installs /etc/nginx/main_dumaos.conf, which Telstra ships
+# disabled in dumaos-available/ but nginx.conf includes as main_*.conf.
+# It reverse-proxies the DumaOS UI on :80 (/desktop, /ndindex.html,
+# /nd-css, /nd-js, /json, /duma-socket/<port> -> 127.0.0.1), so the UI
+# websocket (ws://<router>/duma-socket/8093) works like on the official
+# modem instead of hitting :81 directly. The shipped copy drops the
+# Telstra session parts (tch_auth + body_filter_by_lua CSRF, which need a
+# Telstra cloud session) and the if/set proxy-port rewrite (this nginx is
+# built --without-http_rewrite_module); /duma-socket/ proxies to 8093.
+if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
+  nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
+fi
+
 /etc/init.d/ndhttpd enable
 /etc/init.d/ndhttpd start
 /etc/init.d/dumaos enable
