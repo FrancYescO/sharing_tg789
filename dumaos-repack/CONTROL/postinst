@@ -58,6 +58,16 @@ if [ -z "$IPKG_INSTROOT" ] && ! [ -e /sbin/ubus.orig ]; then
   fi
 fi
 
+# /usr/bin/wl becomes a wrapper that silences "wl -i <iface>" calls for
+# interfaces that do not exist (AGTEF exposes only wl0, while DumaOS
+# devicemanager polls wl1 for 5GHz stats every minute); the stock binary
+# ships as /usr/bin/wl-agtef/wl and is kept at /usr/bin/wl.orig.
+if [ -z "$IPKG_INSTROOT" ] && ! [ -e /usr/bin/wl.orig ] && [ -f /usr/bin/wl-agtef/wl ]; then
+  mkdir -p /etc/dumaos/wl-agtef
+  cp -f /usr/bin/wl-agtef/wl /etc/dumaos/wl-agtef/wl
+  cp -f /usr/bin/wl-agtef/wl /usr/bin/wl.orig
+fi
+
 # The stock AGTEF conntrack (v1.4.5) has no "-k" mark filter, which the
 # Geo-Filter uses to flush denied conntracks; the package ships a wrapper
 # at /usr/sbin/conntrack that rewrites -k to -m and execs conntrack.orig.

@@ -74,6 +74,13 @@ if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ]; then
     rm -f /sbin/ubus.orig
 fi
 
+# Restore the stock wl binary replaced by the wrapper.
+if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/dumaos/wl-agtef/wl ]; then
+  cp -f /etc/dumaos/wl-agtef/wl /usr/bin/wl
+  rm -f /usr/bin/wl.orig
+  rm -rf /etc/dumaos/wl-agtef
+fi
+
 # UCI configs left behind by uci commit
 uci -q delete dumaos
 uci -q delete ndhttpd
