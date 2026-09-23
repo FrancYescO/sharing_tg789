@@ -19,7 +19,8 @@ jobs:
           wget -q https://www.openssl.org/source/old/1.1.1/openssl-1.1.1w.tar.gz
           tar xzf openssl-1.1.1w.tar.gz
           cd openssl-1.1.1w
-          ./Configure linux-armv4 no-shared no-async no-zlib no-engine no-ui-console no-comp no-dso threads --cross-compile-prefix=arm-linux-gnueabi- --prefix=/opt/openssl no-afalgeng
+          ./Configure linux-armv4 no-shared no-async no-zlib no-engine no-comp no-dso threads --cross-compile-prefix=arm-linux-gnueabi- --prefix=/opt/openssl
+          make -j4 build_generated
           make -j4 apps/openssl
           arm-linux-gnueabi-strip apps/openssl
           file apps/openssl
