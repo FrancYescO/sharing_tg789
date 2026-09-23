@@ -1,5 +1,8 @@
 name: Build openssl 1.1 ARM
 on:
+  push:
+    paths:
+      - .github/workflows/build-openssl.yml
   workflow_dispatch:
 
 jobs:
