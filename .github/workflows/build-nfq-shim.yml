@@ -1,0 +1,26 @@
+name: Build nfq verdict shim
+on:
+  push:
+    paths:
+      - tools/nfq-shim.c
+      - .github/workflows/build-nfq-shim.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-linux-gnueabi
+      - name: Build
+        run: |
+          arm-linux-gnueabi-gcc -shared -fPIC -O2 -o nfqverdict-shim.so tools/nfq-shim.c
+          arm-linux-gnueabi-strip nfqverdict-shim.so
+          file nfqverdict-shim.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nfqverdict-shim
+          path: nfqverdict-shim.so
