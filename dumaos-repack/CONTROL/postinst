@@ -66,13 +66,42 @@ fi
 
 # The package installs /etc/nginx/main_dumaos.conf, which Telstra ships
 # disabled in dumaos-available/ but nginx.conf includes as main_*.conf.
-# It reverse-proxies the DumaOS UI on :80 (/desktop, /ndindex.html,
+# It reverse-proxies the DumaOS UI on :80/:443 (/desktop, /ndindex.html,
 # /nd-css, /nd-js, /json, /duma-socket/<port> -> 127.0.0.1), so the UI
-# websocket (ws://<router>/duma-socket/8093) works like on the official
-# modem instead of hitting :81 directly. The shipped copy drops the
-# Telstra session parts (tch_auth + body_filter_by_lua CSRF, which need a
-# Telstra cloud session) and the if/set proxy-port rewrite (this nginx is
-# built --without-http_rewrite_module); /duma-socket/ proxies to 8093.
+# works like on the official modem instead of hitting :81 directly. The
+# shipped copy keeps the official tch_auth session gate (so the portal
+# login protects the UI) but makes it work on AGTEF: the if/set proxy-port
+# rewrite is replaced by one location per app websocket port (this nginx
+# is built --without-http_rewrite_module and --without-pcre), the CSRF
+# body filter is nil-safe, and tch_auth is kept only on the exact locations
+# because web.sessioncontrol authorises by EXACT uri in ruleset_main.
+# Register the DumaOS uris in the portal ruleset so a logged-in admin
+# (or engineer) passes tch_auth, like the Telstra portal pages do.
+if [ -z "$IPKG_INSTROOT" ] && command -v uci >/dev/null 2>&1; then
+  for pair in desktop_index:/desktop/index.html relay:/desktop/relay.html webview:/desktop/webview.html ndindex:/ndindex.html bower:/bower.json; do
+    n=${pair%%:*}; t=${pair#*:}
+    uci -q get web.duma_$n >/dev/null 2>&1 || {
+      uci -q set web.duma_$n=rule
+      uci -q set web.duma_$n.target=$t
+      uci -q add_list web.duma_$n.roles=admin
+      uci -q add_list web.duma_$n.roles=engineer
+    }
+    uci -q get web.ruleset_main.rules | grep -qw duma_$n || \
+      uci -q add_list web.ruleset_main.rules=duma_$n
+  done
+  for p in 8090 8091 8092 8093 8094 9090 9091 9092 9093 9094; do
+    uci -q get web.duma_ws_$p >/dev/null 2>&1 || {
+      uci -q set web.duma_ws_$p=rule
+      uci -q set web.duma_ws_$p.target=/duma-socket/$p
+      uci -q add_list web.duma_ws_$p.roles=admin
+      uci -q add_list web.duma_ws_$p.roles=engineer
+    }
+    uci -q get web.ruleset_main.rules | grep -qw duma_ws_$p || \
+      uci -q add_list web.ruleset_main.rules=duma_ws_$p
+  done
+  uci -q commit web
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
 fi
