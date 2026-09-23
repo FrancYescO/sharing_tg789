@@ -246,7 +246,7 @@ if [ "$ODM" = "SEAL" ];then
 fi
   procd_open_instance
   procd_set_param command "$PROG"
-  procd_set_param env NDPROC="/tmp/ndproc"
+  procd_set_param env NDPROC="/tmp/ndproc" TZ="$(uci -q get system.@system[0].timezone)"
   procd_append_param command -p "/dumaos/apps/system/com.netdumasoftware.procmanager"
   procd_append_param command "backend"
   if [ "$MODEL" = "R2" ];then
