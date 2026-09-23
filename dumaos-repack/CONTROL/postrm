@@ -32,6 +32,11 @@ if [ -z "$IPKG_INSTROOT" ] && [ -e /usr/lib/libnetfilter_queue.so.1.5.0 ]; then
     ln -sf libnetfilter_queue.so.1.5.0 /usr/lib/libnetfilter_queue.so.1
 fi
 
+# Remove our shim line from ld.so.preload (keep Telstra's entries).
+if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/ld.so.preload ]; then
+    sed -i '/nfqverdict-shim/d' /etc/ld.so.preload
+fi
+
 # Restore the stock AGTEF ubus stack (DumaOS needs the MR22 one, which
 # the package ships at /lib/libubus.so, /lib/libubox.so, /sbin/ubusd,
 # /bin/ubus and /usr/lib/lua/ubus.so). Reboot after removing.

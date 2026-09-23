@@ -18,6 +18,17 @@ if [ -z "$IPKG_INSTROOT" ]; then
   done
 fi
 
+# The stock Broadcom 4.1.52 kernel rejects the verdict-extra netlink
+# attribute used by DumaOS's custom libnetfilter_queue, so every nfqueue
+# verdict (dpiclass QoS, geoip) is refused and DNS stalls in queue 10.
+# The preload shim translates nfq_set_verdict2_extra() to plain
+# nfq_set_verdict2(). ld.so.preload is shared with Telstra's
+# libpreload-tch.so, so append (and never overwrite).
+if [ -z "$IPKG_INSTROOT" ] && [ -f /usr/lib/nfqverdict-shim.so ]; then
+  grep -q '^/usr/lib/nfqverdict-shim.so$' /etc/ld.so.preload 2>/dev/null || \
+    echo /usr/lib/nfqverdict-shim.so >> /etc/ld.so.preload
+fi
+
 # Stash the stock AGTEF ubus stack outside the package filelist so postrm
 # can restore it after opkg has purged the package's own files.
 if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ] && ! [ -e /etc/dumaos-ubus-stock/ubusd ]; then

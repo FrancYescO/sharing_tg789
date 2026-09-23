@@ -5,5 +5,5 @@ Depends: terminfo libncurses libedit libopenssl1.1
 Description: DumaOS UI/QoS repack for TCH firmware (AGTEF etc.)
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/FrancYescO/sharing_tg789
-Version: 2.0-13
+Version: 2.0-14
 Architecture: all
