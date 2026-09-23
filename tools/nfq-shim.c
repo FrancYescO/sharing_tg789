@@ -12,6 +12,8 @@
  * call to the plain verdict2 API which the old kernel does support.
  */
 #include <stdint.h>
+#include <stdio.h>
+#include <errno.h>
 
 struct nfq_q_handle;
 
@@ -23,5 +25,12 @@ int nfq_set_verdict2_extra(struct nfq_q_handle *qh, uint32_t id,
                            uint32_t verdict, uint32_t mark,
                            uint32_t data_len, const unsigned char *data)
 {
-    return nfq_set_verdict2(qh, id, verdict, mark, data_len, data);
+    static int n = 0, e = 0;
+    int r = nfq_set_verdict2(qh, id, verdict, mark, data_len, data);
+    if (r < 0 && e++ < 10)
+        fprintf(stderr, "nfq-shim: verdict2 id=%u verdict=%u len=%u ret=%d errno=%d\n",
+                id, verdict, data_len, r, errno);
+    if ((++n % 500) == 1)
+        fprintf(stderr, "nfq-shim: verdict2_extra calls=%d\n", n);
+    return r;
 }
