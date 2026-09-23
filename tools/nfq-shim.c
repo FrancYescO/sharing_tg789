@@ -11,6 +11,10 @@
  * stock Broadcom 4.1.52 kernel does not understand, so every verdict is
  * rejected (packets pile up in the nfqueue, e.g. all DNS is stuck).
  *
+ * dpiclass also maps its ACCEPT verdict to the value 4 (a netduma kernel
+ * extension); on a stock kernel 4 is NF_REPEAT, so the packet is requeued
+ * forever. Map it back to NF_ACCEPT.
+ *
  * Loaded via LD_PRELOAD before libnetfilter_queue, this shim forwards the
  * call to the plain verdict2 API which the kernel does support, dropping
  * the extra attribute (only used for mark, which verdict2 sets anyway).
@@ -30,12 +34,13 @@ int nfq_set_verdict2_extra(struct nfq_q_handle *qh, uint32_t id,
                            uint32_t mark, uint32_t data_len,
                            const unsigned char *data)
 {
-    static int n = 0, e = 0;
-    int r = nfq_set_verdict2(qh, id, verdict, mark, data_len, data);
+    static int e = 0;
+    int r;
+    if (verdict == 4)
+        verdict = 1; /* NF_ACCEPT on a stock kernel */
+    r = nfq_set_verdict2(qh, id, verdict, mark, data_len, data);
     if (r < 0 && e++ < 10)
         fprintf(stderr, "nfq-shim: verdict2 id=%u verdict=%u extra=%u mark=%u len=%u ret=%d errno=%d\n",
                 id, verdict, extra_type, mark, data_len, r, errno);
-    if ((++n % 5000) == 1)
-        fprintf(stderr, "nfq-shim: verdict2_extra calls=%d\n", n);
     return r;
 }
