@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - tools/nfq-shim.c
+      - tools/openssl-shim.c
       - .github/workflows/build-nfq-shim.yml
   workflow_dispatch:
 
@@ -18,9 +19,12 @@ jobs:
       - name: Build
         run: |
           arm-linux-gnueabi-gcc -shared -fPIC -O2 -o nfqverdict-shim.so tools/nfq-shim.c
-          arm-linux-gnueabi-strip nfqverdict-shim.so
-          file nfqverdict-shim.so
+          arm-linux-gnueabi-gcc -shared -fPIC -O2 -o openssl-compat-shim.so tools/openssl-shim.c
+          arm-linux-gnueabi-strip nfqverdict-shim.so openssl-compat-shim.so
+          file nfqverdict-shim.so openssl-compat-shim.so
       - uses: actions/upload-artifact@v4
         with:
           name: nfqverdict-shim
-          path: nfqverdict-shim.so
+          path: |
+            nfqverdict-shim.so
+            openssl-compat-shim.so
