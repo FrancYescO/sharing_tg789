@@ -24,6 +24,14 @@ if [ -z "$IPKG_INSTROOT" ] && [ -x /bin/busybox ]; then
     ln -sf busybox /bin/tar
 fi
 
+# Restore the stock libnetfilter_queue symlink (we ship the MR22 build with
+# nfq_set_verdict2_extra as /usr/lib/libnetfilter_queue.so.1; the AGTEF
+# .so.1.5.0 file is untouched on disk). Reboot after removing.
+if [ -z "$IPKG_INSTROOT" ] && [ -e /usr/lib/libnetfilter_queue.so.1.5.0 ]; then
+    rm -f /usr/lib/libnetfilter_queue.so.1
+    ln -sf libnetfilter_queue.so.1.5.0 /usr/lib/libnetfilter_queue.so.1
+fi
+
 # Restore the stock AGTEF ubus stack (DumaOS needs the MR22 one, which
 # the package ships at /lib/libubus.so, /lib/libubox.so, /sbin/ubusd,
 # /bin/ubus and /usr/lib/lua/ubus.so). Reboot after removing.

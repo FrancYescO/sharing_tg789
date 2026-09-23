@@ -83,6 +83,7 @@ jobs:
           test -x "$work_dir/data/usr/lib/dumaos/dpiclass.bin"
           test -f "$work_dir/data/usr/lib/dumaos/libnetfilter_queue.so.1"
           test -f "$work_dir/data/usr/lib/detectlist.xor"
+          test -f "$work_dir/data/usr/lib/libnetfilter_queue.so.1"
 
           # MR22 ubus stack (stock AGTEF copies stashed for uninstall)
           for f in usr/lib/lua/ubus.so lib/libubus.so lib/libubox.so sbin/ubusd bin/ubus; do

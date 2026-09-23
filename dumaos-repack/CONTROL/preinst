@@ -1,3 +1,10 @@
-#!/bin/sh /etc/rc.common
+#!/bin/sh
+
+# busybox tar follows symlinks when extracting: drop the stock
+# libnetfilter_queue.so.1 -> .so.1.5.0 symlink so our real file lands
+# cleanly instead of truncating the stock library.
+if [ -z "$IPKG_INSTROOT" ] && [ -L /usr/lib/libnetfilter_queue.so.1 ]; then
+    rm -f /usr/lib/libnetfilter_queue.so.1
+fi
 
 exit 0
