@@ -70,6 +70,8 @@ if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ]; then
     cp -f /etc/dumaos/ubus-agtef/libubox.so /lib/libubox.so
     cp -f /etc/dumaos/ubus-agtef/ubusd /sbin/ubusd
     cp -f /etc/dumaos/ubus-agtef/ubus /bin/ubus
+    cp -f /etc/dumaos/ubus-agtef/ubus /sbin/ubus
+    rm -f /sbin/ubus.orig
 fi
 
 # UCI configs left behind by uci commit

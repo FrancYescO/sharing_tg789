@@ -1,0 +1,13 @@
+#!/bin/sh
+# DumaOS repack: the Netduma devicemanager app shells out to
+# "ubus call mapVendorExtensions.agent[.station] get" every minute; that
+# object only exists on Netduma extender hardware, so on stock AGTEF the
+# call logs "Command failed: Not found" (cli.lua) plus a JSON decode
+# failure in devicemanager. Answer it with empty JSON and pass everything
+# else through to the stock binary kept at /sbin/ubus.orig.
+for a in "$@"; do
+  case "$a" in
+    mapVendorExtensions*) echo "{}"; exit 0;;
+  esac
+done
+exec /sbin/ubus.orig "$@"

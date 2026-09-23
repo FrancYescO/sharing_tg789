@@ -46,6 +46,18 @@ if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ] && ! [ -e /etc/dumao
   cp -f /etc/dumaos/ubus-agtef/* /etc/dumaos-ubus-stock/
 fi
 
+# /sbin/ubus becomes a wrapper answering the phantom Netduma
+# mapVendorExtensions.* ubus calls (devicemanager spams "Command failed:
+# Not found" + a JSON decode error every minute without them); keep the
+# stock binary reachable at /sbin/ubus.orig for it to exec.
+if [ -z "$IPKG_INSTROOT" ] && ! [ -e /sbin/ubus.orig ]; then
+  if [ -f /etc/dumaos/ubus-agtef/ubus ]; then
+    cp -f /etc/dumaos/ubus-agtef/ubus /sbin/ubus.orig
+  elif [ -f /sbin/ubus-agtef/ubus ]; then
+    cp -f /sbin/ubus-agtef/ubus /sbin/ubus.orig
+  fi
+fi
+
 # The stock AGTEF conntrack (v1.4.5) has no "-k" mark filter, which the
 # Geo-Filter uses to flush denied conntracks; the package ships a wrapper
 # at /usr/sbin/conntrack that rewrites -k to -m and execs conntrack.orig.
