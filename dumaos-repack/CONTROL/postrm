@@ -19,6 +19,11 @@ done
 uci -q show firewall >/dev/null 2>&1 && uci -q commit firewall
 /etc/init.d/firewall reload >/dev/null 2>&1 || true
 
+# Restore the stock busybox tar symlink we replaced with the -m wrapper.
+if [ -z "$IPKG_INSTROOT" ] && [ -x /bin/busybox ]; then
+    ln -sf busybox /bin/tar
+fi
+
 # Restore the stock AGTEF ubus stack (DumaOS needs the MR22 one, which
 # the package ships at /lib/libubus.so, /lib/libubox.so, /sbin/ubusd,
 # /bin/ubus and /usr/lib/lua/ubus.so). Reboot after removing.

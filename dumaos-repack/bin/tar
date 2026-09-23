@@ -1,0 +1,18 @@
+#!/bin/sh
+# Busybox tar lacks GNU tar's -m (don't restore mtimes), which netduma's
+# cloud-sync (adblocker updates) uses, e.g. -xmzf or "-m -xzf".
+# Strip the m from short-option clusters and pass everything else through.
+args=""
+for arg in "$@"; do
+    case "$arg" in
+        --*) ;;
+        -*)
+            case "$arg" in
+                *m*) arg=$(printf '%s' "$arg" | tr -d 'm') ;;
+            esac
+            ;;
+    esac
+    [ "$arg" = "-" ] && continue
+    args="$args \"$arg\""
+done
+eval exec /bin/busybox tar $args
