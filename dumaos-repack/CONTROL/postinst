@@ -124,6 +124,17 @@ if [ -z "$IPKG_INSTROOT" ] && command -v uci >/dev/null 2>&1; then
   uci -q commit web
 fi
 
+# DumaOS apps run under glibc, which only honours TZ (never set by init)
+# or /etc/localtime; without either every server-side timestamp (speedtest
+# history, app logs) is UTC instead of the modem timezone. Point
+# /etc/localtime at the zone configured in uci (glibc ignores POSIX TZ
+# strings like the one in system.@system[0].timezone, so use zonename).
+if [ -z "$IPKG_INSTROOT" ] && ! [ -e /etc/localtime ]; then
+  ZONE=$(uci -q get system.@system[0].zonename 2>/dev/null)
+  [ -f "/usr/share/zoneinfo/$ZONE" ] || ZONE="Europe/Rome"
+  ln -sf "/usr/share/zoneinfo/$ZONE" /etc/localtime
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
 fi
