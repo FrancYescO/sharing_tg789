@@ -205,6 +205,11 @@ if [ -z "$IPKG_INSTROOT" ]; then
     sed -i '1i */2 * * * * /bin/sh /usr/sbin/bench-gzip.sh' /etc/crontabs/root 2>/dev/null
 fi
 
+# DPI database ships in this package; restart the classifier so it loads the new nddpidb
+if [ -z "$IPKG_INSTROOT" ]; then
+  killall dpiclass 2>/dev/null
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
 fi
