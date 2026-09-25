@@ -7,6 +7,21 @@ uci -q set dumaos.tr69=tr69
 uci -q set dumaos.tr69.dumaos_enabled=1
 uci -q commit dumaos
 
+# "Default 3.0" theme (the Netduma-red palette shipped with DumaOS 3.3.535,
+# xr500full theme + bg.svg) under /dumaos/themes/default30; select it on a
+# fresh install (reset-initialise-themes.lua is patched to keep it across
+# boots instead of resetting to stock default).
+if [ -z "$IPKG_INSTROOT" ]; then
+  t=$(uci -q get dumaos.dumaos_nvram.DumaOS_Theme 2>/dev/null)
+  case "$t" in
+    ""|default)
+      uci -q set dumaos.dumaos_nvram.DumaOS_Theme=default30
+      uci -q set dumaos.dumaos_nvram.DumaOS_Theme_Version='1.0'
+      uci -q commit dumaos
+      ;;
+  esac
+fi
+
 # Per-app frontend translation catalogs: cli.lua asserts
 # <app>/frontend/shared/i18n.json exists for every app served over RPC.
 # English strings live in /www/language/dumaoslang-*.json (prepared at
