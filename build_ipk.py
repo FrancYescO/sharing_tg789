@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Build the dumaos-repack .ipk with GNU-format tars (busybox opkg cannot
-read macOS bsdtar pax headers)."""
+"""Build the dumaos-repack .ipk: gzip-compressed ustar outer container
+(verified against openwrt feed ipks) with GNU-format inner tars."""
+import gzip
 import io
 import os
 import tarfile
@@ -48,13 +49,23 @@ control = inner_tar(os.path.join(SRC, "CONTROL"))
 
 os.makedirs(OUT, exist_ok=True)
 ipk = os.path.join(OUT, f"dumaos-repack_{version}_all.ipk")
-with tarfile.open(ipk, "w", format=tarfile.GNU_FORMAT) as t:
-    for name, payload in (("debian-binary", b"2.0\n"),
-                          ("control.tar.gz", control),
-                          ("data.tar.gz", data)):
+# An .ipk is a *gzip-compressed* tar (GNU magic, verified against openwrt
+# feed ipks) holding ./debian-binary, ./control.tar.gz and ./data.tar.gz.
+# The router's old opkg rejects ustar ("ustar\0" magic) and plain
+# uncompressed tars ("Malformed package file"/segfault) -- it needs the
+# gzip wrapper and GNU ("ustar  \0") magic, exactly like buildroot's
+# `tar cf - ... | gzip -9n`.
+outer = io.BytesIO()
+with tarfile.open(fileobj=outer, mode="w", format=tarfile.GNU_FORMAT) as t:
+    for name, payload in (("./debian-binary", b"2.0\n"),
+                          ("./control.tar.gz", control),
+                          ("./data.tar.gz", data)):
         ti = tarfile.TarInfo(name)
         ti.size = len(payload)
+        ti.mode = 0o644
         ti.uid = ti.gid = 0
         ti.uname = ti.gname = "root"
         t.addfile(ti, io.BytesIO(payload))
+with gzip.GzipFile(ipk, "wb", mtime=0) as f:
+    f.write(outer.getvalue())
 print(ipk)
