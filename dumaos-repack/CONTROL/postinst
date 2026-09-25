@@ -78,12 +78,16 @@ if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/dumaos/conntrack-agtef/conntrack ] && ! 
   cp -f /etc/dumaos/conntrack-agtef/conntrack /etc/dumaos-conntrack-stock/
 fi
 
-# The "Cloudsync Themes" mirrors are dead and the desktop UI requests
-# /themes/default/duma-theme.html, so seed the default theme from the
-# files the stock webroot already ships.
-if [ -z "$IPKG_INSTROOT" ] && [ -f /www/themes/duma-theme.html ]; then
-  mkdir -p /www/themes/default
-  cp -f /www/themes/duma-theme.html /www/themes/manifest.json /www/themes/default/ 2>/dev/null
+# The desktop UI fetches /themes/<name>/ from the ndhttpd docroot (/www),
+# which has no themes dir; /themes/ and /nd-themes/ are special-cased by
+# ndhttpd and it serves directories through an "ndindex.html" index page.
+# Link the theme trees into the docroot and give the default theme its
+# index (duma-theme.html is the index content, ndhttpd renders it).
+if [ -z "$IPKG_INSTROOT" ]; then
+  ln -sfn /dumaos/themes /www/themes
+  ln -sfn /dumaos/themes/cloud /www/nd-themes
+  rm -rf /www/themes/default/default
+  [ -f /dumaos/themes/default/ndindex.html ] || cp /dumaos/themes/default/duma-theme.html /dumaos/themes/default/ndindex.html
 fi
 
 # The package installs /etc/nginx/main_dumaos.conf, which Telstra ships
