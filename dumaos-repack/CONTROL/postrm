@@ -53,6 +53,13 @@ if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos-conntrack-stock/conntrack ]; then
   rm -rf /etc/dumaos-conntrack-stock
 fi
 
+# Restore the stock ndhttpd (we wrap it to export TZ for the DumaOS apps).
+if [ -z "$IPKG_INSTROOT" ] && [ -e /usr/sbin/ndhttpd.real ]; then
+  rm -f /usr/sbin/ndhttpd
+  mv /usr/sbin/ndhttpd.real /usr/sbin/ndhttpd
+  /etc/init.d/ndhttpd restart 2>/dev/null
+fi
+
 # Drop the benchmark history cron jobs added by postinst.
 if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/crontabs/root ]; then
   sed -i '/bench-index.lua/d; /bench-gzip.sh/d' /etc/crontabs/root 2>/dev/null

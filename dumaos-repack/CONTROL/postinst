@@ -139,6 +139,57 @@ if [ -z "$IPKG_INSTROOT" ] && ! [ -e /etc/localtime ]; then
   ln -sf "/usr/share/zoneinfo/$ZONE" /etc/localtime
 fi
 
+# The DumaOS timezone dropdown (config app -> time_zone.lua) reads
+# system.@system[0].network_timezone as an id into its own table; the
+# stock default 0 is not a valid id there, so the UI falls back to
+# "(GMT+10:00) Brisbane". 22 = Amsterdam, Berlin, Bern, Rome, ...
+if [ -z "$IPKG_INSTROOT" ]; then
+  ntz=$(uci -q get system.@system[0].network_timezone 2>/dev/null)
+  if [ -z "$ntz" ] || [ "$ntz" = "0" ]; then
+    uci -q set system.@system[0].network_timezone='22'
+    uci -q commit system
+  fi
+  tzv=$(uci -q get system.@system[0].timezone 2>/dev/null)
+  case "$tzv" in
+    ""|UTC|GMT)
+      uci -q set system.@system[0].timezone='CET-1CEST,M3.5.0,M10.5.0/3'
+      uci -q set system.@system[0].zonename='Europe/Rome'
+      uci -q commit system
+      ;;
+  esac
+fi
+
+# The UI timezone (time_zone.lua getTimeZoneID) is actually os.getenv("TZ")
+# of the app processes, which are spawned by ndhttpd; procd on this
+# firmware ignores the "env" param, so wrap ndhttpd to export TZ from uci
+# system.timezone (the string must match the lua table entry exactly).
+if [ -z "$IPKG_INSTROOT" ]; then
+  if [ ! -e /usr/sbin/ndhttpd.real ]; then
+    mv /usr/sbin/ndhttpd /usr/sbin/ndhttpd.real
+  fi
+  cat > /usr/sbin/ndhttpd <<'NDEOF'
+#!/bin/sh
+[ -n "$TZ" ] || TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"
+[ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"
+case "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac
+export TZ
+exec /usr/sbin/ndhttpd.real "$@"
+NDEOF
+  chmod +x /usr/sbin/ndhttpd
+  /etc/init.d/ndhttpd restart 2>/dev/null
+fi
+
+# The DumaOS apps are spawned by procmanager under procd, which clears the
+# environment except for the "env" param, so the TZ export must also go
+# into the dumaos init script (top-level for the fallback path, and into
+# the procd env list; note procd keeps only the LAST env param, so TZ is
+# appended to the existing NDPROC one).
+if [ -z "$IPKG_INSTROOT" ] && ! grep -q 'procd_set_param env.*TZ=' /etc/init.d/dumaos 2>/dev/null; then
+  sed -i '1a export TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"\n[ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"\ncase "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac\nexport TZ' /etc/init.d/dumaos
+  sed -i 's#procd_set_param env NDPROC="/tmp/ndproc"#procd_set_param env NDPROC="/tmp/ndproc" TZ="$TZ"#' /etc/init.d/dumaos
+  /etc/init.d/dumaos restart 2>/dev/null
+fi
+
 # The benchmark app never parses test results into the history index when
 # options.save is true (that branch runs upload_test_data against the dead
 # netduma cloud, which also deletes the history files), so the UI history
