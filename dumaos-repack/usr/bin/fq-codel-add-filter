@@ -1,0 +1,41 @@
+#!/bin/sh
+# Blog fastpath patch had a bug that failed to set network offset of skb
+# correctly. Extracting the flow tuple depends on the skb network offset.
+# Thus the flow tuples from packets were incorrect resulting in packets
+# from the same flow enqueued into different queues. 
+# Our solution is steer all packets to one class using a filter which bypasses 
+# the hash and. Once the blog fastpath patch is fixed the default
+# fq-codel operation can be restored.
+inf=br-lan
+tempfile=$(mktemp)
+cleanup() {
+  rm $tempfile
+  exit 0
+}
+trap cleanup SIGINT SIGTERM 
+while true; do
+  tc qdisc show dev $inf 2>/dev/null | grep qdisc.fq_codel >$tempfile
+  while read -r line; do
+    handle=$(echo $line | awk '{print $3}')
+    parent=$(echo $line | awk '{print $5}')
+
+    # NOTE: Because default root qdisc is fq_codel there exists a race 
+    #       condition where first see default root qdisc with handle 0:,
+    #       then something replaces it but we still add a filter, convinced
+    #       its an fq_codel. To avoid that we bail out if handle is zero.
+    #       
+    #       You might want to point out that the qdisc we replace the root
+    #       with has a different handle and therefore the add filter command
+    #       should just fail - the crux here is that 0: doesn't appear to be
+    #       a real handle but instead a wildcard that always denotes root's id
+    #       but is also available as a handle to root qdiscs if that makes sense.
+    test "$handle" = "0:" && continue
+
+    test $(tc filter show dev br-lan parent $handle | wc -l) -eq 0 && {
+      major=$(echo $handle | sed 's/^\([0-9]\+\):.*$/\1/g')
+      tc filter add dev $inf parent $handle protocol all prio 1 u32 match mark 0 0 flowid $major:1
+    }
+  done <$tempfile
+  sleep 1
+done
+cleanup

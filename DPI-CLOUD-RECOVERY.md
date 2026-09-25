@@ -66,22 +66,62 @@ tar tf update.tar
 Contents (update 243/415): `dumaos/data/dpiclass/nddpidb`,
 `usr/bin/dpiclass`, `usr/lib/detectlist.xor`,
 `www/json/_services_.json`, `www/json/categories.json`,
-`www/json/qos_categories.json`. The binaries are uClibc (XR500) and don't
-run on the glibc modem - ship the data files only, keep our glibc dpiclass.
+`www/json/qos_categories.json`.
 
-The DB header (`ad3141ba 0100 0000 0000 0003 ...`) is identical between the
-2023 stub and the 2024/2025 clouds: format unchanged, drop-in replacement.
+## 3b. The model matters: this router is DJA0231 (ARM!)
 
-## 4. Which DB to ship
+The modem reports `model=DJA0231 odm=TECHNICOLOR vendor=TELSTRA sdk=BROADCOM
+version=3.3.90` in `/dumaossystem` - DJA0231 is an **ARM** platform, so the
+DJA0231 cloud updates are ARM EABI5 and run natively (the XR500/XR700 gpg
+flavours are uClibc-ARM too; the earlier "glibc vs uClibc" theory was wrong).
 
-- **415 (7.5 MB)** loads fine on a PC and on the modem with ~100 MB free,
-  but on a loaded 512 MB modem dpiclass.bin refuses it
-  (`Failed to load '//dumaos/data/dpiclass/nddpidb': Broken pipe`) - it is
-  a memory-pressure issue, not signatures/format.
-- **243 (3.4 MB, Sep 2024)** loads even under pressure and classifies
-  traffic (connmark class `cat << 14`, e.g. 0x8000 = 2 = Media, NETFLIX
-  recognised in the dpiclass log). This is what v2.0-34 ships.
-- Reboot after upgrading the DB: killing dpiclass orphans NFQUEUE 10.
+`dumaos/api/libs/dpi.lua` (the R-App, not dumapi) holds the **native**
+resource URL and the AES key:
+
+```
+http://netdumasoftware.com/dumaos/resources/dpi/DJA0231/openssl-v1-1-1/cloud-v3.tar
+```
+
+which serves a tar of `payload` (openssl `enc -aes-256-cbc`, same key,
+`Salted__` header - NOT gpg) + `payload.sig`: contains `usr/lib/libadpi.so`,
+`usr/lib/libdpipacketprocessors.so`, `usr/lib/detectlist.xor`,
+`www/json/{_services_,categories,qos_categories}.json` (ARM ELF, no DB).
+
+Querying `api/v1/cloud/url/dpi` with `{"model":"DJA0231",
+"dumaos_version":"3.3.90|3.3.535","vendor":"TELSTRA|NETGEAR",
+"decoder":"openssl-v1-1-1","flavour":"PRODUCTION","timestamp":"<ts>"}`
+returns **DPI update 341** as `.../dpi/0000000341/NETDUMA_V1/openssl111/
+cloud-0000000341-dpi-NETDUMA_V1-openssl111.cloud` = a plain tar of
+payload+payload.sig; decrypt the payload with the **same** key via
+`openssl enc -d -aes-256-cbc` (the gpg double-wrap only applies to the
+`gpg/` flavour URLs).
+
+## 4. The real fix: DPI update 341 (v2.0-36)
+
+The stock 3.3.90 stack (34 KB libadpi + 1.6 MB stub DB) **never loads any
+cloud DB**: libadpi logs `Failed to load '//dumaos/data/dpiclass/nddpidb':
+Success` (and `sanity failed -4` per packet) for the stub AND for 243/415.
+The load is triggered by devicemanager binding to the `dpiclass` ubus object;
+manual dpiclass runs never load (no "Loading adpi database" log), which made
+earlier "manual load OK" tests misleading.
+
+Update **341** is a full DPI stack for DJA0231 3.3.90, not just a DB:
+`libadpi.so` 566 KB (new `ad3141ba` format engine, openssl bundled),
+`dpiclass.bin` 341 (runs `/dumaos/ctwatch-replace.sh` on boot),
+**`/dumaos/ctwatch`** (conntrack watcher = the 341-era classification
+daemon, started by the update's `/etc/init.d/dumaos` via `ctwatch -d`,
+registers the `com.netdumasoftware.ctwatch` ubus object),
+`nddpidb` 447 KB (md5 f8f209cb185101546fdfa2a2cb1a42e0), `detectlist.xor`,
+new `/etc/init.d/dumaos` (adds INITD_STARTUP + TELSTRA boot sleep),
+`81-dumaos` hotplug (firewall_reloaded.sh locking), `fq-codel-add-filter*`,
+`com.netdumasoftware.qos/main.lua` and the 3 json maps.
+
+v2.0-36 ships all of it (repack keeps its own `/usr/bin/dpiclass` wrapper -
+the tar's `/usr/bin/dpiclass` is the ELF and would lose the LD_PRELOAD -
+plus our init.d TZ/nss/fcctl patches on top of the 341 init.d).
+After install + reboot: no `Failed to load`, no `sanity failed`, ctwatch
+up, conntrack flows get real marks (0x9800 = class 2 Media, mask
+`0x7fc000 >> 14`).
 
 ## 5. Verifying classification
 

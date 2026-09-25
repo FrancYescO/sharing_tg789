@@ -1,5 +1,9 @@
 #!/bin/sh /etc/rc.common
 # (C) NETDUMA Software 2016
+export TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"
+[ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"
+case "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac
+export TZ
 #
 # Start the DumaOS process manager. This takes care of running and restarting
 # R-Apps installed on the system.
@@ -233,9 +237,31 @@ elif [ "$VENDOR" = "TELSTRA" -o "$VENDOR" = "BT" -o "$ODM" = "SEAL" ];then
   # or directly through passing an action like start as what would normally happen on
   # system bootup
   if [ "$1" != "dumaos_hotplug_action" ]; then
-    export ACTION=dumaos_resume;/sbin/hotplug-call dumaos &
+    # Detect if this init.d call is from bootup and propagate to hotplug script
+    # and eventually back to this init.d script.
+    INITD_STARTUP=""
+    if cat /proc/$$/cmdline | grep boot > /dev/null; then
+      INITD_STARTUP="boot"
+    fi
+
+    export INITD_STARTUP; export ACTION=dumaos_resume;/sbin/hotplug-call dumaos &
     return 0
   fi
+
+  # Too much ubus contention on boot resulted in ubus call timeouts and
+  # DumaOS watchdog killing processes. Avoid this sleeping and giving
+  # other TCH ubus objects time to initalise.
+  #
+  # Worth mentioning here, ensure that this script is *not* executed by procd
+  # otherwise this sleep will block all other init.d scripts behind it. At time
+  # of writting DumaOS starts hotplug in the background so exits quickly
+  # when started by procd. It is then rerun from hotplug.
+  if [ "$VENDOR" = "TELSTRA" ]; then
+    if [ "$INITD_STARTUP" = "boot" ]; then
+      sleep 60
+    fi
+  fi
+
 fi
   ins_missing_kmods
   ts_odm_services "start"

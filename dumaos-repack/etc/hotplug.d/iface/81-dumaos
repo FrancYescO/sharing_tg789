@@ -1,8 +1,16 @@
 #!/bin/sh
 
 if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
-  ubus call com.netdumasoftware.autoadmin fw_restart '{"reload_zone":true}'
-  ubus call com.netdumasoftware.qos wan_restart
+	# Avoid duplicate calls to fw_restart
+  if ! uci get firewall.dumaos_fw_restart.path > /dev/null 2>&1; then
+    # Do not directly call AA like below as it is missing appropriate locking.
+    # Instead call firewall_reloaded.sh script.
+    # ubus call com.netdumasoftware.autoadmin fw_restart '{"reload_zone":true}'
+    /dumaos/apps/system/com.netdumasoftware.autoadmin/firewall_reloaded.sh
+  fi
+
+  # This is unnecessary since QoS listens to netifd interface events
+  #ubus call com.netdumasoftware.qos wan_restart
 fi
 
 if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "lan" ]; then
