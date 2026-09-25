@@ -1,7 +1,12 @@
 #!/bin/sh
 # Shim for the netduma speedtest client (reflector 80.239.170.203:3001 is dead).
-# Emulates the CLI and the /tmp/benchmark result files, measuring through
+# Emulates the CLI and the machine-readable result lines, measuring through
 # the Cloudflare edge over plain HTTP (no CA bundle on this firmware).
+# UI line protocol (see benchmark overview.js + benchmark_common.lua):
+#   0-2-<mbps>-<sec>.<nsec>  download sample
+#   0-3-<kbps>               download average
+#   0-0-<mbps>-<sec>.<nsec>  upload sample
+#   0-1-<kbps>               upload average
 threads=3; dl=1; ul=1; pingip=""; maxmb=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -19,34 +24,64 @@ done
 mkdir -p /tmp/benchmark
 PINGF=/tmp/benchmark/.ping.$$
 rm -f $PINGF
-( i=0; while [ $i -lt 60 ]; do ping -c 1 -W 1 "$pingip" 2>/dev/null | grep -o 'time=[0-9.]*' | cut -d= -f2 >> $PINGF; i=$((i+1)); sleep 1; done ) &
+( i=0; while [ $i -lt 60 ]; do ping -c 1 -W 1 "$pingip" 2>/dev/null | grep -o 'time=[0-9.]*' | cut -d= -f2 >> $PINGF; i=$((i+1)); sleep 1; done ) >/dev/null 2>&1 &
 PINGPID=$!
+trap 'kill $PINGPID 2>/dev/null' EXIT INT TERM
+ts() { awk '{split($1,a,"."); printf "%d.%.9s", a[1], (a[2] "000000000")}' /proc/uptime; }
+# The UI graph x-axis spans speed_length (9s), so each phase is sized to
+# finish in ~9s with ~1s samples: the first chunk estimates the line rate
+# and the remaining chunk size is derived from it.
+dlmbps=0.000
 if [ "$dl" = 1 ]; then
-  dlbytes=80000000
-  [ -n "$maxmb" ] && dlbytes=$((maxmb*1000000))
-  speed=$(curl -s -o /dev/null --max-time 25 -w '%{speed_download}' "http://speed.cloudflare.com/__down?bytes=$dlbytes")
-  dlmbps=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+  speed=$(curl -s -o /dev/null --max-time 8 -w '%{speed_download}' "http://speed.cloudflare.com/__down?bytes=3000000")
+  m=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+  echo "0-2-$(awk "BEGIN{printf \"%.0f\", ${m}*1000}")-$(ts)"
+  sum=$m; n=1
+  chunk=$(awk "BEGIN{c=int(${speed:-100000}*4/5); if(c<1000000)c=1000000; if(c>40000000)c=40000000; print c}")
+  i=0
+  while [ $i -lt 8 ]; do
+    t0=$(cut -d. -f1 /proc/uptime)
+    speed=$(curl -s -o /dev/null --max-time 6 -w '%{speed_download}' "http://speed.cloudflare.com/__down?bytes=$chunk")
+    m=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+    echo "0-2-$(awk "BEGIN{printf \"%.0f\", ${m}*1000}")-$(ts)"
+    sum=$(awk "BEGIN{printf \"%.3f\", ${sum}+${m}}"); n=$((n+1)); i=$((i+1))
+    t1=$(cut -d. -f1 /proc/uptime)
+    [ $((t1-t0)) -gt 6 ] && break
+  done
+  dlmbps=$(awk "BEGIN{printf \"%.3f\", ${sum}/${n}}")
+  echo "0-3-$(awk "BEGIN{printf \"%.0f\", ${dlmbps}*1000}")"
 else
-  dlmbps=0.000; sleep 2
+  sleep 2
 fi
+ulmbps=0.000
 if [ "$ul" = 1 ]; then
-  head -c 15000000 /dev/zero > /tmp/st_up.bin
-  speed=$(curl -s -o /dev/null --max-time 25 -T /tmp/st_up.bin -w '%{speed_upload}' "http://speed.cloudflare.com/__up")
-  ulmbps=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+  head -c 1500000 /dev/zero > /tmp/st_up.bin
+  speed=$(curl -s -o /dev/null --max-time 8 -T /tmp/st_up.bin -w '%{speed_upload}' "http://speed.cloudflare.com/__up")
+  m=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+  echo "0-0-$(awk "BEGIN{printf \"%.0f\", ${m}*1000}")-$(ts)"
+  sum=$m; n=1
+  chunk=$(awk "BEGIN{c=int(${speed:-200000}*4/5); if(c<500000)c=500000; if(c>25000000)c=25000000; print c}")
+  head -c $chunk /dev/zero > /tmp/st_up.bin
+  i=0
+  while [ $i -lt 8 ]; do
+    t0=$(cut -d. -f1 /proc/uptime)
+    speed=$(curl -s -o /dev/null --max-time 6 -T /tmp/st_up.bin -w '%{speed_upload}' "http://speed.cloudflare.com/__up")
+    m=$(awk "BEGIN{printf \"%.3f\", ${speed:-0}*8/1000000}")
+    echo "0-0-$(awk "BEGIN{printf \"%.0f\", ${m}*1000}")-$(ts)"
+    sum=$(awk "BEGIN{printf \"%.3f\", ${sum}+${m}}"); n=$((n+1)); i=$((i+1))
+    t1=$(cut -d. -f1 /proc/uptime)
+    [ $((t1-t0)) -gt 6 ] && break
+  done
   rm -f /tmp/st_up.bin
-else
-  ulmbps=0.000
+  ulmbps=$(awk "BEGIN{printf \"%.3f\", ${sum}/${n}}")
+  echo "0-1-$(awk "BEGIN{printf \"%.0f\", ${ulmbps}*1000}")"
 fi
 kill $PINGPID 2>/dev/null
 avg=$(awk '{s+=$1;n++} END{if(n)printf "%.3f",s/n; else print "0.000"}' $PINGF)
-jitter=$(awk 'NR>1{d=$1-p; if(d<0)d=-d; s+=d; n++} {p=$1} END{if(n)printf "%.3f",s/n; else print "0.000"}' $PINGF)
 now=$(date +%s)
-nsf=$(awk "{printf \"%09d\", ($1-int($1))*1000000000}" /proc/uptime)
-{ echo "speed-down-$dlmbps"; while read -r p; do echo "ping-$p-$jitter-0"; done < $PINGF; } > "/tmp/benchmark/1-$threads-$dlmbps-$now.$nsf"
-echo "speed-up-$ulmbps" > "/tmp/benchmark/2-$threads-$ulmbps-$now.$nsf"
-{ echo "ping-$avg-$jitter-0"; echo "bbloat-idle-$avg"; } > "/tmp/benchmark/3-$threads-$avg-$now.$nsf"
 echo "Download: $dlmbps mbit/s"
 echo "Upload: $ulmbps mbit/s"
 echo "Latency: $avg ms"
+echo "999-$now"
 rm -f $PINGF
 exit 0

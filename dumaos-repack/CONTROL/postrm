@@ -53,11 +53,17 @@ if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos-conntrack-stock/conntrack ]; then
   rm -rf /etc/dumaos-conntrack-stock
 fi
 
+# Drop the benchmark history cron jobs added by postinst.
+if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/crontabs/root ]; then
+  sed -i '/bench-index.lua/d; /bench-gzip.sh/d' /etc/crontabs/root 2>/dev/null
+fi
+
 # Disable the DumaOS nginx reverse proxy on :80 (package file is purged,
 # reload so nginx drops the include) and the seeded default theme.
 if [ -z "$IPKG_INSTROOT" ]; then
   rm -f /etc/nginx/main_dumaos.conf
-  rm -rf /www/themes/default
+  [ -L /www/themes ] && rm -f /www/themes
+  [ -L /www/nd-themes ] && rm -f /www/nd-themes
   command -v nginx >/dev/null 2>&1 && (nginx -t >/dev/null 2>&1 && nginx -s reload 2>/dev/null)
 fi
 

@@ -135,6 +135,21 @@ if [ -z "$IPKG_INSTROOT" ] && ! [ -e /etc/localtime ]; then
   ln -sf "/usr/share/zoneinfo/$ZONE" /etc/localtime
 fi
 
+# The benchmark app never parses test results into the history index when
+# options.save is true (that branch runs upload_test_data against the dead
+# netduma cloud, which also deletes the history files), so the UI history
+# stays empty and the detail page ("get_file_data") finds nothing because
+# it only reads <time>.txt.gz. Two cron jobs cover both: one fills
+# index.tests[].data from the raw 0-x/1-x/2-x result lines, the other
+# gzips finished test files (the app gunzips/re-gzips them on read).
+if [ -z "$IPKG_INSTROOT" ]; then
+  chmod +x /usr/sbin/bench-gzip.sh /usr/sbin/bench-index.lua 2>/dev/null
+  grep -q bench-index.lua /etc/crontabs/root 2>/dev/null || \
+    sed -i '1i */2 * * * * lua /usr/sbin/bench-index.lua' /etc/crontabs/root 2>/dev/null
+  grep -q bench-gzip.sh /etc/crontabs/root 2>/dev/null || \
+    sed -i '1i */2 * * * * /bin/sh /usr/sbin/bench-gzip.sh' /etc/crontabs/root 2>/dev/null
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
 fi
