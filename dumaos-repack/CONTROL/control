@@ -1,10 +1,10 @@
 Package: dumaos-repack
 Priority: optional
 Section: net
-Depends: terminfo libncurses libedit libopenssl1.1
-Replaces: ubus ubusd bcm_userspace
+Depends: terminfo libncurses libedit
+Replaces: ubus ubusd bcm_userspace conntrack
 Description: DumaOS UI/QoS repack for TCH firmware (AGTEF etc.)
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/FrancYescO/sharing_tg789
-Version: 2.0-38
+Version: 2.0-40
 Architecture: all

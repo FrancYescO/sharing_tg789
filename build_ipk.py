@@ -16,11 +16,22 @@ version = next(
 )
 
 
-def as_root(ti):
+def as_root(ti, path=None):
     ti.uid = 0
     ti.gid = 0
     ti.uname = "root"
     ti.gname = "root"
+    # git/tar can lose the exec bit on binaries and scripts (a 644 ELF
+    # breaks the router, e.g. /sbin/ubus.orig -> "Permission denied"):
+    # force +x on anything with ELF magic or a shebang.
+    if ti.isreg() and (ti.mode & 0o111) == 0:
+        try:
+            with open(path or (ti.obj.name if ti.obj else ti.name), "rb") as fh:
+                head = fh.read(4)
+        except OSError:
+            head = b""
+        if head[:4] == b"\x7fELF" or head[:2] == b"#!":
+            ti.mode |= 0o111
     return ti
 
 
@@ -40,7 +51,12 @@ def inner_tar(root, skip_top=()):
                     continue
                 path = os.path.join(dirpath, name)
                 arc = "./" + name if rel == "." else os.path.join(".", rel, name)
-                t.add(path, arcname=arc, filter=as_root)
+                ti = as_root(t.gettarinfo(path, arcname=arc), path)
+                if ti.isreg():
+                    with open(path, "rb") as fh:
+                        t.addfile(ti, fh)
+                else:
+                    t.addfile(ti)
     return buf.getvalue()
 
 

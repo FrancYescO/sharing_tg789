@@ -72,6 +72,19 @@ if [ -z "$IPKG_INSTROOT" ] && ! [ -e /sbin/ubus.orig ]; then
     cp -f /sbin/ubus-agtef/ubus /sbin/ubus.orig
   fi
 fi
+chmod 755 "$IPKG_INSTROOT/sbin/ubus.orig" 2>/dev/null
+chmod 755 "$IPKG_INSTROOT/usr/bin/wl.orig" 2>/dev/null
+
+# Restore exec bits on every installed binary/script: git and tar can
+# lose them (644 ELF = "Permission denied", e.g. /sbin/ubus.orig), so
+# normalise from the opkg file list after every install/upgrade.
+[ -n "$IPKG_INSTROOT" ] || \
+while read -r f; do
+  [ -n "$f" ] && [ -f "$f" ] && [ ! -x "$f" ] || continue
+  case "$f" in *.so|*.so.*|*.lua|*.conf|*.json|*.html|*.js|*.css|*.txt) continue;; esac
+  m=$(head -c 4 "$f" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')
+  case "$m" in 7f454c46|"2321"*) chmod +x "$f";; esac
+done < /usr/lib/opkg/info/dumaos-repack.list
 
 # /usr/bin/wl becomes a wrapper that silences "wl -i <iface>" calls for
 # interfaces that do not exist (AGTEF exposes only wl0, while DumaOS
