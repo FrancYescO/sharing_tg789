@@ -131,3 +131,44 @@ ubus call com.netdumasoftware.devicemanager rpc '{"proc":"get_cmark_mask"}'
 # -> {"result":[14,8372224]}  = shift 14, mask 0x7fc000
 # category id = (mark & 0x7fc000) >> 14, resolved via /www/json/_services_.json
 ```
+
+## 6. Network Monitor RPCs: the filesync shadow (v2.0-41)
+
+Network Monitor's `get_catmark`/`get_appmark` RPCs answered
+`ERROR: Nonexistant remote procedure` even though `dpi.lua` defines the
+handlers: in this build `dpi.lua`/`devices.lua` only do
+`SETGLOBAL on_get_catmark` (etc.) and never `rpc.get_catmark = ...`
+(`grep SETTABLE dpi.asm` shows only flush_cloud/try_cloud_update/
+get_cmark_mask/get_devmark/get_dpi_settings/set_dpi_settings), while the
+event.lua dispatcher looks the proc up in the app `env.rpc` table with no
+`on_*` fallback. `get_devlist`/`update_device_name_and_type` (devices.lua)
+were missing the same way.
+
+The registration cannot live in `/dumaos/api/libs/filesync.lua`: exec.lua
+loads framework libs with the plain `_G` env, where the global `rpc` is the
+caller *function*, not the dispatcher table. exec.lua's custom
+package.loader (exec.asm @120-137) searches the **app directory first** and
+`setfenv`s the chunk to the app env, so shipping a shadow copy at
+`/dumaos/apps/system/com.netdumasoftware.devicemanager/filesync.lua` runs
+our registration code with `rpc` = the dispatcher table (dpi.lua requires
+`filesync`, so the shadow is loaded during app init). The shadow
+`loadfile`s the real lib, `setfenv`s it back to the same env and returns it.
+
+Dispatcher quirks the wrapper works around (event.asm `<?:370,434>`):
+handlers are invoked with **zero arguments** (`unpack(numeric params)`) and
+`g_handle.conn` is nil on the RPC path, but `on_get_catmark`/`on_get_appmark`
+ignore their args and reply through `g_handle.conn:reply()`. The wrapper
+installs a stub conn that captures the reply and returns it to the
+dispatcher, and forwards direct return values as-is (get_devlist style).
+
+Verified after reboot: `ubus rpc get_catmark` ->
+`{"result":[{mask:125829120, lshift:23, pfield:pappcat, cfield:cappcat, max:15}]}`,
+`get_appmark` -> mask 8372224/shift 14, `get_devlist` -> device list; app
+stays up (earlier wrapper iterations that left `g_handle.conn` nil crashed
+the app with "attempt to index field 'conn'" + 42 pending calls).
+postinst restarts devicemanager after install.
+
+Side findings: `forward_dpi_mark` chain exists but is not hooked into
+FORWARD (`except_nd_forward_mangle` empty, nothing populates it) - relevant
+if category bits stay 510; `get_devtypemark`/`dhcp_event` have no `on_*`
+handler anywhere, so they stay unregistered.

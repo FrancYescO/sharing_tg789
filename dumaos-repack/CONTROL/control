@@ -6,5 +6,5 @@ Replaces: ubus ubusd bcm_userspace conntrack
 Description: DumaOS UI/QoS repack for TCH firmware (AGTEF etc.)
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/FrancYescO/sharing_tg789
-Version: 2.0-40
+Version: 2.0-41
 Architecture: all

@@ -238,8 +238,31 @@ if [ -z "$IPKG_INSTROOT" ]; then
   killall dpiclass 2>/dev/null
 fi
 
+# devicemanager/filesync.lua shadows the framework lib inside the app
+# directory (exec.lua's app-dir loader runs it in the app env, where rpc is
+# the RPC dispatcher table) and registers get_catmark/get_appmark/
+# get_devlist/update_device_name_and_type, which dpi.lua/devices.lua only
+# define as on_* globals, so the Network Monitor RPCs stop answering
+# "Nonexistant remote procedure". Restart devicemanager so procmanager
+# respawns it with the shadow loaded.
+if [ -z "$IPKG_INSTROOT" ]; then
+  for p in $(ps w | grep 'cli.lua -p //dumaos/apps/system//com.netdumasoftware.devicemanager' | grep -v grep | awk '{print $1}'); do kill "$p" 2>/dev/null; done
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
+fi
+
+# Drop the stock telemetry R-App (phoning home to netduma; the DumaCloud
+# it belongs to is dead). procmanager just stops spawning it once the app
+# dir is gone; also clean up the /modoverlay/repack-backups copy left by
+# older repack versions that only moved it aside.
+if [ -z "$IPKG_INSTROOT" ]; then
+  if [ -d /dumaos/apps/usr/com.netdumasoftware.telemetry ]; then
+    for p in $(ps w | grep 'cli.lua -p //dumaos/apps/usr//com.netdumasoftware.telemetry' | grep -v grep | awk '{print $1}'); do kill "$p" 2>/dev/null; done
+    rm -rf /dumaos/apps/usr/com.netdumasoftware.telemetry
+  fi
+  rm -rf /modoverlay/repack-backups/com.netdumasoftware.telemetry
 fi
 
 /etc/init.d/ndhttpd enable
