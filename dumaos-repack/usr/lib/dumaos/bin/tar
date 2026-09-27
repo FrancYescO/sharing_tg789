@@ -18,6 +18,15 @@ for arg in "$@"; do
     if [ "$arg" = "-" ] && [ "$orig" != "-" ]; then
         continue
     fi
-    args="$args \"$arg\""
+    args="${args}${args:+
+}${arg}"
 done
-eval exec /bin/busybox tar $args
+old_ifs=$IFS
+IFS='
+'
+set -f
+# shellcheck disable=SC2086 # split only on the newline delimiter above
+set -- $args
+IFS=$old_ifs
+set +f
+exec /bin/busybox tar "$@"

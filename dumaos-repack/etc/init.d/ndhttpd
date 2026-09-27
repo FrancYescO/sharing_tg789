@@ -20,7 +20,11 @@ fi
 
 . /dumaos/api/libs/shell/dumaos_helper.sh
 
-PROG="$BASEDIR/usr/sbin/ndhttpd"
+PROG="$BASEDIR/usr/lib/dumaos/sbin/ndhttpd"
+DUMAOS_PATH="/usr/lib/dumaos/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+DUMAOS_LD_LIBRARY_PATH="/usr/lib/dumaos/lib:/usr/lib/dumaos"
+export PATH="$DUMAOS_PATH"
+export LD_LIBRARY_PATH="$DUMAOS_LD_LIBRARY_PATH"
 
 REALM="ND3"
 WEBROOT="$BASEDIR/www"
@@ -89,6 +93,7 @@ set_up_coredumps(){
 start_service() {
     procd_open_instance
     procd_set_param command $PROG
+    procd_set_param env PATH="$DUMAOS_PATH" LD_LIBRARY_PATH="$DUMAOS_LD_LIBRARY_PATH"
     procd_append_param command $FGFLAG
     procd_append_param command $DEPENDENT_PARAMS
     procd_append_param command -D -I ndindex.html -h $WEBROOT -r ${REALM} -x /cgi-bin -l /apps -L $URLROUTE -t 80 $SERVER_ACCESS
@@ -116,4 +121,3 @@ start() {
 stop() {
     service_stop "$PROG"
 }
-

@@ -4,6 +4,14 @@ export TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"
 [ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"
 case "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac
 export TZ
+
+# Keep compatibility tools and legacy libraries private to DumaOS. In
+# particular, do not replace global tar/wl/conntrack/openssl or use the global
+# loader preload list.
+DUMAOS_PATH="/usr/lib/dumaos/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+DUMAOS_LD_LIBRARY_PATH="/usr/lib/dumaos/lib:/usr/lib/dumaos"
+export PATH="$DUMAOS_PATH"
+export LD_LIBRARY_PATH="$DUMAOS_LD_LIBRARY_PATH"
 #
 # Start the DumaOS process manager. This takes care of running and restarting
 # R-Apps installed on the system.
@@ -155,7 +163,7 @@ preserve_settings() {
 
 ch_prio_ndhttpd() {
 if [ "$MODEL" = "LH1000" ];then
-  SET_PR=$(pgrep "/usr/sbin/ndhttpd" -l | cut -d' ' -f1)
+  SET_PR=$(pgrep "/usr/lib/dumaos/sbin/ndhttpd" -l | cut -d' ' -f1)
   chrt -o -p 0 $SET_PR
 fi
 }
@@ -272,7 +280,7 @@ if [ "$ODM" = "SEAL" ];then
 fi
   procd_open_instance
   procd_set_param command "$PROG"
-  procd_set_param env NDPROC="/tmp/ndproc"
+  procd_set_param env NDPROC="/tmp/ndproc" TZ="$TZ" PATH="$DUMAOS_PATH" LD_LIBRARY_PATH="$DUMAOS_LD_LIBRARY_PATH"
   procd_append_param command -p "/dumaos/apps/system/com.netdumasoftware.procmanager"
   procd_append_param command "backend"
   if [ "$MODEL" = "R2" ];then

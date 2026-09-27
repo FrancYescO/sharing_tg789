@@ -1,10 +1,52 @@
 #!/bin/sh
 
-# busybox tar follows symlinks when extracting: drop the stock
-# libnetfilter_queue.so.1 -> .so.1.5.0 symlink so our real file lands
-# cleanly instead of truncating the stock library.
-if [ -z "$IPKG_INSTROOT" ] && [ -L /usr/lib/libnetfilter_queue.so.1 ]; then
-    rm -f /usr/lib/libnetfilter_queue.so.1
+# Refuse unsupported ABI combinations before opkg changes any files. An
+# offline IPKG_INSTROOT install is allowed so CI/rootfs builders can stage the
+# package without pretending to be the target router.
+if [ -z "$IPKG_INSTROOT" ]; then
+  arch=$(uname -m 2>/dev/null)
+  kernel=$(uname -r 2>/dev/null)
+
+  case "$arch" in
+    armv7*|armv8l) ;;
+    *) echo "dumaos-repack: unsupported CPU architecture: $arch" >&2; exit 1 ;;
+  esac
+  case "$kernel" in
+    4.1.52*) ;;
+    *) echo "dumaos-repack: unsupported kernel: $kernel (expected 4.1.52)" >&2; exit 1 ;;
+  esac
+
+  for f in /lib/ld-linux.so.3 /lib/functions.sh /usr/lib/libjson-c.so.4 /usr/lib/liblua.so.5.1.5 /lib/libubus.so /lib/libubox.so /sbin/ubusd /bin/ubus; do
+    if [ ! -e "$f" ]; then
+      echo "dumaos-repack: required firmware ABI file missing: $f" >&2
+      exit 1
+    fi
+  done
+  command -v sha256sum >/dev/null 2>&1 || {
+    echo "dumaos-repack: sha256sum is required for recovery manifests" >&2
+    exit 1
+  }
+
+  # Require enough writable space for payload, backup and atomic staging.
+  available=$(df -k /usr 2>/dev/null | awk 'NR==2 {print $4}')
+  case "$available" in ''|*[!0-9]*) available=0;; esac
+  if [ "$available" -lt 24576 ]; then
+    echo "dumaos-repack: at least 24 MiB free space is required in /usr" >&2
+    exit 1
+  fi
+
+  # Upgrade migration from <=2.0-41. Those releases replaced global tools
+  # and kept their originals in package-owned directories that opkg is about
+  # to remove. Move copies outside the file list before unpacking 2.0-42.
+  migration=/etc/dumaos-stock-backup/tools
+  if [ -s /etc/dumaos/openssl-agtef/openssl ] ||
+     [ -s /etc/dumaos/conntrack-agtef/conntrack ] ||
+     [ -s /etc/dumaos/wl-agtef/wl ]; then
+    mkdir -p "$migration" || exit 1
+    [ ! -s /etc/dumaos/openssl-agtef/openssl ] || cp -f /etc/dumaos/openssl-agtef/openssl "$migration/openssl"
+    [ ! -s /etc/dumaos/conntrack-agtef/conntrack ] || cp -f /etc/dumaos/conntrack-agtef/conntrack "$migration/conntrack"
+    [ ! -s /etc/dumaos/wl-agtef/wl ] || cp -f /etc/dumaos/wl-agtef/wl "$migration/wl"
+  fi
 fi
 
 exit 0

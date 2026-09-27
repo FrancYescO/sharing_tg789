@@ -1,6 +1,33 @@
 #!/bin/sh
 
-. $IPKG_INSTROOT/lib/functions.sh
+. "$IPKG_INSTROOT/lib/functions.sh"
+
+# The only unavoidable firmware-wide compatibility change is the ubus ABI.
+# Activate it transactionally before touching UCI or starting services.
+if [ -z "$IPKG_INSTROOT" ]; then
+  chmod 755 /usr/lib/dumaos/platform/ubus-stack.sh
+  if ! /usr/lib/dumaos/platform/ubus-stack.sh activate; then
+    echo "dumaos-repack: ubus activation failed; stock stack restored" >&2
+    exit 1
+  fi
+
+  # Finish migration from releases that owned global compatibility tools.
+  migration=/etc/dumaos-stock-backup/tools
+  [ ! -s "$migration/openssl" ] || { cp -f "$migration/openssl" /usr/bin/openssl && chmod 755 /usr/bin/openssl; }
+  [ ! -s "$migration/conntrack" ] || { cp -f "$migration/conntrack" /usr/sbin/conntrack && chmod 755 /usr/sbin/conntrack; }
+  [ ! -s "$migration/wl" ] || { cp -f "$migration/wl" /usr/bin/wl && chmod 755 /usr/bin/wl; }
+  [ -x /bin/busybox ] && ln -sf busybox /bin/tar
+  if [ -e /usr/lib/libnetfilter_queue.so.1.5.0 ]; then
+    rm -f /usr/lib/libnetfilter_queue.so.1
+    ln -sf libnetfilter_queue.so.1.5.0 /usr/lib/libnetfilter_queue.so.1
+  fi
+  rm -f /usr/bin/wl.orig /usr/sbin/conntrack.orig /sbin/ubus.orig /usr/sbin/ndhttpd.real
+  rm -rf /etc/dumaos-conntrack-stock /etc/dumaos/wl-agtef
+  rm -rf "$migration"
+  if [ -f /etc/ld.so.preload ]; then
+    sed -i '/nfqverdict-shim/d;/openssl-compat-shim/d' /etc/ld.so.preload
+  fi
+fi
 
 # Enable DumaOS (the Telstra-branded UI gates on dumaos.tr69.dumaos_enabled)
 uci -q set dumaos.tr69=tr69
@@ -33,48 +60,6 @@ if [ -z "$IPKG_INSTROOT" ]; then
   done
 fi
 
-# The stock Broadcom 4.1.52 kernel rejects the verdict-extra netlink
-# attribute used by DumaOS's custom libnetfilter_queue, so every nfqueue
-# verdict (dpiclass QoS, geoip) is refused and DNS stalls in queue 10.
-# The preload shim translates nfq_set_verdict2_extra() to plain
-# nfq_set_verdict2(). The Telstra libssl/libcrypto lack the zlib/SRP/NPN
-# symbols the stock openssl binary references, so every openssl call
-# died with "undefined symbol: BIO_f_zlib" (exit 127), breaking DumaOS
-# cloud package verify/decrypt; /usr/bin/openssl is replaced by a static
-# 1.1.1w build (cloud .cloud files need the SHA-256 EVP KDF of 1.1.x) and
-# openssl-compat-shim.so covers any other dynamically linked consumer.
-# ld.so.preload is shared with Telstra's libpreload-tch.so, so append
-# (and never overwrite).
-if [ -z "$IPKG_INSTROOT" ]; then
-  grep -q '^/usr/lib/nfqverdict-shim.so$' /etc/ld.so.preload 2>/dev/null || \
-    echo /usr/lib/nfqverdict-shim.so >> /etc/ld.so.preload
-  if [ -f /usr/lib/openssl-compat-shim.so ]; then
-    grep -q '^/usr/lib/openssl-compat-shim.so$' /etc/ld.so.preload 2>/dev/null || \
-      echo /usr/lib/openssl-compat-shim.so >> /etc/ld.so.preload
-  fi
-fi
-
-# Stash the stock AGTEF ubus stack outside the package filelist so postrm
-# can restore it after opkg has purged the package's own files.
-if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ] && ! [ -e /etc/dumaos-ubus-stock/ubusd ]; then
-  mkdir -p /etc/dumaos-ubus-stock
-  cp -f /etc/dumaos/ubus-agtef/* /etc/dumaos-ubus-stock/
-fi
-
-# /sbin/ubus becomes a wrapper answering the phantom Netduma
-# mapVendorExtensions.* ubus calls (devicemanager spams "Command failed:
-# Not found" + a JSON decode error every minute without them); keep the
-# stock binary reachable at /sbin/ubus.orig for it to exec.
-if [ -z "$IPKG_INSTROOT" ] && ! [ -e /sbin/ubus.orig ]; then
-  if [ -f /etc/dumaos/ubus-agtef/ubus ]; then
-    cp -f /etc/dumaos/ubus-agtef/ubus /sbin/ubus.orig
-  elif [ -f /sbin/ubus-agtef/ubus ]; then
-    cp -f /sbin/ubus-agtef/ubus /sbin/ubus.orig
-  fi
-fi
-chmod 755 "$IPKG_INSTROOT/sbin/ubus.orig" 2>/dev/null
-chmod 755 "$IPKG_INSTROOT/usr/bin/wl.orig" 2>/dev/null
-
 # Restore exec bits on every installed binary/script: git and tar can
 # lose them (644 ELF = "Permission denied", e.g. /sbin/ubus.orig), so
 # normalise from the opkg file list after every install/upgrade.
@@ -85,26 +70,6 @@ while read -r f; do
   m=$(head -c 4 "$f" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')
   case "$m" in 7f454c46|"2321"*) chmod +x "$f";; esac
 done < /usr/lib/opkg/info/dumaos-repack.list
-
-# /usr/bin/wl becomes a wrapper that silences "wl -i <iface>" calls for
-# interfaces that do not exist (AGTEF exposes only wl0, while DumaOS
-# devicemanager polls wl1 for 5GHz stats every minute); the stock binary
-# ships as /usr/bin/wl-agtef/wl and is kept at /usr/bin/wl.orig.
-if [ -z "$IPKG_INSTROOT" ] && ! [ -e /usr/bin/wl.orig ] && [ -f /usr/bin/wl-agtef/wl ]; then
-  mkdir -p /etc/dumaos/wl-agtef
-  cp -f /usr/bin/wl-agtef/wl /etc/dumaos/wl-agtef/wl
-  cp -f /usr/bin/wl-agtef/wl /usr/bin/wl.orig
-fi
-
-# The stock AGTEF conntrack (v1.4.5) has no "-k" mark filter, which the
-# Geo-Filter uses to flush denied conntracks; the package ships a wrapper
-# at /usr/sbin/conntrack that rewrites -k to -m and execs conntrack.orig.
-# Stash the stock binary outside the package filelist so postrm can
-# restore it after opkg purges our files.
-if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/dumaos/conntrack-agtef/conntrack ] && ! [ -e /etc/dumaos-conntrack-stock/conntrack ]; then
-  mkdir -p /etc/dumaos-conntrack-stock
-  cp -f /etc/dumaos/conntrack-agtef/conntrack /etc/dumaos-conntrack-stock/
-fi
 
 # The desktop UI fetches /themes/<name>/ from the ndhttpd docroot (/www),
 # which has no themes dir; /themes/ and /nd-themes/ are special-cased by
@@ -134,14 +99,14 @@ fi
 if [ -z "$IPKG_INSTROOT" ] && command -v uci >/dev/null 2>&1; then
   for pair in desktop_index:/desktop/index.html relay:/desktop/relay.html webview:/desktop/webview.html ndindex:/ndindex.html bower:/bower.json; do
     n=${pair%%:*}; t=${pair#*:}
-    uci -q get web.duma_$n >/dev/null 2>&1 || {
-      uci -q set web.duma_$n=rule
-      uci -q set web.duma_$n.target=$t
-      uci -q add_list web.duma_$n.roles=admin
-      uci -q add_list web.duma_$n.roles=engineer
+    uci -q get "web.duma_$n" >/dev/null 2>&1 || {
+      uci -q set "web.duma_$n=rule"
+      uci -q set "web.duma_$n.target=$t"
+      uci -q add_list "web.duma_$n.roles=admin"
+      uci -q add_list "web.duma_$n.roles=engineer"
     }
-    uci -q get web.ruleset_main.rules | grep -qw duma_$n || \
-      uci -q add_list web.ruleset_main.rules=duma_$n
+    uci -q get web.ruleset_main.rules | grep -qw "duma_$n" || \
+      uci -q add_list "web.ruleset_main.rules=duma_$n"
   done
   for p in 8090 8091 8092 8093 8094 9090 9091 9092 9093 9094; do
     uci -q get web.duma_ws_$p >/dev/null 2>&1 || {
@@ -187,36 +152,9 @@ if [ -z "$IPKG_INSTROOT" ]; then
   esac
 fi
 
-# The UI timezone (time_zone.lua getTimeZoneID) is actually os.getenv("TZ")
-# of the app processes, which are spawned by ndhttpd; procd on this
-# firmware ignores the "env" param, so wrap ndhttpd to export TZ from uci
-# system.timezone (the string must match the lua table entry exactly).
-if [ -z "$IPKG_INSTROOT" ]; then
-  if [ ! -e /usr/sbin/ndhttpd.real ]; then
-    mv /usr/sbin/ndhttpd /usr/sbin/ndhttpd.real
-  fi
-  cat > /usr/sbin/ndhttpd <<'NDEOF'
-#!/bin/sh
-[ -n "$TZ" ] || TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"
-[ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"
-case "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac
-export TZ
-exec /usr/sbin/ndhttpd.real "$@"
-NDEOF
-  chmod +x /usr/sbin/ndhttpd
-  /etc/init.d/ndhttpd restart 2>/dev/null
-fi
-
-# The DumaOS apps are spawned by procmanager under procd, which clears the
-# environment except for the "env" param, so the TZ export must also go
-# into the dumaos init script (top-level for the fallback path, and into
-# the procd env list; note procd keeps only the LAST env param, so TZ is
-# appended to the existing NDPROC one).
-if [ -z "$IPKG_INSTROOT" ] && ! grep -q 'procd_set_param env.*TZ=' /etc/init.d/dumaos 2>/dev/null; then
-  sed -i '1a export TZ="$(uci -q get system.@system[0].timezone 2>/dev/null)"\n[ -n "$TZ" ] || TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"\ncase "$TZ" in CET-1CEST,M3.5.0,M10.5.0/3) TZ="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";; esac\nexport TZ' /etc/init.d/dumaos
-  sed -i 's#procd_set_param env NDPROC="/tmp/ndproc"#procd_set_param env NDPROC="/tmp/ndproc" TZ="$TZ"#' /etc/init.d/dumaos
-  /etc/init.d/dumaos restart 2>/dev/null
-fi
+# The shipped init scripts now provide TZ, the private PATH and the private
+# library path directly; no generated wrapper or in-place init mutation is
+# required.
 
 # The benchmark app never parses test results into the history index when
 # options.save is true (that branch runs upload_test_data against the dead
@@ -265,9 +203,18 @@ if [ -z "$IPKG_INSTROOT" ]; then
   rm -rf /modoverlay/repack-backups/com.netdumasoftware.telemetry
 fi
 
-/etc/init.d/ndhttpd enable
-/etc/init.d/ndhttpd start
-/etc/init.d/dumaos enable
-/etc/init.d/dumaos start
+if [ -z "$IPKG_INSTROOT" ]; then
+  /etc/init.d/ndhttpd enable
+  /etc/init.d/dumaos enable
+  /etc/init.d/ndhttpd restart || {
+    /usr/lib/dumaos/platform/ubus-stack.sh restore keep || true
+    exit 1
+  }
+  /etc/init.d/dumaos restart || {
+    /etc/init.d/ndhttpd stop 2>/dev/null
+    /usr/lib/dumaos/platform/ubus-stack.sh restore keep || true
+    exit 1
+  }
+fi
 
 exit 0

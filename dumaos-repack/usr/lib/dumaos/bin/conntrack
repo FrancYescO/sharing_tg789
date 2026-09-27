@@ -1,0 +1,16 @@
+#!/bin/sh
+args=""
+for a in "$@"; do
+  case "$a" in -k) a=-m;; esac
+  args="${args}${args:+
+}${a}"
+done
+old_ifs=$IFS
+IFS='
+'
+set -f
+# shellcheck disable=SC2086 # split only on the newline delimiter above
+set -- $args
+IFS=$old_ifs
+set +f
+exec /usr/sbin/conntrack "$@"

@@ -1,1 +1,3 @@
 .DS_Store
+dist/*.ipk
+dist/*.sha256

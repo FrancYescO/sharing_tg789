@@ -4,3 +4,16 @@
 /etc/init.d/ndhttpd stop
 /etc/init.d/dumaos disable
 /etc/init.d/dumaos stop
+
+# Restore the firmware ubus stack while the packaged helper is certainly
+# still present. Some vendor opkg builds defer or skip postrm during a forced
+# reinstall; postrm remains as a cleanup/recovery fallback.
+if [ -z "$IPKG_INSTROOT" ]; then
+  helper=/usr/lib/dumaos/platform/ubus-stack.sh
+  [ -x /etc/dumaos-stock-backup/ubus-stack.sh ] && \
+    helper=/etc/dumaos-stock-backup/ubus-stack.sh
+  if ! "$helper" restore keep; then
+    echo "dumaos-repack: refusing removal because stock ubus restore failed" >&2
+    exit 1
+  fi
+fi

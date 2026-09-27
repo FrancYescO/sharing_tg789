@@ -3,5 +3,6 @@
 # preload the Technicolor build shipped in /usr/lib/dumaos
 # Guard: devicemanager restarts dpiclass on death; a stale instance still
 # holding NFQUEUE 10 makes the new bind fail (EBUSY) and loop forever.
-for p in $(pidof dpiclass.bin); do kill -9 $p 2>/dev/null; done
-LD_PRELOAD="/usr/lib/nfqverdict-shim.so /usr/lib/dumaos/libnetfilter_queue.so.1" exec /usr/lib/dumaos/dpiclass.bin "$@"
+for p in $(pidof dpiclass.bin); do kill -9 "$p" 2>/dev/null; done
+LD_PRELOAD="/usr/lib/dumaos/lib/nfqverdict-shim.so /usr/lib/dumaos/libnetfilter_queue.so.1" \
+  exec /usr/lib/dumaos/dpiclass.bin "$@"

@@ -1,87 +1,102 @@
 #!/usr/bin/env python3
-"""Build the dumaos-repack .ipk: gzip-compressed ustar outer container
-(verified against openwrt feed ipks) with GNU-format inner tars."""
+"""Build a byte-for-byte reproducible, old-opkg-compatible DumaOS IPK."""
+
 import gzip
 import io
 import os
 import tarfile
+from typing import Optional, Tuple
 
 SRC = "dumaos-repack"
 OUT = "dist"
-
-version = next(
-    line.split(":", 1)[1].strip()
-    for line in open(os.path.join(SRC, "CONTROL", "control"))
-    if line.startswith("Version:")
-)
+EPOCH = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
 
 
-def as_root(ti, path=None):
-    ti.uid = 0
-    ti.gid = 0
-    ti.uname = "root"
-    ti.gname = "root"
-    # git/tar can lose the exec bit on binaries and scripts (a 644 ELF
-    # breaks the router, e.g. /sbin/ubus.orig -> "Permission denied"):
-    # force +x on anything with ELF magic or a shebang.
-    if ti.isreg() and (ti.mode & 0o111) == 0:
-        try:
-            with open(path or (ti.obj.name if ti.obj else ti.name), "rb") as fh:
-                head = fh.read(4)
-        except OSError:
-            head = b""
-        if head[:4] == b"\x7fELF" or head[:2] == b"#!":
-            ti.mode |= 0o111
-    return ti
+def control_field(name: str) -> str:
+    with open(os.path.join(SRC, "CONTROL", "control"), encoding="utf-8") as control:
+        for line in control:
+            if line.startswith(f"{name}:"):
+                return line.split(":", 1)[1].strip()
+    raise SystemExit(f"missing control field: {name}")
 
 
-def inner_tar(root, skip_top=()):
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz", format=tarfile.GNU_FORMAT) as t:
-        t.addfile(as_root(t.gettarinfo(root, arcname=".")))
-        for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = sorted(d for d in dirnames if d not in skip_top and d != "__MACOSX")
-            rel = os.path.relpath(dirpath, root)
-            for d in dirnames:
-                dp = os.path.join(dirpath, d)
-                arc = "./" + d if rel == "." else os.path.join(".", rel, d)
-                t.addfile(as_root(t.gettarinfo(dp, arcname=arc)))
+PACKAGE = control_field("Package")
+VERSION = control_field("Version")
+ARCH = control_field("Architecture")
+
+
+def normalized_info(info: tarfile.TarInfo, source: Optional[str] = None) -> tarfile.TarInfo:
+    info.uid = info.gid = 0
+    info.uname = info.gname = "root"
+    info.mtime = EPOCH
+    if info.isdir():
+        info.mode = 0o755
+    elif info.issym():
+        info.mode = 0o777
+    elif info.isreg():
+        executable = bool(info.mode & 0o111)
+        if not executable and source:
+            with open(source, "rb") as stream:
+                magic = stream.read(4)
+            executable = magic.startswith((b"\x7fELF", b"#!"))
+        info.mode = 0o755 if executable else 0o644
+    return info
+
+
+def gzip_bytes(payload: bytes) -> bytes:
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode="wb", filename="", mtime=EPOCH) as stream:
+        stream.write(payload)
+    return output.getvalue()
+
+
+def inner_tar(root: str, skip_top: Tuple[str, ...] = ()) -> bytes:
+    raw = io.BytesIO()
+    with tarfile.open(fileobj=raw, mode="w", format=tarfile.GNU_FORMAT) as archive:
+        archive.addfile(normalized_info(archive.gettarinfo(root, arcname=".")))
+        for directory, dirnames, filenames in os.walk(root):
+            dirnames[:] = sorted(
+                name for name in dirnames if name not in skip_top and name != "__MACOSX"
+            )
+            relative = os.path.relpath(directory, root)
+            for name in dirnames:
+                path = os.path.join(directory, name)
+                arcname = f"./{name}" if relative == "." else os.path.join(".", relative, name)
+                archive.addfile(normalized_info(archive.gettarinfo(path, arcname=arcname)))
             for name in sorted(filenames):
                 if name == ".DS_Store" or name.startswith("._"):
                     continue
-                path = os.path.join(dirpath, name)
-                arc = "./" + name if rel == "." else os.path.join(".", rel, name)
-                ti = as_root(t.gettarinfo(path, arcname=arc), path)
-                if ti.isreg():
-                    with open(path, "rb") as fh:
-                        t.addfile(ti, fh)
+                path = os.path.join(directory, name)
+                arcname = f"./{name}" if relative == "." else os.path.join(".", relative, name)
+                info = normalized_info(archive.gettarinfo(path, arcname=arcname), path)
+                if info.isreg():
+                    with open(path, "rb") as stream:
+                        archive.addfile(info, stream)
                 else:
-                    t.addfile(ti)
-    return buf.getvalue()
+                    archive.addfile(info)
+    return gzip_bytes(raw.getvalue())
 
 
 data = inner_tar(SRC, skip_top=("CONTROL",))
 control = inner_tar(os.path.join(SRC, "CONTROL"))
 
-os.makedirs(OUT, exist_ok=True)
-ipk = os.path.join(OUT, f"dumaos-repack_{version}_all.ipk")
-# An .ipk is a *gzip-compressed* tar (GNU magic, verified against openwrt
-# feed ipks) holding ./debian-binary, ./control.tar.gz and ./data.tar.gz.
-# The router's old opkg rejects ustar ("ustar\0" magic) and plain
-# uncompressed tars ("Malformed package file"/segfault) -- it needs the
-# gzip wrapper and GNU ("ustar  \0") magic, exactly like buildroot's
-# `tar cf - ... | gzip -9n`.
 outer = io.BytesIO()
-with tarfile.open(fileobj=outer, mode="w", format=tarfile.GNU_FORMAT) as t:
-    for name, payload in (("./debian-binary", b"2.0\n"),
-                          ("./control.tar.gz", control),
-                          ("./data.tar.gz", data)):
-        ti = tarfile.TarInfo(name)
-        ti.size = len(payload)
-        ti.mode = 0o644
-        ti.uid = ti.gid = 0
-        ti.uname = ti.gname = "root"
-        t.addfile(ti, io.BytesIO(payload))
-with gzip.GzipFile(ipk, "wb", mtime=0) as f:
-    f.write(outer.getvalue())
-print(ipk)
+with tarfile.open(fileobj=outer, mode="w", format=tarfile.GNU_FORMAT) as archive:
+    for name, payload in (
+        ("./debian-binary", b"2.0\n"),
+        ("./control.tar.gz", control),
+        ("./data.tar.gz", data),
+    ):
+        info = tarfile.TarInfo(name)
+        info.size = len(payload)
+        info.mode = 0o644
+        info.uid = info.gid = 0
+        info.uname = info.gname = "root"
+        info.mtime = EPOCH
+        archive.addfile(info, io.BytesIO(payload))
+
+os.makedirs(OUT, exist_ok=True)
+destination = os.path.join(OUT, f"{PACKAGE}_{VERSION}_{ARCH}.ipk")
+with open(destination, "wb") as output:
+    output.write(gzip_bytes(outer.getvalue()))
+print(destination)

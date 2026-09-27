@@ -5,6 +5,19 @@ case "$1" in
     upgrade|configure) exit 0 ;;
 esac
 
+# The recovery helper lives outside the package file list because opkg runs
+# postrm after deleting data files. Never discard the backup when restoration
+# fails: it is the recovery path for the device.
+if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos-stock-backup/ubus-stack.sh ]; then
+    if /etc/dumaos-stock-backup/ubus-stack.sh restore; then
+        rm -f /etc/dumaos-stock-backup/ubus-stack.sh
+        rmdir /etc/dumaos-stock-backup 2>/dev/null || true
+    else
+        echo "dumaos-repack: stock ubus restore failed; backup retained in /etc/dumaos-stock-backup" >&2
+        exit 1
+    fi
+fi
+
 # Artifacts created by setup.sh (kernel module + boot load list)
 rm -f /etc/modules.d/99-dumaos-qos
 rm -f /lib/modules/4.1.52/extra/act-connmark-damson-4.1.52.ko
@@ -19,47 +32,6 @@ done
 uci -q show firewall >/dev/null 2>&1 && uci -q commit firewall
 /etc/init.d/firewall reload >/dev/null 2>&1 || true
 
-# Restore the stock busybox tar symlink we replaced with the -m wrapper.
-if [ -z "$IPKG_INSTROOT" ] && [ -x /bin/busybox ]; then
-    ln -sf busybox /bin/tar
-fi
-
-# Restore the stock libnetfilter_queue symlink (we ship the MR22 build with
-# nfq_set_verdict2_extra as /usr/lib/libnetfilter_queue.so.1; the AGTEF
-# .so.1.5.0 file is untouched on disk). Reboot after removing.
-if [ -z "$IPKG_INSTROOT" ] && [ -e /usr/lib/libnetfilter_queue.so.1.5.0 ]; then
-    rm -f /usr/lib/libnetfilter_queue.so.1
-    ln -sf libnetfilter_queue.so.1.5.0 /usr/lib/libnetfilter_queue.so.1
-fi
-
-# Remove our shim lines from ld.so.preload (keep Telstra's entries).
-if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/ld.so.preload ]; then
-    sed -i '/nfqverdict-shim/d;/openssl-compat-shim/d' /etc/ld.so.preload
-fi
-
-# Restore the stock Telstra openssl (we ship the 1.0.2t build at
-# /etc/dumaos/openssl-agtef/openssl and replace /usr/bin/openssl with a
-# static 1.1.1w build because the DumaOS cloud packages are encrypted
-# with the OpenSSL 1.1.x SHA-256 EVP KDF). Reboot after removing.
-if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos/openssl-agtef/openssl ]; then
-    cp -f /etc/dumaos/openssl-agtef/openssl /usr/bin/openssl
-fi
-
-# Restore the stock conntrack (the package replaces /usr/sbin/conntrack
-# with a -k -> -m wrapper for the Geo-Filter; conntrack.orig is also
-# package-owned and purged). Reboot after removing.
-if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/dumaos-conntrack-stock/conntrack ]; then
-  cp -f /etc/dumaos-conntrack-stock/conntrack /usr/sbin/conntrack
-  rm -rf /etc/dumaos-conntrack-stock
-fi
-
-# Restore the stock ndhttpd (we wrap it to export TZ for the DumaOS apps).
-if [ -z "$IPKG_INSTROOT" ] && [ -e /usr/sbin/ndhttpd.real ]; then
-  rm -f /usr/sbin/ndhttpd
-  mv /usr/sbin/ndhttpd.real /usr/sbin/ndhttpd
-  /etc/init.d/ndhttpd restart 2>/dev/null
-fi
-
 # Drop the benchmark history cron jobs added by postinst.
 if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/crontabs/root ]; then
   sed -i '/bench-index.lua/d; /bench-gzip.sh/d' /etc/crontabs/root 2>/dev/null
@@ -72,26 +44,6 @@ if [ -z "$IPKG_INSTROOT" ]; then
   [ -L /www/themes ] && rm -f /www/themes
   [ -L /www/nd-themes ] && rm -f /www/nd-themes
   command -v nginx >/dev/null 2>&1 && (nginx -t >/dev/null 2>&1 && nginx -s reload 2>/dev/null)
-fi
-
-# Restore the stock AGTEF ubus stack (DumaOS needs the MR22 one, which
-# the package ships at /lib/libubus.so, /lib/libubox.so, /sbin/ubusd,
-# /bin/ubus and /usr/lib/lua/ubus.so). Reboot after removing.
-if [ -z "$IPKG_INSTROOT" ] && [ -d /etc/dumaos/ubus-agtef ]; then
-    cp -f /etc/dumaos/ubus-agtef/ubus.so /usr/lib/lua/ubus.so
-    cp -f /etc/dumaos/ubus-agtef/libubus.so /lib/libubus.so
-    cp -f /etc/dumaos/ubus-agtef/libubox.so /lib/libubox.so
-    cp -f /etc/dumaos/ubus-agtef/ubusd /sbin/ubusd
-    cp -f /etc/dumaos/ubus-agtef/ubus /bin/ubus
-    cp -f /etc/dumaos/ubus-agtef/ubus /sbin/ubus
-    rm -f /sbin/ubus.orig
-fi
-
-# Restore the stock wl binary replaced by the wrapper.
-if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/dumaos/wl-agtef/wl ]; then
-  cp -f /etc/dumaos/wl-agtef/wl /usr/bin/wl
-  rm -f /usr/bin/wl.orig
-  rm -rf /etc/dumaos/wl-agtef
 fi
 
 # UCI configs left behind by uci commit

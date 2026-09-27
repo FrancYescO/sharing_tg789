@@ -34,13 +34,29 @@ jobs:
           set -euo pipefail
           rm -rf dist
           mkdir -p dist
-          sh ./ipkg-build.sh ./dumaos-repack ./dist
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python3 ./build_ipk.py
 
-          packages=(dist/dumaos-repack_*_all.ipk)
+          packages=(dist/dumaos-repack_*.ipk)
           test "${#packages[@]}" -eq 1
           package="${packages[0]}"
           package_name="$(basename "$package")"
           echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+
+      - name: Test transactional rollback
+        shell: bash
+        run: sh ./tests/test-ubus-transaction.sh
+
+      - name: Verify reproducible build
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="dist/${{ steps.package.outputs.package_name }}"
+          first_hash="$(sha256sum "$package" | awk '{print $1}')"
+          rm -f "$package"
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python3 ./build_ipk.py
+          test "$first_hash" = "$(sha256sum "$package" | awk '{print $1}')"
 
       - name: Validate IPK
         shell: bash
@@ -64,7 +80,9 @@ jobs:
 
           test "$(awk -F ': ' '$1 == "Package" { print $2 }' "$work_dir/control/control")" = "dumaos-repack"
           version="$(awk -F ': ' '$1 == "Version" { print $2 }' "$work_dir/control/control")"
-          test "$(basename "$package")" = "dumaos-repack_${version}_all.ipk"
+          architecture="$(awk -F ': ' '$1 == "Architecture" { print $2 }' "$work_dir/control/control")"
+          test "$architecture" = "arm_cortex-a9"
+          test "$(basename "$package")" = "dumaos-repack_${version}_${architecture}.ipk"
 
           for service in dumaos ndhttpd ndproxy ctwatch connwatch arpwatch dumaos_qos_tweaks; do
             test -x "$work_dir/data/etc/init.d/$service"
@@ -75,7 +93,7 @@ jobs:
           test -f "$work_dir/data/www/ndindex.html"
           test -f "$work_dir/data/dumaossystem/model"
 
-          test -x "$work_dir/data/usr/sbin/ndhttpd"
+          test -x "$work_dir/data/usr/lib/dumaos/sbin/ndhttpd"
           test -f "$work_dir/data/usr/lib/ndhttpd_lua.so"
           test -f "$work_dir/data/usr/lib/lua/telemetrylua.so"
           test -f "$work_dir/data/usr/lib/lua/ndsiglua.so"
@@ -83,20 +101,22 @@ jobs:
           test -x "$work_dir/data/usr/lib/dumaos/dpiclass.bin"
           test -f "$work_dir/data/usr/lib/dumaos/libnetfilter_queue.so.1"
           test -f "$work_dir/data/usr/lib/detectlist.xor"
-          test -f "$work_dir/data/usr/lib/libnetfilter_queue.so.1"
-          test -f "$work_dir/data/usr/lib/nfqverdict-shim.so"
-          test -f "$work_dir/data/usr/lib/openssl-compat-shim.so"
-          test -x "$work_dir/data/usr/bin/openssl"
-          test -x "$work_dir/data/etc/dumaos/openssl-agtef/openssl"
+          test -f "$work_dir/data/usr/lib/dumaos/lib/nfqverdict-shim.so"
+          test -x "$work_dir/data/usr/lib/dumaos/bin/openssl"
           grep -q nfqverdict-shim.so "$work_dir/data/usr/bin/dpiclass"
 
-          # MR22 ubus stack (stock AGTEF copies stashed for uninstall)
-          for f in usr/lib/lua/ubus.so lib/libubus.so lib/libubox.so sbin/ubusd bin/ubus; do
-            test -f "$work_dir/data/$f"
-          done
+          # MR22 ubus stack is staged privately and activated transactionally.
           for f in ubus.so libubus.so libubox.so ubusd ubus; do
-            test -f "$work_dir/data/etc/dumaos/ubus-agtef/$f"
+            test -f "$work_dir/data/usr/lib/dumaos/platform/mr22/$f"
           done
+          test -x "$work_dir/data/usr/lib/dumaos/platform/ubus-stack.sh"
+          test ! -e "$work_dir/data/etc/uhttpd.key"
+          test ! -e "$work_dir/data/etc/uhttpd.crt"
+          test ! -e "$work_dir/data/bin/tar"
+          test ! -e "$work_dir/data/usr/bin/openssl"
+          test ! -e "$work_dir/data/usr/bin/wl"
+          test ! -e "$work_dir/data/usr/sbin/conntrack"
+          ! grep -R -Eq '>>[[:space:]]*/etc/ld\.so\.preload' "$work_dir/data" "$work_dir/control"
           test -f "$work_dir/data/dumaossystem/version"
           test -x "$work_dir/data/usr/bin/dpiclass"
           test -x "$work_dir/data/usr/bin/luac"
@@ -107,6 +127,11 @@ jobs:
             sha256sum "${{ steps.package.outputs.package_name }}" > \
               "${{ steps.package.outputs.package_name }}.sha256"
           )
+          (
+            cd "$work_dir/data"
+            find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > \
+              "$GITHUB_WORKSPACE/dist/${{ steps.package.outputs.package_name }}.files.sha256"
+          )
 
       - name: Upload IPK artifact
         uses: actions/upload-artifact@v7
@@ -115,6 +140,7 @@ jobs:
           path: |
             dist/${{ steps.package.outputs.package_name }}
             dist/${{ steps.package.outputs.package_name }}.sha256
+            dist/${{ steps.package.outputs.package_name }}.files.sha256
           if-no-files-found: error
 
   release:
@@ -142,9 +168,11 @@ jobs:
           set -euo pipefail
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" \
-              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" --clobber
+            "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" \
+            "dist/$PACKAGE_NAME.files.sha256" --clobber
           else
             gh release create "$GITHUB_REF_NAME" \
-              "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" \
+            "dist/$PACKAGE_NAME" "dist/$PACKAGE_NAME.sha256" \
+            "dist/$PACKAGE_NAME.files.sha256" \
               --verify-tag --generate-notes
           fi

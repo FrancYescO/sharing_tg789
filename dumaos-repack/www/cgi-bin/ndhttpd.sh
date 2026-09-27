@@ -9,7 +9,7 @@ else
 fi
   WEBROOT="$BASEDIR/www"
   URLROUTE="$BASEDIR/www/cgi-bin/url-routing.lua"
-  NDHTTPD_BIN="$BASEDIR/usr/sbin/ndhttpd"
+  NDHTTPD_BIN="$BASEDIR/usr/lib/dumaos/sbin/ndhttpd"
 
 if [ "$(cat $BASEDIR/dumaossystem/model)" = "LH1000" -o "$(cat $BASEDIR/dumaossystem/odm)" = "TECHNICOLOR" -o "$(cat $BASEDIR/dumaossystem/model)" = "XB7" -o "$(cat $BASEDIR/dumaossystem/model)" = "SMARTHUB3" -o "$(cat $BASEDIR/dumaossystem/model)" = "XRE1200" -o "$(cat $BASEDIR/dumaossystem/model)" = "RPI3" ];then
   SERVER_PORT="81"

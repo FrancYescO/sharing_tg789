@@ -3,8 +3,9 @@
 # minute for the second radio, but this AGTEF firmware only exposes wl0,
 # so the real wl spams "wl: wl driver adapter not found" through
 # procmanager's exec into the log. Silence calls for interfaces that do
-# not exist; pass everything else through to the stock binary intact.
+# not exist; pass everything else through to the stock binary intact. This
+# wrapper is private to the DumaOS service PATH.
 if [ "$1" = "-i" ] && ! ifconfig "$2" >/dev/null 2>&1; then
-  exec /usr/bin/wl.orig "$@" 2>/dev/null
+  exec /usr/bin/wl "$@" 2>/dev/null
 fi
-exec /usr/bin/wl.orig "$@"
+exec /usr/bin/wl "$@"
