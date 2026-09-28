@@ -5,5 +5,5 @@ Depends: terminfo
 Description: DumaOS UI/QoS port for supported AGTEF/VBNTJ firmware
 Maintainer: FrancYescO <francyesc0@hotmail.it>
 Source: https://github.com/FrancYescO/sharing_tg789
-Version: 2.0-42
+Version: 2.0-43
 Architecture: arm_cortex-a9

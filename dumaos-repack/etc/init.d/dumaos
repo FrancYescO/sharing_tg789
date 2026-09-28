@@ -103,7 +103,13 @@ start_seal_service() {
   lua /dumaos/ngcompat/main.lua &
   /www/cgi-bin/ndhttpd.sh start
   arpwatch -i 25 -p 220 -d &
-  ctwatch -d &
+  # ctwatch is replaced by a Lua shim (dumaos/ctwatch-shim.lua): the stock
+  # binary never reads connmarks on the AGTEF kernel, so the shim serves the
+  # ubus API from /proc/net/nf_conntrack and promotes DPI pappids to appids
+  # so the Network Monitor shows real applications. Kill the old instance
+  # first: ubusd was just restarted, so its connection is dead.
+  pkill -f ctwatch-shim.lua 2>/dev/null
+  /etc/init.d/ctwatch-shim start 2>/dev/null &
   connwatch &
   ndconfig set DumaOS_Theme='default'
   ndconfig set DumaOS_Theme_Version='1.0'

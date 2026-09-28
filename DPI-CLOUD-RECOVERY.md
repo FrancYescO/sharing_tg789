@@ -172,3 +172,52 @@ Side findings: `forward_dpi_mark` chain exists but is not hooked into
 FORWARD (`except_nd_forward_mangle` empty, nothing populates it) - relevant
 if category bits stay 510; `get_devtypemark`/`dhcp_event` have no `on_*`
 handler anywhere, so they stay unregistered.
+
+## 7. Network Monitor app labels: the ctwatch Lua shim (v2.0-43)
+
+Even with dpiclass DNS-matching working, Network Monitor showed every flow
+as "Uncategorized". Root causes, in order of discovery:
+
+1. **ctwatch never reads connmarks on the AGTEF kernel.** Both the 341 and
+   the stock AGTEF ctwatch build report `cmark=0` for every entry even when
+   the kernel conntrack entries carry the DPI marks (verified via
+   `/proc/net/nf_conntrack` and `conntrack -L`). iptables/NFQUEUE promotion
+   cannot fix it either: HW offload bypasses netfilter on established
+   flows and NFQUEUE verdicts do not re-enter the mangle chain.
+2. **The UI decodes an appid, not a category.** `networkmonitor.js` computes
+   `appid = (class & mask) >> shift` with the mask/shift fetched over RPC
+   `get_cmark_mask` -> `[14, 8372224]`, then looks the app up by appid in
+   `_services_.json` (YouTube=124/Media, Google=126/Web (General)); the
+   category label comes from the app entry. The UI called `get_cmark_mask`
+   on the ctwatch rpc and my first shim didn't answer it -> mask/shift null
+   -> everything Uncategorized. The `class` field of `filter_connections`
+   must therefore be the **raw connmark**, and `get_cmark_mask`/`get_devmark`
+   must answer `[14, 8372224]`.
+3. **dpiclass leaves appid at 510** (unclassified) on this kernel; only the
+   DNS-derived pappid (bits 0-13) is set, and it is a domain-table id from
+   the encrypted nddpidb (Google domains = 2574), not a services.json appid.
+
+Fix: `dumaos/ctwatch-shim.lua`, a procd service (`etc/init.d/ctwatch-shim`,
+START=98, respawn retry 0) that owns `com.netdumasoftware.ctwatch` on ubus
+(stock ctwatch is disabled in postinst and `etc/init.d/dumaos` starts the
+shim instead of `ctwatch -d`; ubusd is restarted by dumaos, so the init
+kills the old shim instance first). The shim:
+
+- serves `gettable`, `get_local_networks` and `rpc{filter_connections,
+  get_cmark_mask,get_devmark}` parsed from `/proc/net/nf_conntrack`;
+  `timestamp` must be **uptime ms** (the UI skips int32-overflowed values);
+- every 0.5s rewrites `appid` bits of flows whose pappid is in `PAPP2APP`
+  (currently `{2574: 124}` = Google domains -> YouTube/Media) using
+  `conntrack -U -p <proto> --src ... --mark ...`: this conntrack build has
+  no `-R`/batch `-f` support ("unsupported protocol"), udp `-U` must NOT
+  get `--state`, tcp needs `--state ESTABLISHED`;
+- batches are backgrounded (`( cmd; cmd ) >/dev/null 2>&1 &`) because
+  `io.popen`/foreground `os.execute` blocks the uloop and the UI's 1s
+  polls time out; the uloop timer only re-arms from inside its callback;
+- the UI aggregates byte **deltas** per app, so promotion has to run fast
+  (0.5s) or early bytes are attributed to appid 510.
+
+Verified: `filter_connections` now returns raw marks; UI shows Media for
+phone traffic (appid 124 via get_cmark_mask decode). `filter_connections`
+schema: `{result:[{timestamp, connections:[{sip4,dip4,sport,dport,l4proto,
+l3proto,class,timeout,spackets,dpackets,sbytes,dbytes}]}]}`.

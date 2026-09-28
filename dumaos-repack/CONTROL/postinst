@@ -187,6 +187,22 @@ if [ -z "$IPKG_INSTROOT" ]; then
   for p in $(ps w | grep 'cli.lua -p //dumaos/apps/system//com.netdumasoftware.devicemanager' | grep -v grep | awk '{print $1}'); do kill "$p" 2>/dev/null; done
 fi
 
+# ctwatch Lua shim: the stock ctwatch binary never reads connmarks on the
+# AGTEF kernel (cmark stays 0, so the Network Monitor shows only
+# "Uncategorized"). The shim owns com.netdumasoftware.ctwatch on ubus,
+# answers gettable/get_local_networks/rpc(filter_connections,get_cmark_mask)
+# from /proc/net/nf_conntrack and promotes DNS-derived DPI pappids to real
+# appids (bits 14-22) with conntrack -U, which is what the UI decodes with
+# the get_cmark_mask [shift,mask] pair. The stock binary claims the same
+# ubus name, so keep it disabled; dumaos init starts the shim instead.
+if [ -z "$IPKG_INSTROOT" ]; then
+  chmod +x /etc/init.d/ctwatch-shim /dumaos/ctwatch-shim.lua 2>/dev/null
+  /etc/init.d/ctwatch stop 2>/dev/null
+  /etc/init.d/ctwatch disable 2>/dev/null
+  /etc/init.d/ctwatch-shim enable 2>/dev/null
+  killall ctwatch 2>/dev/null
+fi
+
 if [ -z "$IPKG_INSTROOT" ] && command -v nginx >/dev/null 2>&1 && nginx -t >/dev/null 2>&1; then
   nginx -s reload 2>/dev/null || /etc/init.d/nginx restart >/dev/null 2>&1
 fi

@@ -5,6 +5,12 @@
 /etc/init.d/dumaos disable
 /etc/init.d/dumaos stop
 
+# Stop the ctwatch shim so the stock ctwatch binary can own its ubus name
+# again once the package is gone.
+/etc/init.d/ctwatch-shim stop
+/etc/init.d/ctwatch-shim disable
+pkill -f ctwatch-shim.lua 2>/dev/null
+
 # Restore the firmware ubus stack while the packaged helper is certainly
 # still present. Some vendor opkg builds defer or skip postrm during a forced
 # reinstall; postrm remains as a cleanup/recovery fallback.
