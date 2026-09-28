@@ -199,6 +199,9 @@ local obj = {
 local ok, err = pcall(function() u:add(obj) end)
 print("add:", ok, err)
 io.flush()
+if not ok then
+    error("failed to register com.netdumasoftware.ctwatch: " .. tostring(err))
+end
 
 local tick
 tick = uloop.timer(function()

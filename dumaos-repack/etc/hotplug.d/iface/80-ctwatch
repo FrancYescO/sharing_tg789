@@ -6,5 +6,10 @@
 #-- @depends test
 #-- @test test 1
 if [ "$ACTION" == "ifup" ] && [ "$INTERFACE" == "lan" ]; then
-  /etc/init.d/ctwatch restart
+  # The repack replaces the stock binary with a Lua service that exposes
+  # connmarks correctly on AGTEF. Starting ctwatch here would race the shim
+  # for the same ubus object after every LAN restart.
+  /etc/init.d/ctwatch stop 2>/dev/null
+  killall ctwatch 2>/dev/null
+  /etc/init.d/ctwatch-shim restart
 fi

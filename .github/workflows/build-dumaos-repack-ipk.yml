@@ -84,9 +84,20 @@ jobs:
           test "$architecture" = "arm_cortex-a9"
           test "$(basename "$package")" = "dumaos-repack_${version}_${architecture}.ipk"
 
-          for service in dumaos ndhttpd ndproxy ctwatch connwatch arpwatch dumaos_qos_tweaks; do
+          for service in dumaos ndhttpd ndproxy ctwatch ctwatch-shim connwatch arpwatch dumaos_qos_tweaks; do
             test -x "$work_dir/data/etc/init.d/$service"
           done
+
+          grep -q '/etc/init.d/ctwatch-shim restart' \
+            "$work_dir/data/etc/hotplug.d/iface/80-ctwatch"
+          ! grep -Eq '/etc/init.d/ctwatch restart' \
+            "$work_dir/data/etc/hotplug.d/iface/80-ctwatch"
+          grep -q '/etc/init.d/ctwatch-shim "$1"' \
+            "$work_dir/data/etc/hotplug.d/dumaos/10-dumaos-launch"
+          ! grep -q '/etc/init.d/ctwatch "$1"' \
+            "$work_dir/data/etc/hotplug.d/dumaos/10-dumaos-launch"
+          grep -q 'failed to register com.netdumasoftware.ctwatch' \
+            "$work_dir/data/dumaos/ctwatch-shim.lua"
 
           test -f "$work_dir/data/dumaos/api/cli.lua"
           test -f "$work_dir/data/dumaos/apps/system/com.netdumasoftware.procmanager/main.lua"

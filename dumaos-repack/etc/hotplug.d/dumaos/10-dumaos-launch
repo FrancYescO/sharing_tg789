@@ -34,7 +34,11 @@ fi
 if [ "$(cat $SYSROOT_PREFIX/dumaossystem/odm)" = "IOPSYS" ];then
   /etc/init.d/ngcompat" $1"
 fi
-  /etc/init.d/ctwatch "$1"
+  if [ "$1" = "start" ]; then
+    /etc/init.d/ctwatch stop 2>/dev/null
+    killall ctwatch 2>/dev/null
+  fi
+  /etc/init.d/ctwatch-shim "$1"
   /etc/init.d/connwatch "$1"
   /etc/init.d/arpwatch "$1"
   if [ -f "/etc/init.d/telemetry-daemon" ]; then
