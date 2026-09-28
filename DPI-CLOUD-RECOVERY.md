@@ -221,3 +221,37 @@ Verified: `filter_connections` now returns raw marks; UI shows Media for
 phone traffic (appid 124 via get_cmark_mask decode). `filter_connections`
 schema: `{result:[{timestamp, connections:[{sip4,dip4,sport,dport,l4proto,
 l3proto,class,timeout,spackets,dpackets,sbytes,dbytes}]}]}`.
+
+## 8. Newer signature DB: DPI update 606 from the R3 stream (v2.0-44)
+
+The DJA0231 cloud channel is stuck at update 341, but the Netduma cloud
+serves newer DPI updates for other models: XR500/3.3.535 -> 415 (2025-05-06),
+R2 -> 493 (2025-08-08), R3 -> 606 (2026-04-07, newest). Update 606 is
+data-only (`nddpidb` 7.8 MB + `_services_.json` (392 apps, YouTube still
+124) + `categories.json` + `qos_categories.json` + `smartqos_database.db`),
+so it drops into the 341 DJA0231 binaries without touching them.
+
+Gotchas:
+
+- the `.cloud` gpg flavour is double-wrapped with the passphrase
+  `!8Dn@%@^\Y8@}T2(` (single backslash before `Y` - the string in
+  `dpi.lua` has 16 bytes, `od -c` it if gpg says "Bad session key");
+- the R3 id is not advertised for a guessed version string, but the URL
+  pattern `/file/cloud_updates/dpi/0000000606/NETDUMA_V1/gpg/cloud-0000000606-dpi-NETDUMA_V1-gpg.cloud`
+  works once you know the id;
+- the new `nddpidb` has the plain `ad3141ba` magic (the 341 DB looked
+  different/encrypted) and loads fine in the 341 `libadpi`.
+
+After the swap dpiclass assigns real appids natively (e.g. Mail POP/SMTP
+appids 2/3 instead of 510). The DNS pappid space is renumbered per DB: the
+Google umbrella moved 2574 -> 2572, so the ctwatch shim's `PAPP2APP` table
+now maps both (`{[2574]=124,[2572]=124}`). Phones doing DNS-over-HTTPS get
+their post-DoH flows tagged with the DoH pappid (Google), so some non-Google
+apps can still be grouped as Media/Google until their flows get natively
+classified; rebuilding the pappid table per app is possible by resolving a
+domain on the router and reading the flow mark.
+
+Files in the repack: `dumaos/data/dpiclass/nddpidb`,
+`www/json/{_services_,categories,qos_categories}.json`,
+`www/json/smartqos_database.db` (new); backups on the router in /tmp
+(`nddpidb.bak`, `_services_.bak`, `categories.bak`, `smartqos.bak`).

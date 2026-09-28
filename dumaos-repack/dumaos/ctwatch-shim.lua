@@ -7,7 +7,8 @@ assert(u, "no ubus")
 local PROC = "/proc/net/nf_conntrack"
 
 local PAPP2APP = {
-    [2574] = 124
+    [2574] = 124,
+    [2572] = 124
 }
 
 local function promote()
