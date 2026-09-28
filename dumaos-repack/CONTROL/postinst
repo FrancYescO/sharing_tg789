@@ -118,6 +118,17 @@ if [ -z "$IPKG_INSTROOT" ] && command -v uci >/dev/null 2>&1; then
     uci -q get web.ruleset_main.rules | grep -qw duma_ws_$p || \
       uci -q add_list web.ruleset_main.rules=duma_ws_$p
   done
+  uci -q del_list web.ruleset_main.rules=dumaosmodal
+  uci -q add_list web.ruleset_main.rules=dumaosmodal
+  uci -q set web.dumaosmodal=rule
+  uci -q set web.dumaosmodal.target=/modals/dumaos-modal.lp
+  uci -q delete web.dumaosmodal.roles
+  uci -q add_list web.dumaosmodal.roles=admin
+  uci -q add_list web.dumaosmodal.roles=engineer
+  uci -q add_list web.dumaosmodal.roles=superuser
+  uci -q set web.dumaos_card=card
+  uci -q set web.dumaos_card.card=015_dumaos.lp
+  uci -q set web.dumaos_card.modal=dumaosmodal
   uci -q commit web
 fi
 
@@ -196,7 +207,11 @@ fi
 # the get_cmark_mask [shift,mask] pair. The stock binary claims the same
 # ubus name, so keep it disabled; dumaos init starts the shim instead.
 if [ -z "$IPKG_INSTROOT" ]; then
-  chmod +x /etc/init.d/ctwatch-shim /dumaos/ctwatch-shim.lua 2>/dev/null
+  chmod +x /etc/init.d/ctwatch-shim /dumaos/ctwatch-shim.lua \
+    /usr/lib/dumaos/platform/control.sh 2>/dev/null
+  mkdir -p /www/data
+  [ ! -s /dumaossystem/version ] || cp /dumaossystem/version /www/data/shorthash
+  chmod 644 /www/data/shorthash 2>/dev/null
   /etc/init.d/ctwatch stop 2>/dev/null
   /etc/init.d/ctwatch disable 2>/dev/null
   /etc/init.d/ctwatch-shim enable 2>/dev/null

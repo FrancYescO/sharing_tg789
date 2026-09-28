@@ -26,6 +26,16 @@ local function getDumaosEnabled()
   return "0"
 end
 
+local function setDumaosEnabled(enabled)
+  os.execute("uci -q set dumaos.tr69.dumaos_enabled=" .. (enabled and "1" or "0"))
+  os.execute("uci -q commit dumaos")
+  local action = enabled and "start" or "stop"
+  -- Do not stop DumaOS from inside Transformer's request handler: DumaOS
+  -- cleanup can wait on ubus and would deadlock the setter. The helper runs
+  -- after the RPC response has been returned.
+  os.execute("(sleep 1; /usr/lib/dumaos/platform/control.sh " .. action .. ") >/dev/null 2>&1 &")
+end
+
 local dumaos_ = {
     objectType = {
         name = 'rpc.dumaos.',
@@ -49,13 +59,7 @@ local dumaos_ = {
     },
     set = {
         enabled = function(mapping, paramname, paramvalue)
-            if paramvalue == "1" then
-                os.execute("/etc/init.d/ndhttpd start >/dev/null 2>&1")
-                shell_output("export ACTION=dumaos_enabled; /sbin/hotplug-call dumaos >/dev/null 2>&1")
-            else
-                shell_output("export ACTION=dumaos_disabled; /sbin/hotplug-call dumaos >/dev/null 2>&1")
-                os.execute("/etc/init.d/dumaos stop >/dev/null 2>&1; /etc/init.d/ndhttpd stop >/dev/null 2>&1")
-            end
+            setDumaosEnabled(paramvalue == "1")
         end,
     }
 }

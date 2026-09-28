@@ -8,10 +8,12 @@ else
 fi
 for chain in nat mangle filter
 do
-  CHAINS=$(iptables -nL -t$chain 2>/dev/null | grep "Chain\ " | grep "nd_\|hyperlane\|_mark\|geo\|tc_\|gf.*_" | cut -d' ' -f2)
   CLEAN=0
-  while [ "$CLEAN" -ne "1" ]
+  PASSES=0
+  while [ "$CLEAN" -ne "1" ] && [ "$PASSES" -lt "3" ]
   do
+    PASSES=$((PASSES + 1))
+    CHAINS=$(iptables -nL -t$chain 2>/dev/null | grep "Chain\ " | grep "nd_\|hyperlane\|_mark\|geo\|tc_\|gf.*_" | cut -d' ' -f2)
     for value in $CHAINS
     do
 #      echo "$chain - $value"

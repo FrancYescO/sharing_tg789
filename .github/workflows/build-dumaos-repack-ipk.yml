@@ -98,6 +98,27 @@ jobs:
             "$work_dir/data/etc/hotplug.d/dumaos/10-dumaos-launch"
           grep -q 'failed to register com.netdumasoftware.ctwatch' \
             "$work_dir/data/dumaos/ctwatch-shim.lua"
+          grep -q 'procd_set_param respawn 3600 5 0' \
+            "$work_dir/data/etc/init.d/dumaos"
+          grep -q 'PASSES.*-lt.*3' \
+            "$work_dir/data/etc/init.d/dumaos"
+          grep -q 'killall -9 dpiclass dpiclass.bin' \
+            "$work_dir/data/etc/init.d/dumaos"
+          grep -q 'PASSES.*-lt.*3' \
+            "$work_dir/data/dumaos/system_cleanup.sh"
+          test -x "$work_dir/data/usr/lib/dumaos/platform/control.sh"
+          grep -q '/usr/lib/dumaos/platform/control.sh.*>/dev/null 2>&1 &' \
+            "$work_dir/data/usr/share/transformer/mappings/rpc/dumaos.map"
+          grep -q 'cp /dumaossystem/version /www/data/shorthash' \
+            "$work_dir/data/usr/lib/dumaos/platform/control.sh"
+          cmp "$work_dir/data/www/cards/015_dumaos.lp" \
+            "$work_dir/data/usr/share/modgui-dumaos/015_dumaos.lp"
+          grep -q 'rpc.dumaos.enabled' \
+            "$work_dir/data/www/cards/015_dumaos.lp"
+          grep -q 'href="/desktop/"' \
+            "$work_dir/data/www/cards/015_dumaos.lp"
+          ! grep -q ':81' "$work_dir/data/www/cards/015_dumaos.lp"
+          test -f "$work_dir/data/www/docroot/modals/dumaos-modal.lp"
 
           test -f "$work_dir/data/dumaos/api/cli.lua"
           test -f "$work_dir/data/dumaos/apps/system/com.netdumasoftware.procmanager/main.lua"
