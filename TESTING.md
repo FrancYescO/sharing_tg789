@@ -39,3 +39,11 @@ Using an extracted supported AGTEF rootfs:
 
 Do not tag a release when install, upgrade or removal has not been exercised on
 the hardware canary.
+
+## Optional stock ubus alias regression
+
+`tests/test-ubus-transaction.sh` checks both stock layouts: with and without
+`/sbin/ubus`. Activation and explicit restoration must preserve all stock file
+contents and the original alias presence. A failed activation health check must
+roll back the same state and retain the recovery backup. When the alias was
+absent, its absence marker is included in the backup checksum manifest.

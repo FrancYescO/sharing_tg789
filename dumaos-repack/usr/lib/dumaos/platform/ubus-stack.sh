@@ -59,11 +59,17 @@ backup_stack() {
     copy_checked "$ROOT/lib/libubox.so" "$tmp/libubox.so" 644 || return 1
     copy_checked "$ROOT/sbin/ubusd" "$tmp/ubusd" 755 || return 1
     copy_checked "$ROOT/bin/ubus" "$tmp/ubus" 755 || return 1
-    copy_checked "$ROOT/sbin/ubus" "$tmp/sbin-ubus" 755 || return 1
+    if [ -e "$ROOT/sbin/ubus" ]; then
+      copy_checked "$ROOT/sbin/ubus" "$tmp/sbin-ubus" 755 || return 1
+    else
+      # Some stock firmwares expose only /bin/ubus. Preserve that absence.
+      : > "$tmp/sbin-ubus.absent"
+    fi
   fi
 
   {
-    for f in ubus.so libubus.so libubox.so ubusd ubus sbin-ubus; do
+    for f in ubus.so libubus.so libubox.so ubusd ubus sbin-ubus sbin-ubus.absent; do
+      [ -f "$tmp/$f" ] || continue
       (cd "$tmp" && sha256sum "$f")
     done
   } > "$tmp/MANIFEST" || return 1
@@ -131,7 +137,11 @@ restore_stack() {
   install_one "$BACKUP_DIR/ubus.so" "$ROOT/usr/lib/lua/ubus.so" 644 || return 1
   install_one "$BACKUP_DIR/ubusd" "$ROOT/sbin/ubusd" 755 || return 1
   install_one "$BACKUP_DIR/ubus" "$ROOT/bin/ubus" 755 || return 1
-  install_one "$BACKUP_DIR/sbin-ubus" "$ROOT/sbin/ubus" 755 || return 1
+  if [ -f "$BACKUP_DIR/sbin-ubus.absent" ]; then
+    rm -f "$ROOT/sbin/ubus" || return 1
+  else
+    install_one "$BACKUP_DIR/sbin-ubus" "$ROOT/sbin/ubus" 755 || return 1
+  fi
   sync
 
   health_check || die "restored ubus stack did not pass its health check" || return 1

@@ -2,6 +2,7 @@
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
+for alias in present absent; do
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 
@@ -21,7 +22,9 @@ printf '#!/bin/sh\nexit 0\n# mr22 ubusd\n' > "$fixture/usr/lib/dumaos/platform/m
 chmod 755 "$fixture/bin/ubus" "$fixture/sbin/ubusd" \
   "$fixture/usr/lib/dumaos/platform/mr22/ubus" \
   "$fixture/usr/lib/dumaos/platform/mr22/ubusd"
-cp "$fixture/bin/ubus" "$fixture/sbin/ubus"
+if [ "$alias" = present ]; then
+  cp "$fixture/bin/ubus" "$fixture/sbin/ubus"
+fi
 
 find "$fixture/bin" "$fixture/sbin" "$fixture/lib" "$fixture/usr/lib/lua" \
   -type f -exec cksum {} \; | sort > "$fixture/stock.cksum"
@@ -29,6 +32,10 @@ find "$fixture/bin" "$fixture/sbin" "$fixture/lib" "$fixture/usr/lib/lua" \
 DUMAOS_ROOT="$fixture" "$repo/dumaos-repack/usr/lib/dumaos/platform/ubus-stack.sh" activate
 grep -q 'mr22-libubus' "$fixture/lib/libubus.so"
 test -f "$fixture/etc/dumaos-stock-backup/ubus/.complete"
+if [ "$alias" = absent ]; then
+  test -f "$fixture/etc/dumaos-stock-backup/ubus/sbin-ubus.absent"
+  grep -q '  sbin-ubus.absent$' "$fixture/etc/dumaos-stock-backup/ubus/MANIFEST"
+fi
 
 DUMAOS_ROOT="$fixture" "$repo/dumaos-repack/usr/lib/dumaos/platform/ubus-stack.sh" restore
 find "$fixture/bin" "$fixture/sbin" "$fixture/lib" "$fixture/usr/lib/lua" \
@@ -44,4 +51,6 @@ find "$fixture/bin" "$fixture/sbin" "$fixture/lib" "$fixture/usr/lib/lua" \
 cmp "$fixture/stock.cksum" "$fixture/rollback.cksum"
 test -f "$fixture/etc/dumaos-stock-backup/ubus/.complete"
 
-echo "ubus transaction tests passed"
+echo "ubus transaction tests passed (alias $alias)"
+rm -rf "$fixture"
+done
