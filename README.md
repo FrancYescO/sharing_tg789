@@ -26,7 +26,7 @@ that merely share a package manager.
 Install the release asset matching the package architecture:
 
 ```sh
-opkg install dumaos-repack_2.0-42_arm_cortex-a9.ipk
+opkg install dumaos-repack_2.0-47_arm_cortex-a9.ipk
 ```
 
 The interface is served through the authenticated firmware nginx portal:
